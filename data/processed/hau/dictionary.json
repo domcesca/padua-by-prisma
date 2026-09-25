@@ -1451,7 +1451,7 @@
       "section": "alos",
       "hcaiLabel": "Skilled Nursing — Average Length of Stay",
       "label": "Skilled nursing average length of stay",
-      "summary": "Average days per stay in skilled nursing beds: patient days ÷ discharges.",
+      "summary": "Average days per stay in skilled nursing beds: patient days ÷ discharges (+ transfers out).",
       "unit": "days"
     },
     {

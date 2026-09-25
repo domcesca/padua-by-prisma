@@ -197,7 +197,7 @@ def _bed_grid() -> dict[str, dict]:
             summary = template.format(
                 label=label,
                 lower=lower,
-                transfers=" (+ transfers out)" if prefix in CRITICAL_CARE else "",
+                transfers=" (+ transfers out)" if prefix in CRITICAL_CARE | {"SN"} else "",
             )
             if prefix == "SN" and suffix == "_INTRA_TRANSFERS":
                 summary = "Patients moved from skilled nursing back to a general acute bed."

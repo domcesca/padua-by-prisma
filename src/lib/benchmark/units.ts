@@ -45,7 +45,7 @@ export async function getUnitInfo(unitId: string | null | undefined): Promise<Un
 export function unitMetricDef(base: MetricDef, unit: UnitInfo): MetricDef {
   const p = unit.prefix
   const c = unit.censusPrefix
-  const stays = unit.criticalCare ? `(${p}_DISCHARGES + ${p}_INTRA_TRANSFERS)` : `${p}_DISCHARGES`
+  const stays = unit.countsTransfers ? `(${p}_DISCHARGES + ${p}_INTRA_TRANSFERS)` : `${p}_DISCHARGES`
   const name = unit.description.charAt(0).toLowerCase() + unit.description.slice(1)
   const specific: Record<string, Pick<MetricDef, "summary" | "formula" | "inputs"> & { caution?: string }> = {
     occupancy: {
@@ -62,9 +62,9 @@ export function unitMetricDef(base: MetricDef, unit: UnitInfo): MetricDef {
     alos: {
       summary: `Average days per stay in the unit (${name}).`,
       formula: `${c}_CEN_DAYS ÷ ${stays}`,
-      inputs: [`${c}_CEN_DAYS`, `${p}_DISCHARGES`, ...(unit.criticalCare ? [`${p}_INTRA_TRANSFERS`] : [])],
-      caution: unit.criticalCare
-        ? "Per HCAI's instructions a critical care stay ends at a discharge or a transfer out to a general acute bed, so this is time in the unit, not the whole hospital stay."
+      inputs: [`${c}_CEN_DAYS`, `${p}_DISCHARGES`, ...(unit.countsTransfers ? [`${p}_INTRA_TRANSFERS`] : [])],
+      caution: unit.countsTransfers
+        ? `Per HCAI's instructions a ${unit.criticalCare ? "critical care" : "skilled nursing"} stay ends at a discharge or a transfer out to a general acute bed, so this is time in the unit, not the whole hospital stay.`
         : "Not adjusted for case mix.",
     },
     discharges: {

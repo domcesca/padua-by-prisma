@@ -250,6 +250,8 @@ export type UnitInfo = {
   censusPrefix: string
   /** Critical care units count transfers out to general acute beds as the end of a stay. */
   criticalCare: boolean
+  /** A stay ends at a discharge or a transfer out to a general acute bed (critical care and skilled nursing). */
+  countsTransfers: boolean
 }
 
 /** Unit-level metrics: facility -> year -> unit id -> metric -> value. A unit appears only in years it has licensed beds. */

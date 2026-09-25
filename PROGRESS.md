@@ -84,8 +84,11 @@ _Last updated 2026-09-25, mid-V4 (see §2 V4). Read this first, then `README.md`
    transfer denominators, discharges, patient days; campuses rolled up like everything else). Benchmark `?unit=<id>`
    (Utilization only, all payers only; Payer toggle hidden), unit pill next to the topic, unit-specific metric
    definitions (`src/lib/benchmark/units.ts`). Home has an optional step 3 "View by unit". Checks: unit beds sum to
-   hospital beds in every facility-year; unit ALOS matches HCAI's published ALOS in 1,166/1,172 single-campus 2024
-   cases. 105/2,621 facility-years report patient days in a category with 0 licensed beds (e.g. ICU-level days in
+   hospital beds in every facility-year; unit ALOS matches HCAI's published ALOS in all 7,194 single-report,
+   single-campus unit-years 2019–2024 (the 4 differences left are years a second campus was rolled into the license,
+   where HCAI's figure is the parent campus only). Getting there fixed a V2 bug: skilled nursing ALOS must count
+   SN_INTRA_TRANSFERS like critical care (HCAI's SN_ALOS_CY matches that for 89/89 SNF units in 2023 and 2024);
+   the ETL had counted discharges only. Hospital-wide metrics were unaffected; fields.json SN_ALOS_CY (Translate) changed. 105/2,621 facility-years report patient days in a category with 0 licensed beds (e.g. ICU-level days in
    med/surg-licensed beds) — those days aren't in any unit view, by the beds > 0 rule. Not extended to Build/Correlate
    (they're hospital-wide). HAU report page 3 has: Medical/Surgical (1), Perinatal (2), Pediatric (3), Intensive Care (4), Coronary Care (5), Acute
    Respiratory Care (6), Burn (7), Intensive Care Newborn Nursery (8), Rehabilitation Center (9), GAC subtotal (15),

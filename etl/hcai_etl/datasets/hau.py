@@ -76,7 +76,9 @@ ALOS_INPUTS: dict[str, tuple[str, list[str]]] = {
 }
 ALOS_INPUTS["CHEM_DEPEND_RECOV_ALOS_CY"] = ("CHEM_DEPEND_RECOV_CEN_DAYS", ["CHEM_DEPEND_RECOVERY_DISCHARGES"])
 ALOS_INPUTS["ACUTE_PSYCH_CDRS_ALOS_CY"] = ("ACUTE_PSYCH_CEN_DAYS", ["ACUTE_PSYCH_DISCHARGES"])
-ALOS_INPUTS["SN_ALOS_CY"] = ("SN_CEN_DAYS", ["SN_DISCHARGES"])
+# Skilled nursing, like critical care, ends a stay at a transfer out to a general acute bed (matches HCAI's
+# published SN_ALOS_CY for every hospital, 2023 and 2024).
+ALOS_INPUTS["SN_ALOS_CY"] = ("SN_CEN_DAYS", ["SN_DISCHARGES", "SN_INTRA_TRANSFERS"])
 RATE_INPUTS = {
     **ALOS_INPUTS,
     "INPATIENT_AVG_PER_SURGERY": ("INPATIENT_SURG_OPER_RM_MINS", ["INPATIENT_SURG_OPER"]),
@@ -378,6 +380,8 @@ class HospitalUtilization(Dataset):
                         "prefix": prefix,
                         "censusPrefix": days_prefix,
                         "criticalCare": prefix in CRITICAL_CARE,
+                        # Stays end at a discharge or a transfer out (critical care and skilled nursing).
+                        "countsTransfers": len(ALOS_INPUTS[f"{days_prefix}_ALOS_CY"][1]) > 1,
                     }
                     for u, (prefix, days_prefix) in UNITS.items()
                 ],

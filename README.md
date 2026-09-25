@@ -79,7 +79,7 @@ Utilization (`hau`):
   The ETL combines every campus into the parent facility on the same `LICENSE_NO`, so "a hospital" means the same
   thing in both datasets. Campus names are kept and shown.
 - **Rates are recomputed** from combined totals: occupancy = census days ÷ licensed bed days; ALOS = census days ÷
-  discharges (critical care adds transfers out), per HCAI's instructions.
+  discharges (critical care and skilled nursing add transfers out), matching HCAI's published figures.
 - **Workbook layout.** Data is on the "Page 1-6" sheet with four metadata rows (description, Page, Column, Line) under
   the header; both the ETL and browser uploads skip them.
 - **Length of stay and average daily census are acute-only** (general acute bed lines 1–9: med/surg, perinatal,
@@ -89,7 +89,8 @@ Utilization (`hau`):
 - **Units (bed classifications)** go to `units.json`: HCAI's 14 lines (1–9, 16–20), which sum exactly to total licensed
   beds (lines 30–31 are "of which" breakdowns and are left out). A unit appears in a year only when the hospital has
   licensed beds in it. Benchmark's Utilization topic can be narrowed to one (`?unit=icu`); peers without the unit are
-  left out of the median. Critical-care length of stay counts transfers out, per HCAI.
+  left out of the median. Critical-care and skilled-nursing length of stay count transfers out to general acute beds,
+  as HCAI's published figures do.
 - **Known gaps in HCAI's files:** births are blank from 2022 on; there's no total outpatient-visits field (the app
   takes outpatient visits from the financial report instead, labeled as fiscal-year).
 
