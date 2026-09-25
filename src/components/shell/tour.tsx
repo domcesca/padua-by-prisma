@@ -121,6 +121,8 @@ const START_EVENT = "hcai:start-tour"
 const WALKTHROUGH_EVENT = "padua:walkthrough"
 const PAD = 6
 const CARD_WIDTH = 320
+/** A generous estimate of the card's height (the longest step at 320px wide), for keeping it on screen. */
+const CARD_HEIGHT = 260
 
 function read(storage: () => Storage, key: string) {
   try {
@@ -264,18 +266,23 @@ export function Tour() {
   const current = STEPS[step]
   const last = step === STEPS.length - 1
 
-  // Desktop: the card sits beside the target (below, else above). Phones: docked to whichever
-  // edge the target isn't near.
+  // Desktop: the card goes below the target, else above, else beside it (right, then left), and always stays on
+  // screen: a tall target like the sidebar nav has no room above or below. Phones: docked to whichever edge the
+  // target isn't near.
   let cardStyle: React.CSSProperties = {}
   if (rect) {
     const vw = window.innerWidth
     const vh = window.innerHeight
     if (wide) {
+      const gap = PAD + 12
       const left = Math.min(Math.max(16, rect.left), vw - CARD_WIDTH - 16)
-      cardStyle =
-        vh - rect.bottom > 230
-          ? { top: rect.bottom + PAD + 12, left }
-          : { bottom: vh - rect.top + PAD + 12, left }
+      const top = Math.min(Math.max(16, rect.top), Math.max(16, vh - CARD_HEIGHT - 16))
+      if (vh - rect.bottom >= CARD_HEIGHT + gap + 16) cardStyle = { top: rect.bottom + gap, left }
+      else if (rect.top >= CARD_HEIGHT + gap + 16) cardStyle = { bottom: vh - rect.top + gap, left }
+      else if (vw - rect.right >= CARD_WIDTH + gap + 16) cardStyle = { top, left: rect.right + gap }
+      else if (rect.left >= CARD_WIDTH + gap + 16) cardStyle = { top, left: rect.left - gap - CARD_WIDTH }
+      // No room anywhere around it (a target filling the screen): over its lower part.
+      else cardStyle = { bottom: 24, left }
     } else {
       const nearBottom = rect.height < vh * 0.5 && rect.top + rect.height / 2 > vh / 2
       cardStyle = nearBottom ? { top: 64, left: 16, right: 16 } : { bottom: 88, left: 16, right: 16 }
