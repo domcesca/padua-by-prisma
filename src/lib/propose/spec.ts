@@ -1,4 +1,12 @@
-import { DEFAULT_COSTS, MAX_LIFE, type CostInputs } from "./engine"
+import {
+  DEFAULT_COSTS,
+  DEFAULT_SCENARIO_RATES,
+  MAX_LIFE,
+  MAX_SCENARIO_RATE,
+  SCENARIOS,
+  type CostInputs,
+  type ScenarioRates,
+} from "./engine"
 
 // A proposal lives in the URL: no accounts, nothing saved on the server. Reloading keeps it and
 // the link can be sent on. Module inputs ride along under their module's own keys.
@@ -8,6 +16,8 @@ export type ProposalSpec = {
   name: string
   module: string
   costs: CostInputs
+  /** Conservative / Expected / Optimistic, as percents of the estimate. */
+  rates: ScenarioRates
 }
 
 export const DEFAULT_MODULE = "reimbursement"
@@ -38,7 +48,16 @@ export function parseProposalSpec(params: URLSearchParams, modules: string[]): P
       life: Math.round(num(params.get(COST_KEYS.life), DEFAULT_COSTS.life, 1, MAX_LIFE)),
       discountRate: num(params.get(COST_KEYS.discountRate), DEFAULT_COSTS.discountRate, 0, 50),
     },
+    rates: parseRates(params.get("scen")),
   }
+}
+
+/** "scen=60,100,140": conservative, expected, optimistic. A missing or bad part keeps its default. */
+function parseRates(raw: string | null): ScenarioRates {
+  const parts = (raw ?? "").split(",")
+  return Object.fromEntries(
+    SCENARIOS.map((s, i) => [s.id, num(parts[i] ?? null, DEFAULT_SCENARIO_RATES[s.id], 0, MAX_SCENARIO_RATE)])
+  ) as ScenarioRates
 }
 
 export function proposalSpecToParams(spec: ProposalSpec, moduleParams: Record<string, string>) {
@@ -48,6 +67,9 @@ export function proposalSpecToParams(spec: ProposalSpec, moduleParams: Record<st
   params.set("module", spec.module)
   for (const [key, param] of Object.entries(COST_KEYS) as [keyof CostInputs, string][]) {
     if (spec.costs[key] !== DEFAULT_COSTS[key]) params.set(param, String(spec.costs[key]))
+  }
+  if (SCENARIOS.some((s) => spec.rates[s.id] !== DEFAULT_SCENARIO_RATES[s.id])) {
+    params.set("scen", SCENARIOS.map((s) => spec.rates[s.id]).join(","))
   }
   for (const [k, v] of Object.entries(moduleParams)) if (v) params.set(k, v)
   return params

@@ -7,7 +7,8 @@
 //    annual benefit and maintenance; there's no ramp-up in V6.0.
 //  * Cash, not accounting: payback, cumulative net, ROI, and NPV use cash flows. Straight-line
 //    amortization of the outlay is shown alongside as the annual accounting view.
-//  * Scenarios scale the module's annual benefit only; costs are taken as given.
+//  * Scenarios scale the module's annual benefit only (by an editable rate, 70% / 100% / 130% unless changed);
+//    costs are taken as given.
 
 export type CostInputs = {
   /** Equipment, construction: paid up front. */
@@ -27,11 +28,16 @@ export const MAX_LIFE = 30
 
 export type ScenarioId = "conservative" | "expected" | "optimistic"
 
-export const SCENARIOS: { id: ScenarioId; label: string; multiplier: number }[] = [
-  { id: "conservative", label: "Conservative", multiplier: 0.7 },
-  { id: "expected", label: "Expected", multiplier: 1 },
-  { id: "optimistic", label: "Optimistic", multiplier: 1.3 },
+export const SCENARIOS: { id: ScenarioId; label: string }[] = [
+  { id: "conservative", label: "Conservative" },
+  { id: "expected", label: "Expected" },
+  { id: "optimistic", label: "Optimistic" },
 ]
+
+/** Each scenario's benefit as a percent of the module's estimate. */
+export type ScenarioRates = Record<ScenarioId, number>
+export const DEFAULT_SCENARIO_RATES: ScenarioRates = { conservative: 70, expected: 100, optimistic: 130 }
+export const MAX_SCENARIO_RATE = 1000
 
 export type YearRow = {
   year: number
@@ -69,7 +75,11 @@ export type Projection = {
 
 const clean = (n: number) => (Number.isFinite(n) ? n : 0)
 
-export function project(annualBenefit: number, costs: CostInputs, scenario: (typeof SCENARIOS)[number]): Projection {
+export function project(
+  annualBenefit: number,
+  costs: CostInputs,
+  scenario: { id: ScenarioId; label: string; multiplier: number }
+): Projection {
   const life = Math.min(MAX_LIFE, Math.max(1, Math.round(clean(costs.life))))
   const capital = Math.max(0, clean(costs.capital))
   const implementation = Math.max(0, clean(costs.implementation))
@@ -114,7 +124,8 @@ export function project(annualBenefit: number, costs: CostInputs, scenario: (typ
 }
 
 /** All three scenarios for one annual benefit, conservative first. */
-export const projectAll = (annualBenefit: number, costs: CostInputs) => SCENARIOS.map((s) => project(annualBenefit, costs, s))
+export const projectAll = (annualBenefit: number, costs: CostInputs, rates: ScenarioRates = DEFAULT_SCENARIO_RATES) =>
+  SCENARIOS.map((s) => project(annualBenefit, costs, { ...s, multiplier: Math.max(0, clean(rates[s.id])) / 100 }))
 
 /** "2.4 years", "under a month", or null → "not within N years". */
 export function formatPayback(years: number | null, life: number) {

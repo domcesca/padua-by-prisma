@@ -1,6 +1,7 @@
-# HCAI Insights
+# Padua by Prisma
 
-A web app for California hospital administrators that turns HCAI's public hospital financial and utilization data
+**Padua** is a web app from Prisma Executive for California hospital administrators. It is an independent tool, not
+an HCAI, CMS, CDPH, or DHCS product. It turns HCAI's public hospital financial and utilization data
 into something usable: a guided front door, peer benchmarking against similar hospitals, a chart and table builder, a
 business-case builder for new initiatives, a plain-language field guide, and a reporting calendar.
 
@@ -10,7 +11,7 @@ business-case builder for new initiatives, a plain-language field guide, and a r
 | **Benchmark** | A hospital against its peer group on financial metrics (operating margin, days cash on hand, cost and revenue per adjusted discharge, payer mix) utilization metrics (occupancy, ALOS, ED visits and flow, surgeries, cath volume), or quality (CMS readmissions, mortality, patient experience, star ratings; CDPH infection ratios). A collapsible panel shows the county's Census and Medi-Cal context. Default peers are **similar hospitals** (see below); switch to all of California or set filters yourself. A **Payer view** toggle (All payers / Medicare) narrows the metrics to Medicare where HCAI reports a Medicare split. Every view is a shareable URL. |
 | **Build** | A guided chart and table builder: up to four metrics from the catalog, line / bar / table, grouped by year, by hospital, or against the peer group. Legend, table view, CSV download, and a copyable link on every result. |
 | **Correlate** | Any two catalog metrics (Financial, Utilization, Quality, Medicare lens) plotted against each other across a hospital's similar hospitals or all of California for one year: scatter, least-squares trend line, Pearson r, and Spearman rank ρ (robust to outliers). Fewer than 8 hospitals gets "Small sample size — interpret with caution"; fewer than 3, no r. Pairing years of different kinds (fiscal vs. calendar vs. CMS periods) is called out. Table view, CSV, shareable link. |
-| **Propose** | The financial case for a new technology, service, or piece of equipment. Enter capital, implementation, and yearly running costs and a useful life; pick how the benefit is estimated (**Reimbursement**: MS-DRGs × added cases × a national Medicare payment estimate, with the hospital's own Medicare cases and its peers' as context; or **Custom**: your own benefit lines). Payback, ROI, NPV, amortized and cumulative net for Conservative / Expected / Optimistic (0.7× / 1× / 1.3× benefit) side by side, a cumulative chart, a year-by-year table, and a print-to-PDF layout. The proposal lives in the link; nothing is saved. |
+| **Propose** | The financial case for a new technology, service, or piece of equipment. Enter capital, implementation, and yearly running costs and a useful life; pick how the benefit is estimated (**Reimbursement**: MS-DRGs × added cases × a national Medicare payment estimate, with the hospital's own Medicare cases and its peers' as context; or **Custom**: your own benefit lines). Payback, ROI, NPV, amortized and cumulative net for Conservative / Expected / Optimistic side by side (70% / 100% / 130% of the estimated benefit by default; each rate is editable), a cumulative chart, a year-by-year table, and a print-to-PDF layout. The proposal lives in the link; nothing is saved. |
 | **Translate** | Every field in either dataset in plain language, with why it moves. Pick a hospital to see year-over-year changes, or paste/upload a raw HCAI extract (.xlsx/.csv, including the utilization workbook) to translate its columns. Parsing happens in the browser. |
 | **Deadlines** | (Desktop sidebar and the home page; not in the phone tab bar.) Quarterly and annual financial report due dates for a hospital's fiscal year, the Annual Utilization Report (Feb 15), extension limits, off-cycle report periods, and filed/extended tracking (saved in the browser). |
 | **Ask** / **Watch** | Placeholders for natural-language queries and anomaly detection on uploaded data. |
@@ -186,7 +187,9 @@ used (they cover traditional Medicare only, by calendar year, and need a CCN cro
 the same for every proposal: year 0 is capital + implementation; years 1..life each get the full annual benefit minus
 maintenance (no ramp-up, inflation, or taxes). It returns payback (fractional years, from cumulative cash), simple ROI
 ((total benefit − total cost) ÷ total cost over the life), NPV at the entered discount rate, and straight-line
-amortized net. Scenarios multiply the module's annual benefit by 0.7 / 1 / 1.3; costs are unchanged.
+amortized net. Scenarios multiply the module's annual benefit by an editable rate per scenario (default 70% / 100% /
+130%, in the link as `scen=70,100,130` when changed); costs are unchanged. A Conservative rate above Optimistic gets a
+non-blocking note, nothing more.
 
 **Benefit modules are plug-ins.** Each is a `ProposalModule` (`src/lib/propose/module.ts`): its inputs, how they go
 in the URL, its benefit calculation, and its editor. Register it in `src/components/propose/modules/index.ts`; if it
@@ -275,6 +278,18 @@ Apple-style restraint with a "Liquid Glass" layer (utilities in `src/app/globals
 - Long lists (metrics, units, counties) all use one picker, `GroupedPicker` / `PickerPill`
   (`src/components/shell/grouped-picker.tsx`): a search box over groups that stay collapsed until opened. Short fixed
   lists (years, distance, bed size) use `FilterPill`.
+
+## Brand
+
+The name lives in `src/lib/brand.ts` (`APP_NAME` "Padua" for the nav wordmark, `APP_FULL_NAME` "Padua by Prisma" for
+the page title, printouts, and the nav subline). The mark is `src/components/shell/padua-mark.tsx`: a thin-line SVG in
+`currentColor` that thickens its stroke below ~64px. Favicons in `src/app/`: `icon.svg` (switches stroke color with the
+browser's light/dark setting), plus `favicon.ico` (16/32/48) and `apple-icon.png` (180) on a dark tile. The home page's
+attribution line (`APP_ATTRIBUTION`) is placeholder wording awaiting confirmation.
+
+Internal names that still say "hcai" refer to the **data**, not the product, and are kept on purpose: the `etl/hcai_etl`
+package, and the browser-storage keys `hcai-selection-v1` / `hcai-tour-v1` (renaming them would forget every viewer's
+chosen hospital and replay the tour).
 
 ## Deploying (Vercel)
 

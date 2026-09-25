@@ -4,9 +4,21 @@ import { Check, Link2, Printer, TriangleAlert } from "lucide-react"
 import { useEffect, useState } from "react"
 
 import { FacilityPicker, type FacilityOption } from "@/components/benchmark/facility-picker"
+import { PaduaMark } from "@/components/shell/padua-mark"
 import { Segmented } from "@/components/shell/segmented"
+import { APP_FULL_NAME } from "@/lib/brand"
 import { formatPercent, formatUsd } from "@/lib/format"
-import { formatPayback, MAX_LIFE, projectAll, SCENARIOS, type CostInputs, type Projection, type ScenarioId } from "@/lib/propose/engine"
+import {
+  formatPayback,
+  MAX_LIFE,
+  MAX_SCENARIO_RATE,
+  projectAll,
+  SCENARIOS,
+  type CostInputs,
+  type Projection,
+  type ScenarioId,
+  type ScenarioRates,
+} from "@/lib/propose/engine"
 import type { ProposalModule } from "@/lib/propose/module"
 import { parseProposalSpec, proposalSpecToParams, type ProposalSpec } from "@/lib/propose/spec"
 import { rememberSelection, useSelection } from "@/lib/selection"
@@ -82,7 +94,7 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
   const setCost = (key: keyof CostInputs, value: number) => setSpec({ ...spec, costs: { ...spec.costs, [key]: value } })
 
   const benefit = mod.benefit(state, moduleData)
-  const projections = projectAll(benefit.annual, spec.costs)
+  const projections = projectAll(benefit.annual, spec.costs, spec.rates)
   const focused = projections.find((p) => p.scenario === focus)!
   const hasCost = spec.costs.capital + spec.costs.implementation + spec.costs.maintenance > 0
   const ready = !benefit.incomplete && hasCost
@@ -103,7 +115,13 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
     <div className="space-y-6">
       {/* Printout header: what this is, for whom, and when. */}
       <div className="hidden print:block">
-        <p className="text-xs text-muted-foreground">HCAI Insights · Proposal · {new Date().toLocaleDateString("en-US", { dateStyle: "long" })}</p>
+        <p className="flex items-center gap-2 text-xs text-muted-foreground">
+          <PaduaMark size={22} className="text-foreground" />
+          <span>
+            <span className="font-semibold text-foreground">{APP_FULL_NAME}</span> · Proposal ·{" "}
+            {new Date().toLocaleDateString("en-US", { dateStyle: "long" })}
+          </span>
+        </p>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight">{title}</h1>
         <p className="text-sm text-muted-foreground">
           {facility ? facility.name : "No hospital chosen"} · {mod.label} estimate · Useful life {spec.costs.life} years
@@ -217,7 +235,7 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
               Results
             </h2>
             <p className="text-[13px] text-muted-foreground print:hidden">
-              Three scenarios scale the expected benefit by 0.7×, 1×, and 1.3×; costs stay the same.
+              Each scenario takes a share of the estimated benefit (edit the rates below); costs stay the same.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 print:hidden">
@@ -235,6 +253,28 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
             </span>
           </p>
         )}
+
+        {/* Each scenario's rate sits over its card. */}
+        <div className="print:hidden">
+          <div className="grid gap-3 sm:grid-cols-3">
+            {SCENARIOS.map((s) => (
+              <NumberField
+                key={s.id}
+                label={`${s.label} rate`}
+                suffix="% of estimate"
+                value={spec.rates[s.id]}
+                onChange={(v) => update({ rates: { ...spec.rates, [s.id]: v } })}
+                max={MAX_SCENARIO_RATE}
+                decimals={1}
+              />
+            ))}
+          </div>
+          {spec.rates.conservative > spec.rates.optimistic && (
+            <p role="status" className="mt-1.5 text-xs text-warning">
+              Conservative is set higher than Optimistic. That’s allowed, but check it’s intended.
+            </p>
+          )}
+        </div>
 
         <div className="grid gap-3 md:grid-cols-3 print:grid-cols-3">
           {projections.map((p) => (
@@ -276,7 +316,7 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
               Year by year · {focused.label.toLowerCase()}
             </h3>
             <p className="mb-3 text-xs text-muted-foreground">
-              Benefit × {focused.multiplier}.<span className="print:hidden"> Switch scenarios with the chart’s control above.</span>
+              Benefit at {formatRate(focused.multiplier)} of the estimate.<span className="print:hidden"> Switch scenarios with the chart’s control above.</span>
             </p>
             <YearTable p={focused} />
           </section>
@@ -284,7 +324,7 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
             <h3 id="inputs-title" className="mb-3 text-[15px] font-semibold tracking-tight">
               What went in
             </h3>
-            <Inputs costs={spec.costs} lines={benefit.lines} annual={benefit.annual} />
+            <Inputs costs={spec.costs} rates={spec.rates} lines={benefit.lines} annual={benefit.annual} />
           </section>
         </div>
 
@@ -307,6 +347,9 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
     </div>
   )
 }
+
+/** A scenario multiplier as a percent: 0.7 → "70%". */
+const formatRate = (multiplier: number) => `${Number((multiplier * 100).toFixed(1))}%`
 
 function ScenarioCard({
   p,
@@ -335,7 +378,7 @@ function ScenarioCard({
       <span className="flex items-center justify-between gap-2">
         <span className="inline-flex items-center gap-1.5 text-[11px] font-medium tracking-wide text-tertiary-foreground uppercase">
           <span className="size-2 rounded-full" style={{ background: SCENARIO_COLOR[p.scenario] }} aria-hidden />
-          {p.label} · {p.multiplier}×
+          {p.label} · {formatRate(p.multiplier)}
         </span>
       </span>
       <span>
@@ -407,7 +450,17 @@ function YearTable({ p }: { p: Projection }) {
   )
 }
 
-function Inputs({ costs, lines, annual }: { costs: CostInputs; lines: { label: string; detail?: string; amount: number }[]; annual: number }) {
+function Inputs({
+  costs,
+  rates,
+  lines,
+  annual,
+}: {
+  costs: CostInputs
+  rates: ScenarioRates
+  lines: { label: string; detail?: string; amount: number }[]
+  annual: number
+}) {
   const row = (label: string, value: string, detail?: string) => (
     <div className="flex items-baseline justify-between gap-3 py-1">
       <dt className="min-w-0">
@@ -420,7 +473,7 @@ function Inputs({ costs, lines, annual }: { costs: CostInputs; lines: { label: s
   return (
     <div className="space-y-3">
       <div>
-        <p className="text-[11px] font-medium tracking-wide text-tertiary-foreground uppercase">Benefit a year (expected)</p>
+        <p className="text-[11px] font-medium tracking-wide text-tertiary-foreground uppercase">Benefit a year (estimate, before scenario rates)</p>
         <dl className="divide-y divide-border/60">
           {lines.length ? lines.map((l) => <div key={l.label}>{row(l.label, formatUsd(l.amount), l.detail)}</div>) : row("None entered yet", "—")}
           {lines.length > 1 && row("Total", formatUsd(annual))}
@@ -434,6 +487,7 @@ function Inputs({ costs, lines, annual }: { costs: CostInputs; lines: { label: s
           {row("Maintenance and running", formatUsd(costs.maintenance), "Each year")}
           {row("Useful life", `${costs.life} ${costs.life === 1 ? "year" : "years"}`)}
           {row("Discount rate", `${costs.discountRate}%`)}
+          {row("Scenario rates", SCENARIOS.map((s) => `${rates[s.id]}%`).join(" / "), "Conservative / Expected / Optimistic, of the estimate")}
         </dl>
       </div>
     </div>

@@ -1,10 +1,10 @@
 # PROGRESS — handoff for the next session
 
-_Last updated 2026-09-25, V6.1 (see §2 V6.0 and V6.1). Read this first, then `README.md` (run/refresh/deploy commands) and `AGENTS.md` (this is Next.js 16 — check `node_modules/next/dist/docs/` before writing Next code)._
+_Last updated 2026-09-25, V6.2 (see §2 V6.0–V6.2). Read this first, then `README.md` (run/refresh/deploy commands) and `AGENTS.md` (this is Next.js 16 — check `node_modules/next/dist/docs/` before writing Next code)._
 
 ## 1. Project overview
 
-**HCAI Insights** (working name; the repo is `usc-hcai-insights`) is a web app for California hospital administrators and finance leaders (CFO-level readers). It turns HCAI's public hospital financial and utilization files into peer benchmarks, a chart/table builder, a plain-language field guide, a business-case builder (Propose), and a filing calendar. There are no accounts, no database and no API keys. All data is public HCAI open data, pre-processed by a Python ETL into committed JSON.
+**Padua by Prisma** ("Padua" in the nav; formerly "HCAI Insights"; the repo is still `usc-hcai-insights`) is a web app from Prisma Executive, an independent consulting firm (not HCAI-, agency-, or university-affiliated), for California hospital administrators and finance leaders (CFO-level readers). It turns HCAI's public hospital financial and utilization files into peer benchmarks, a chart/table builder, a plain-language field guide, a business-case builder (Propose), and a filing calendar. There are no accounts, no database and no API keys. All data is public HCAI open data, pre-processed by a Python ETL into committed JSON.
 
 ## 2. What's built
 
@@ -173,6 +173,24 @@ downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and
   pickers set neither, so their ranking is unchanged (Build "stay" checked). Labels wrap to two lines instead of
   truncating, for long DRG titles on phones.
 - Also fixed: a blank proposal showed payback "Immediate" (0 cost, 0 benefit); it shows "—" until something is entered.
+
+### V6.2 (editable scenario rates; rebrand to Padua by Prisma)
+- **Scenario rates:** Conservative / Expected / Optimistic are now editable percents (default 70 / 100 / 130) above the
+  scenario cards; the engine applies them exactly as the old fixed multipliers (`projectAll(benefit, costs, rates)`).
+  In the URL as `scen=` only when changed. Conservative > Optimistic shows a soft note, no validation beyond that.
+  Cards show the rate ("Conservative · 70%"); "What went in" lists the rates; its benefit heading now says "estimate,
+  before scenario rates" (the Expected rate can differ from 100%).
+- **Rebrand:** "HCAI Insights" → "Padua" (nav wordmark, mobile header) / "Padua by Prisma" (page title template,
+  Open Graph site name, nav subline, home eyebrow, proposal print header). Name constants in `src/lib/brand.ts`.
+  Data sourcing and disclosure copy unchanged. `package.json` (and lockfile) name → `padua`; ETL user agent →
+  `padua-etl`. Kept on purpose: `etl/hcai_etl`, storage keys `hcai-selection-v1` / `hcai-tour-v1` (data-named; renaming
+  resets viewers' saved hospital and replays the tour).
+- **Logo:** `PaduaMark` (stroke thickens at small sizes) in the sidebar (30px), mobile header (22px), and proposal print
+  header. Favicons generated from it: `src/app/icon.svg` (light/dark aware), `favicon.ico`, `apple-icon.png` (the old
+  Next.js default favicon is gone).
+- **Placeholder to confirm:** the attribution line at the foot of the home page (`APP_ATTRIBUTION`). No copyright text.
+- **Outside this repo (for the owner):** GitHub repo name `usc-hcai-insights`, the Vercel project name and its
+  `usc-hcai-insights*.vercel.app` URLs, and the repo's listed homepage. Nothing in the code depends on them.
 
 ## 3. Key decisions and why
 
