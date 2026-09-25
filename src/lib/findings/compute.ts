@@ -111,6 +111,13 @@ function evidenceOf(metric: MetricDef, points: SeriesPoint[]): EvidencePoint | n
     standing: metricStanding(metric.id, latest.percentile, latest.n),
     trend: t,
     compared: comparedText(metric, latest.detail?.compared),
+    text: {
+      value: formatMetric(metric, latest.value),
+      median: latest.median != null ? formatMetric(metric, latest.median) : null,
+      p25: latest.p25 != null ? formatMetric(metric, latest.p25) : null,
+      p75: latest.p75 != null ? formatMetric(metric, latest.p75) : null,
+    },
+    prior: prior?.value != null ? { text: formatMetric(metric, prior.value), period: periodOf(prior), rising: latest.value! > prior.value } : null,
   }
 }
 
@@ -186,7 +193,7 @@ function metricCandidate(metric: MetricDef, weight: number, points: SeriesPoint[
 function programStatus(source: SourceStatus, fiscalYear: number, period: string, matched: string | null): StatusInfo {
   return {
     through: period,
-    periodType: `CMS program year (federal fiscal year ${fiscalYear})`,
+    periodType: `CMS performance period (FY ${fiscalYear} penalty)`,
     published: source.sourceUpdated ? `Source updated ${source.sourceUpdated}` : null,
     processed: `Processed ${source.processed}`,
     audit: null,
@@ -214,8 +221,9 @@ function hrrpCandidate(data: PenaltyData, source: SourceStatus, weight: number):
   for (const { key, label } of HRRP_CONDITIONS) {
     const c = h.conditions[key]
     if (!c || !hrrpCounts(c, data.hrrp.minDischarges) || !(c.err > c.peerMedian!)) continue
-    // Readmission-rate points that bring the ERR to the peer-group median, as the penalty module models a cut.
-    const gap = c.predicted ? Math.round(c.predicted * (1 - c.peerMedian! / c.err) * 10) / 10 : null
+    // Readmission-rate points that bring the ERR to the peer-group median, as the penalty module models a cut; rounded
+    // up to a tenth so the prefill reaches the median rather than stopping just short of it.
+    const gap = c.predicted ? Math.ceil(c.predicted * (1 - c.peerMedian! / c.err) * 10 - 1e-9) / 10 : null
     items.push({
       key,
       label,
@@ -246,7 +254,7 @@ function hrrpCandidate(data: PenaltyData, source: SourceStatus, weight: number):
         }
       : null,
     items,
-    status: programStatus(source, data.hrrp.fiscalYear, `performance period ${periodText(data.hrrp.period)}`, data.reportedWithName),
+    status: programStatus(source, data.hrrp.fiscalYear, periodText(data.hrrp.period), data.reportedWithName),
   }
 }
 
@@ -258,7 +266,7 @@ function hacCandidate(data: PenaltyData, source: SourceStatus, weight: number, p
     const m = h.measures[key]
     if (!m || m.value == null || !(m.z > 0)) continue
     const median = peerMedians[key]
-    const gap = key !== "psi90" && median != null && m.value > median ? Math.min(100, Math.round((1 - median / m.value) * 100)) : null
+    const gap = key !== "psi90" && median != null && m.value > median ? Math.min(100, Math.ceil((1 - median / m.value) * 100 - 1e-9)) : null
     items.push({
       key,
       label,
@@ -288,7 +296,7 @@ function hacCandidate(data: PenaltyData, source: SourceStatus, weight: number, p
         }
       : null,
     items,
-    status: programStatus(source, data.hac.fiscalYear, `performance periods ${periodText(data.hac.periods.hai)} (infections), ${periodText(data.hac.periods.psi90)} (PSI 90)`, data.reportedWithName),
+    status: programStatus(source, data.hac.fiscalYear, `${periodText(data.hac.periods.hai)} (infections), ${periodText(data.hac.periods.psi90)} (PSI 90)`, data.reportedWithName),
   }
 }
 
@@ -304,7 +312,7 @@ function proposeLink(family: Family, facilityId: string, candidates: Candidate[]
     const readm = family.propose === "penalty-readm"
     params.set("module", "penalty")
     params.set("pick", "manual")
-    params.set("name", readm ? `Readmission reduction: ${gaps.map((g) => g.label.toLowerCase()).join(", ") || "penalized conditions"}` : "Infection reduction: HAC penalty")
+    params.set("name", readm ? `Readmission reduction: ${gaps.map((g) => g.label).join(", ") || "penalized conditions"}` : "Infection reduction: HAC penalty")
     params.set(
       "desc",
       readm

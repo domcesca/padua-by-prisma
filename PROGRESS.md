@@ -292,6 +292,21 @@ downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and
   Outdated = newest report more than 2 years behind the newest data (13 hospitals, some of them campuses now reported
   under a parent).
 
+### V7.0 (Opportunity Finder and administrator front door)
+- Key findings engine (`src/lib/findings/`), `/api/findings`, Home's "Where to look first", Benchmark's Key findings
+  panel with methodology drawer and "Related signal" links on metric cards, and `/briefing` (browser-local pins with
+  a pinned-vs-now comparison). Details in the README. No existing metric, calculation or data changed; the engine
+  reads Benchmark's metric series and Propose's penalty data.
+- Decisions (confirmed): workforce/capacity left out; weights 1.0 / 0.8 / 0.6; occupancy never judged; at most 2
+  primary per signal type; penalty prefills = gap to peer median ("a starting point, not a target"), cost savings
+  with no amounts; primary minimum 20 from calibration; Home shows the top 3; briefing is its own page; no strengths.
+  One finding per family: multi-condition readmission penalties are one Readmissions finding.
+- Calibration (451 active hospitals, default Similar peers, no minimum): 1,493 findings; 411 hospitals have at least
+  one, 40 none; median 3 per hospital, max 8. Score quartiles 18.8 / 31.5 / 45.6, 90th percentile 67.1. Confidence:
+  540 High, 682 Medium, 271 Low. At a minimum of 20: 53 of 411 hospitals get no primary finding (median 2 primary).
+  With 8 families the 5 + 5 cap never overflows yet. Every HAC-penalized hospital (75) leads at 90 (binary penalty at
+  full severity). 276 of 451 Similar peer groups have 5–9 hospitals, the main reason findings are Medium.
+
 ### V6.13 (Shared vocabulary: favorability, freshness, visual polish)
 - Favorability labels, direction words, status lines, terminology, contrast, loading/empty states, mobile summary bar
   and sheet, and focus/announcement fixes across Benchmark, Build, Correlate, Propose, Translate, and Deadlines. Details
@@ -425,7 +440,8 @@ The utilities are all in `src/app/globals.css`. **Reuse them; don't invent new o
 - **Ask** (natural-language queries): placeholder only, deferred past V5. The intended design is NL → `ReportSpec` → the existing Build runner.
 - **Watch** (anomaly detection on uploaded data): placeholder only.
 - **Case mix** topic (conditions/procedures treated): shown as "coming later" on the home page (`FUTURE_CATEGORIES` in `datasets.ts`). The CMI itself is built (Utilization).
-- **Other**: no accounts, saved reports, server-side uploads or database.
+- **Other**: no accounts, saved reports, server-side uploads or database (the V7.0 briefing is browser-local).
+- **Opportunity Finder follow-ups**: workforce metrics (HCAI staffing fields, pending definitions and directions), a strengths companion, peer-fit signal (V7.1), tool-level findings (V7.2), more Propose handoffs (V7.3).
 - **More HCAI datasets:** Quarterly Financial & Utilization and the complete Annual Disclosure set are planned but not started.
 
 ## 5. Deployment state (checked 2026-09-24)

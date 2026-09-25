@@ -24,7 +24,7 @@ export const MIN_SCORED_PEERS = 5
 /**
  * Lowest score a finding needs to be primary. From the statewide calibration run (scripts/calibrate_findings.py): 20
  * drops the weakest quarter of findings, which sit barely inside the unfavorable quarter of peers (median severity
- * 0.26). Proposed; pending review.
+ * 0.26). Reviewed and confirmed for V7.0.
  */
 export const MIN_PRIMARY_SCORE = 20
 
@@ -173,6 +173,10 @@ export type EvidencePoint = {
   trend: Trend | null
   /** "Worse than the national rate", where the source rates it. */
   compared: string | null
+  /** Display strings, formatted as the metric cards format them. */
+  text: { value: string; median: string | null; p25: string | null; p75: string | null }
+  /** The hospital's previous value, for the trend's words: "from 4.1% in 2023". */
+  prior: { text: string; period: string; rising: boolean } | null
 }
 
 export type StatusInfo = {

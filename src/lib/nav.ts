@@ -6,6 +6,7 @@ import {
   ChartColumnBig,
   House,
   MessageSquareText,
+  NotebookPen,
   ScanEye,
   type LucideIcon,
 } from "lucide-react"
@@ -56,6 +57,13 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Deadlines",
     description: "HCAI reporting calendar",
     icon: CalendarClock,
+    desktopOnly: true,
+  },
+  {
+    href: "/briefing",
+    label: "Briefing",
+    description: "Key findings you pinned, checked against the latest data",
+    icon: NotebookPen,
     desktopOnly: true,
   },
   {
