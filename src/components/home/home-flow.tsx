@@ -130,7 +130,7 @@ export function HomeFlow({
         <p className="text-[13px] font-medium text-muted-foreground">HCAI Insights · California hospital data, made usable</p>
         <h1 className="text-[34px] leading-[1.1] font-semibold tracking-tight sm:text-[44px]">What do you want to look at?</h1>
         <p className="max-w-2xl text-[17px] leading-relaxed text-muted-foreground">
-          Pick a topic and a hospital. You&apos;ll see it next to similar California hospitals, using HCAI&apos;s public
+          Pick a hospital, then a topic. You&apos;ll see it next to similar California hospitals, using HCAI&apos;s public
           financial and utilization reports and CMS and CDPH quality data.
         </p>
         {resume && (
@@ -148,7 +148,47 @@ export function HomeFlow({
       </header>
 
       {/* Step 1 */}
-      <Step n={1} title="Choose a topic" done={category != null}>
+      <Step n={1} title="Which hospital?" done={facilityId != null}>
+        <div className="max-w-2xl space-y-3">
+          <FacilityPicker facilities={facilities} value={facilityId} onChange={chooseFacility} latestYear={latestYear} />
+          {!facilityId && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-tertiary-foreground">Or try</span>
+              {suggestions.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => chooseFacility(s.id)}
+                  className="glass-subtle rounded-full px-3 py-1.5 text-[13px] transition-colors hover:bg-white/80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none dark:hover:bg-white/10"
+                >
+                  {s.name}
+                </button>
+              ))}
+            </div>
+          )}
+          {facility && (
+            <p className="fade-up text-[13px] text-muted-foreground" aria-live="polite">
+              {previewLoading && !preview ? (
+                <span className="flex max-w-xs flex-col gap-1.5">
+                  <span className="inline-flex items-center gap-1.5">
+                    <Loader2 className="size-3.5 animate-spin" /> Finding similar hospitals…
+                  </span>
+                  <span className="loading-bar" />
+                </span>
+              ) : preview ? (
+                <>
+                  Will compare with <span className="font-medium text-foreground">{preview.count}</span>{" "}
+                  {peers === "similar" ? "similar hospitals" : "hospitals"}:{" "}
+                  {preview.description.charAt(0).toLowerCase() + preview.description.slice(1)}.
+                </>
+              ) : null}
+            </p>
+          )}
+        </div>
+      </Step>
+
+      {/* Step 2 */}
+      <Step n={2} title="Choose a topic" done={category != null}>
         <div role="radiogroup" aria-label="Topic" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {CATEGORIES.map((c) => {
             const Icon = ICONS[c.id]
@@ -208,52 +248,11 @@ export function HomeFlow({
             )
           })}
         </div>
-      </Step>
-
-      {/* Step 2 */}
-      <Step n={2} title="Which hospital?" done={facilityId != null}>
-        <div className="max-w-2xl space-y-3">
-          <FacilityPicker facilities={facilities} value={facilityId} onChange={chooseFacility} latestYear={latestYear} />
-          {!facilityId && (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs text-tertiary-foreground">Or try</span>
-              {suggestions.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => chooseFacility(s.id)}
-                  className="glass-subtle rounded-full px-3 py-1.5 text-[13px] transition-colors hover:bg-white/80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none dark:hover:bg-white/10"
-                >
-                  {s.name}
-                </button>
-              ))}
-            </div>
-          )}
-          {facility && (
-            <p className="fade-up text-[13px] text-muted-foreground" aria-live="polite">
-              {previewLoading && !preview ? (
-                <span className="flex max-w-xs flex-col gap-1.5">
-                  <span className="inline-flex items-center gap-1.5">
-                    <Loader2 className="size-3.5 animate-spin" /> Finding similar hospitals…
-                  </span>
-                  <span className="loading-bar" />
-                </span>
-              ) : preview ? (
-                <>
-                  Will compare with <span className="font-medium text-foreground">{preview.count}</span>{" "}
-                  {peers === "similar" ? "similar hospitals" : "hospitals"}:{" "}
-                  {preview.description.charAt(0).toLowerCase() + preview.description.slice(1)}.
-                  {noDataForCategory && (
-                    <span className="text-warning">
-                      {" "}
-                      HCAI has no {category === "financial" ? "financial" : "utilization"} data for this hospital.
-                    </span>
-                  )}
-                </>
-              ) : null}
-            </p>
-          )}
-        </div>
+        {noDataForCategory && facility && (
+          <p className="fade-up mt-3 text-[13px] text-warning" aria-live="polite">
+            HCAI has no {category === "financial" ? "financial" : "utilization"} data for {facility.name}.
+          </p>
+        )}
       </Step>
 
       {/* Step 3 */}
@@ -352,7 +351,7 @@ export function HomeFlow({
             ready ? "btn-accent active:scale-[0.98]" : "glass-subtle cursor-not-allowed text-muted-foreground"
           )}
         >
-          {ready ? `Compare ${facility!.name}` : "Choose a topic and a hospital"}
+          {ready ? `Compare ${facility!.name}` : "Choose a hospital and a topic"}
           <ArrowRight className="size-4" />
         </Link>
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px]">
