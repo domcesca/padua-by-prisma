@@ -11,11 +11,12 @@ type Option = { value: string; label: string; hint?: string }
 
 const pillClass = (active: boolean) =>
   cn(
-    "inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] whitespace-nowrap transition-colors duration-150",
-    "ring-1 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+    "inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] whitespace-nowrap transition-[background-color,box-shadow] duration-200",
+    "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+    // Active filters get the accent hairline and a soft glow; resting ones are quiet glass.
     active
-      ? "bg-primary/10 text-primary ring-primary/20 dark:bg-primary/20"
-      : "bg-card text-foreground ring-black/8 hover:bg-muted dark:ring-white/12"
+      ? "glass-subtle ring-accent glow-soft text-foreground"
+      : "glass-subtle text-foreground hover:bg-white/80 dark:hover:bg-white/10"
   )
 
 /** A pill-shaped filter that opens a searchable, optionally multi-select list. */

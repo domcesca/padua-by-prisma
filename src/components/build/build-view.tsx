@@ -159,11 +159,11 @@ export function BuildView({
                           disabled={full}
                           onClick={() => toggleMetric(m.id)}
                           className={cn(
-                            "chip inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-[12px] ring-1 transition-colors duration-150",
+                            "inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-[12px] transition-[color,box-shadow] duration-200",
                             "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-40",
                             on
-                              ? "is-on bg-primary/10 text-primary ring-primary/25 dark:bg-primary/20"
-                              : "bg-card text-muted-foreground ring-black/8 hover:bg-muted hover:text-foreground dark:ring-white/12"
+                              ? "glass-subtle ring-accent glow-soft text-foreground"
+                              : "glass-subtle text-muted-foreground hover:text-foreground"
                           )}
                         >
                           {on && <Check className="size-3" />}
@@ -239,7 +239,7 @@ export function BuildView({
           <Field label="Compare with" hint={`Up to ${MAX_COMPARE} more hospitals.`}>
             <div className="space-y-2">
               {spec.compare.map((id) => (
-                <div key={id} className="flex h-9 items-center gap-2 rounded-lg bg-card px-3 text-[13px] ring-1 ring-black/5 dark:ring-white/10">
+                <div key={id} className="glass-subtle flex h-9 items-center gap-2 rounded-lg px-3 text-[13px]">
                   <span className="flex-1 truncate">{facilityById.get(id)?.name ?? id}</span>
                   <button
                     type="button"
@@ -282,13 +282,16 @@ export function BuildView({
 
       {/* Result */}
       <div className="min-w-0 space-y-5">
+        <div className="-mb-3 h-0.5" aria-hidden>
+          {loading && <div className="loading-bar fade-up" />}
+        </div>
         {error && (
           <p role="alert" className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
             {error}
           </p>
         )}
         {!spec.facilityId || !spec.metrics.length ? (
-          <div className="rounded-2xl border border-dashed border-border px-6 py-16 text-center">
+          <div className="glass rounded-2xl px-6 py-16 text-center">
             <p className="text-lg font-semibold tracking-tight">
               {!spec.facilityId ? "Choose a hospital to start." : "Choose one or more metrics."}
             </p>
@@ -327,7 +330,7 @@ export function BuildView({
                 if (!metric) return null
                 const focusValue = panel.rows.find((r) => r.role === "focus")?.value
                 return (
-                  <section key={panel.metricId} aria-label={metric.label} className="fade-up min-w-0 rounded-2xl bg-card p-5 shadow-card">
+                  <section key={panel.metricId} aria-label={metric.label} className="glass fade-up min-w-0 rounded-2xl p-5">
                     <header className="mb-3 space-y-2">
                       <div className="flex items-center gap-1.5">
                         <h3 className="text-[15px] font-semibold tracking-tight">{metric.label}</h3>
@@ -356,7 +359,7 @@ export function BuildView({
         ) : (
           <div className="grid gap-4" aria-busy>
             <div className="h-8 w-72 animate-pulse rounded-lg bg-muted" />
-            <div className="h-80 animate-pulse rounded-2xl bg-card shadow-card" />
+            <div className="glass h-80 animate-pulse rounded-2xl" />
           </div>
         )}
       </div>
@@ -401,7 +404,7 @@ function ActionButton({
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex h-8 items-center gap-1.5 rounded-full bg-card px-3 text-[13px] ring-1 ring-black/8 transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none dark:ring-white/12"
+      className="glass-subtle inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] transition-colors hover:bg-white/80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none dark:hover:bg-white/10"
     >
       <Icon className="size-3.5" />
       {children}

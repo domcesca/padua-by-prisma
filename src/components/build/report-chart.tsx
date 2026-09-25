@@ -19,6 +19,7 @@ import {
 import type { MetricDef } from "@/lib/data/datasets"
 import { formatMetric } from "@/lib/format"
 import { niceTicks } from "@/lib/ticks"
+import { useMediaQuery } from "@/lib/use-media-query"
 import type { ChartKind, ReportPanel, ReportSeries } from "@/lib/report/spec"
 import { cn } from "@/lib/utils"
 
@@ -108,13 +109,16 @@ function RankedBars({ panel, metric }: { panel: ReportPanel; metric: MetricDef }
   const values = rows.map((r) => r.value as number)
   const ticks = niceTicks(values, true)
   const height = Math.max(120, rows.length * 30 + 36)
+  // Phones: narrower name column so the bars keep most of the width.
+  const compact = useMediaQuery("(max-width: 640px)")
+  const labelWidth = compact ? 112 : 176
   return (
     <div className="w-full" style={{ height }} aria-hidden>
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 64, bottom: 0, left: 0 }} barCategoryGap={4}>
+        <BarChart data={rows} layout="vertical" margin={{ top: 4, right: compact ? 48 : 64, bottom: 0, left: 0 }} barCategoryGap={4}>
           <CartesianGrid horizontal={false} stroke="var(--border)" />
           <XAxis type="number" tickLine={false} axisLine={false} tick={axisTick} tickFormatter={(v: number) => formatMetric(metric, v, true)} ticks={ticks} domain={[ticks[0], ticks.at(-1)!]} />
-          <YAxis type="category" dataKey="label" width={176} tickLine={false} axisLine={false} interval={0} tick={(props) => <CategoryTick {...props} rows={rows} />} />
+          <YAxis type="category" dataKey="label" width={labelWidth} tickLine={false} axisLine={false} interval={0} tick={(props) => <CategoryTick {...props} rows={rows} maxChars={compact ? 14 : 26} />} />
           {ticks[0] < 0 && <ReferenceLine x={0} stroke="var(--muted-foreground)" strokeOpacity={0.5} />}
           <Tooltip cursor={{ fill: "var(--muted-foreground)", fillOpacity: 0.08 }} content={({ active, payload, label }) => <PanelTooltip active={active} payload={payload} label={label} panel={panel} metric={metric} />} isAnimationActive={false} />
           <Bar dataKey="value" name={metric.label} radius={4} maxBarSize={22} animationDuration={250}>
@@ -146,10 +150,22 @@ function TipLabel({ x = 0, y = 0, width = 0, height = 0, value, metric }: TipLab
   )
 }
 
-function CategoryTick({ x, y, payload, rows }: { x?: number | string; y?: number | string; payload?: { value: string }; rows: Row[] }) {
+function CategoryTick({
+  x,
+  y,
+  payload,
+  rows,
+  maxChars,
+}: {
+  x?: number | string
+  y?: number | string
+  payload?: { value: string }
+  rows: Row[]
+  maxChars: number
+}) {
   const label = payload?.value ?? ""
   const focus = rows.find((r) => r.label === label)?.role === "focus"
-  const short = label.length > 26 ? `${label.slice(0, 25)}…` : label
+  const short = label.length > maxChars ? `${label.slice(0, maxChars - 1)}…` : label
   return (
     <text x={Number(x) - 8} y={Number(y)} dy="0.35em" textAnchor="end" fontSize={11} fill={focus ? "var(--foreground)" : "var(--muted-foreground)"} fontWeight={focus ? 600 : 400}>
       <title>{label}</title>
@@ -269,7 +285,7 @@ function PanelTooltip({
       ? panel.series.map((s) => ({ key: s.key, label: s.label, color: seriesColor(s, panel), value: num(row[s.key]) }))
       : [{ key: "value", label: metric.label, color: row.role === "focus" ? "var(--series-1)" : "var(--chart-2)", value: num(row.value) }]
   return (
-    <div className="min-w-52 rounded-xl bg-popover/95 px-3 py-2.5 text-xs shadow-lg ring-1 ring-black/5 backdrop-blur-md dark:ring-white/10">
+    <div className="min-w-52 glass-strong rounded-xl px-3 py-2.5 text-xs">
       <p className="mb-1.5 max-w-64 truncate font-medium">{label ?? row.label}</p>
       <dl className="space-y-1">
         {lines.map((l) => (

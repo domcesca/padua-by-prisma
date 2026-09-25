@@ -13,7 +13,7 @@ export function Sidebar() {
   const selection = useSelection()
 
   return (
-    <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar backdrop-blur-xl md:flex">
+    <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar backdrop-blur-2xl backdrop-saturate-150 md:flex">
       <div className="px-5 pt-6 pb-5">
         <Link
           href="/"
@@ -34,13 +34,16 @@ export function Sidebar() {
                   href={hrefWithSelection(href, selection)}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "group flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-sm transition-colors duration-150",
+                    "group relative flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-sm transition-[background-color,color,box-shadow] duration-200",
                     "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
                     active
-                      ? "bg-sidebar-accent font-medium text-foreground"
+                      ? "glass-subtle glow-soft font-medium text-foreground"
                       : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground"
                   )}
                 >
+                  {active && (
+                    <span aria-hidden className="absolute top-2 bottom-2 left-0 w-[3px] rounded-full bg-[image:var(--accent-gradient)]" />
+                  )}
                   <Icon
                     className={cn(
                       "size-4 shrink-0",

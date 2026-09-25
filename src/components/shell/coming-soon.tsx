@@ -16,7 +16,7 @@ export function ComingSoon({
   return (
     <div className="space-y-8">
       <PageHeader title={title} description={description} />
-      <section className="rounded-2xl bg-card p-8 shadow-card sm:p-12">
+      <section className="glass rounded-2xl p-8 sm:p-12">
         <div className="mx-auto flex max-w-lg flex-col items-center text-center">
           <div className="mb-5 flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
             <Icon className="size-6" strokeWidth={1.75} />

@@ -120,7 +120,7 @@ function ChartTooltip({
   const row = payload[0]?.payload as Row | undefined
   if (!row) return null
   return (
-    <div className="min-w-48 rounded-xl bg-popover/95 px-3 py-2.5 text-xs shadow-lg ring-1 ring-black/5 backdrop-blur-md dark:ring-white/10">
+    <div className="min-w-48 glass-strong rounded-xl px-3 py-2.5 text-xs">
       <p className="mb-1.5 font-medium">{row.year}</p>
       <dl className="space-y-1">
         <TooltipRow swatch={<span className="size-2 rounded-full bg-(--chart-1)" />} label="This hospital">

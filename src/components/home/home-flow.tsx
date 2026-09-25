@@ -132,7 +132,7 @@ export function HomeFlow({
         {resume && (
           <Link
             href={`/benchmark?${new URLSearchParams({ facility: resume.id, ...(selection?.category === "utilization" ? { view: "utilization" } : {}) })}`}
-            className="fade-up inline-flex max-w-full items-center gap-2 rounded-full bg-card px-4 py-2 text-[13px] shadow-card ring-1 ring-black/5 transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none dark:ring-white/10"
+            className="glass fade-up inline-flex max-w-full items-center gap-2 rounded-full px-4 py-2 text-[13px] transition-shadow duration-200 hover:glow-soft focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
           >
             <span className="text-muted-foreground">Pick up where you left off:</span>
             <span className="truncate font-medium">
@@ -161,15 +161,15 @@ export function HomeFlow({
                 aria-checked={selected}
                 onClick={() => chooseCategory(c.id)}
                 className={cn(
-                  "choice-card group flex min-h-40 flex-col items-start gap-3 rounded-2xl bg-card p-5 text-left shadow-card ring-1 transition-[box-shadow,transform,background-color] duration-200",
+                  "widget group flex min-h-40 flex-col items-start gap-3 p-5 text-left transition-[box-shadow,transform] duration-200",
                   "hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
-                  selected ? "is-selected ring-primary/40" : "ring-black/5 dark:ring-white/10"
+                  selected ? "ring-accent glow" : "hover:glow-soft"
                 )}
               >
                 <span
                   className={cn(
                     "flex size-10 items-center justify-center rounded-xl transition-colors duration-200",
-                    selected ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
+                    selected ? "bg-[image:var(--accent-gradient)] text-white" : "bg-black/5 text-foreground dark:bg-white/10"
                   )}
                 >
                   <Icon className="size-5" strokeWidth={1.75} />
@@ -188,7 +188,7 @@ export function HomeFlow({
               <div
                 key={c.id}
                 aria-disabled
-                className="flex min-h-40 flex-col items-start gap-3 rounded-2xl border border-dashed border-border p-5 text-left"
+                className="flex min-h-40 flex-col items-start gap-3 rounded-[1.375rem] border border-dashed border-black/10 p-5 text-left dark:border-white/10"
               >
                 <span className="flex size-10 items-center justify-center rounded-xl bg-muted/60 text-tertiary-foreground">
                   <Icon className="size-5" strokeWidth={1.75} />
@@ -218,7 +218,7 @@ export function HomeFlow({
                   key={s.id}
                   type="button"
                   onClick={() => chooseFacility(s.id)}
-                  className="rounded-full bg-card px-3 py-1.5 text-[13px] ring-1 ring-black/5 transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none dark:ring-white/10"
+                  className="glass-subtle rounded-full px-3 py-1.5 text-[13px] transition-colors hover:bg-white/80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none dark:hover:bg-white/10"
                 >
                   {s.name}
                 </button>
@@ -228,8 +228,11 @@ export function HomeFlow({
           {facility && (
             <p className="fade-up text-[13px] text-muted-foreground" aria-live="polite">
               {previewLoading && !preview ? (
-                <span className="inline-flex items-center gap-1.5">
-                  <Loader2 className="size-3.5 animate-spin" /> Finding similar hospitals…
+                <span className="flex max-w-xs flex-col gap-1.5">
+                  <span className="inline-flex items-center gap-1.5">
+                    <Loader2 className="size-3.5 animate-spin" /> Finding similar hospitals…
+                  </span>
+                  <span className="loading-bar" />
                 </span>
               ) : preview ? (
                 <>
@@ -267,7 +270,7 @@ export function HomeFlow({
             </button>
           </div>
         ) : (
-          <div className="fade-up grid gap-6 rounded-2xl bg-card p-5 shadow-card md:grid-cols-[auto_1fr]">
+          <div className="glass fade-up grid gap-6 rounded-2xl p-5 md:grid-cols-[auto_1fr]">
             <p className="text-[13px] font-medium md:pt-1.5">Compare with</p>
             <div className="space-y-1.5">
               <Segmented
@@ -298,10 +301,10 @@ export function HomeFlow({
                       aria-pressed={on}
                       onClick={() => toggleMetric(m.id)}
                       className={cn(
-                        "inline-flex h-8 items-center gap-1 rounded-full px-3 text-[13px] ring-1 transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+                        "inline-flex h-8 items-center gap-1 rounded-full px-3 text-[13px] transition-[color,box-shadow] duration-200 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
                         on
-                          ? "bg-primary/10 text-primary ring-primary/20 dark:bg-primary/20"
-                          : "bg-card text-muted-foreground ring-black/8 hover:bg-muted dark:ring-white/12"
+                          ? "glass-subtle ring-accent glow-soft text-foreground"
+                          : "glass-subtle text-muted-foreground hover:text-foreground"
                       )}
                     >
                       {on && <Check className="size-3.5" />}
@@ -340,9 +343,9 @@ export function HomeFlow({
           tabIndex={ready ? undefined : -1}
           onClick={(e) => (ready ? remember() : e.preventDefault())}
           className={cn(
-            "btn-primary inline-flex h-12 items-center justify-center gap-2 rounded-full px-6 text-[15px] font-medium transition-[opacity,box-shadow,transform] duration-200",
+            "inline-flex h-12 items-center justify-center gap-2 rounded-full px-6 text-[15px] font-medium",
             "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none",
-            ready ? "bg-primary text-primary-foreground hover:opacity-95 active:scale-[0.98]" : "cursor-not-allowed bg-muted text-muted-foreground"
+            ready ? "btn-accent active:scale-[0.98]" : "glass-subtle cursor-not-allowed text-muted-foreground"
           )}
         >
           {ready ? `Compare ${facility!.name}` : "Choose a topic and a hospital"}
@@ -393,7 +396,7 @@ function Step({
         <span
           className={cn(
             "step-badge flex size-7 items-center justify-center rounded-full text-[13px] font-semibold transition-colors duration-200",
-            done ? "is-done bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+            done ? "bg-[image:var(--accent-gradient)] text-white" : "glass-subtle text-muted-foreground"
           )}
           aria-hidden
         >

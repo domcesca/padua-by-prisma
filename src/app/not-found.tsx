@@ -7,7 +7,7 @@ export default function NotFound() {
       <p className="mt-2 text-sm text-muted-foreground">It may have moved, or the link may be mistyped.</p>
       <Link
         href="/benchmark"
-        className="mt-6 inline-block rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
+        className="mt-6 inline-block btn-accent rounded-full px-4 py-2 text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
       >
         Go to Benchmark
       </Link>

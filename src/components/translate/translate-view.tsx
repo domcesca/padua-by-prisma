@@ -206,7 +206,7 @@ export function TranslateView({
 
       {/* Search + value source */}
       <div className="grid gap-3 md:grid-cols-2">
-        <label className="flex h-11 min-w-0 items-center gap-2.5 rounded-xl bg-card px-3.5 shadow-card ring-1 ring-black/5 focus-within:ring-2 focus-within:ring-ring dark:ring-white/10">
+        <label className="glass flex h-11 min-w-0 items-center gap-2.5 rounded-xl px-3.5 transition-shadow duration-200 focus-within:glow-soft">
           <Search className="size-4 shrink-0 text-tertiary-foreground" aria-hidden />
           <span className="sr-only">Search fields</span>
           <input
@@ -239,7 +239,7 @@ export function TranslateView({
                 type="button"
                 onClick={() => void selectFacility(null)}
                 aria-label="Stop showing hospital values"
-                className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-card text-muted-foreground shadow-card ring-1 ring-black/5 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none dark:ring-white/10"
+                className="glass flex size-11 shrink-0 items-center justify-center rounded-xl text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
               >
                 <X className="size-4" />
               </button>
@@ -284,7 +284,7 @@ export function TranslateView({
           <button
             type="button"
             onClick={() => setShowExtractInput(true)}
-            className="inline-flex h-8 items-center gap-1.5 rounded-full bg-card px-3 text-[13px] ring-1 ring-black/8 transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none dark:ring-white/12"
+            className="glass-subtle inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] transition-colors hover:bg-white/80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none dark:hover:bg-white/10"
           >
             <FileUp className="size-3.5" /> Translate an extract
           </button>
@@ -372,7 +372,7 @@ export function TranslateView({
               <p className="text-xs text-muted-foreground">{s.summary}</p>
             </div>
           )}
-          <ul className="divide-y divide-border overflow-hidden rounded-2xl bg-card shadow-card">
+          <ul className="surface divide-y divide-border overflow-hidden rounded-2xl">
             {groupRows.map(({ field, values }) => (
               <FieldRow
                 key={field.code}
@@ -389,14 +389,14 @@ export function TranslateView({
       ))}
 
       {rows.length === 0 && metrics.length === 0 && (
-        <div className="rounded-2xl bg-card p-10 text-center shadow-card">
+        <div className="glass rounded-2xl p-10 text-center">
           <p className="font-medium">No fields match “{query}”.</p>
           <p className="mt-1 text-sm text-muted-foreground">Try a field code like CASH, or a plain word like “charity”.</p>
         </div>
       )}
 
       {unknownColumns.length > 0 && (
-        <section className="rounded-2xl bg-card p-5 shadow-card">
+        <section className="surface rounded-2xl p-5">
           <h2 className="text-[13px] font-semibold">Columns not in this dictionary ({unknownColumns.length})</h2>
           <p className="mt-1 text-xs text-muted-foreground">
             These may come from a different HCAI dataset (like the Quarterly or complete Annual Disclosure file), which
@@ -431,7 +431,7 @@ function ExtractBanner({
   onClear: () => void
 }) {
   return (
-    <section className="fade-up flex flex-col gap-3 rounded-2xl bg-card p-5 shadow-card sm:flex-row sm:items-center sm:justify-between">
+    <section className="glass fade-up flex flex-col gap-3 rounded-2xl p-5 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
         <p className="truncate text-[15px] font-semibold tracking-tight">{extract.fileName}</p>
         <p className="text-[13px] text-muted-foreground">
@@ -459,7 +459,7 @@ function ExtractBanner({
           <button
             type="button"
             onClick={() => onCompare(matchedFacilityId)}
-            className="h-8 rounded-full bg-primary/10 px-3 text-[13px] font-medium text-primary hover:bg-primary/15 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+            className="btn-accent h-8 rounded-full px-3 text-[13px] font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
           >
             See this hospital&apos;s history
           </button>
@@ -493,7 +493,7 @@ function MetricsList({
         </h2>
         <p className="text-xs text-muted-foreground">The ratios on the Benchmark tab, and how each is calculated from HCAI fields.</p>
       </div>
-      <ul className="divide-y divide-border overflow-hidden rounded-2xl bg-card shadow-card">
+      <ul className="surface divide-y divide-border overflow-hidden rounded-2xl">
         {metrics.map((m) => {
           const open = expanded.has(m.id)
           return (

@@ -153,6 +153,10 @@ export function BenchmarkView({
         />
       </div>
 
+      <div className="-my-3 h-0.5" aria-hidden>
+        {loading && <div className="loading-bar fade-up" />}
+      </div>
+
       {error && (
         <p role="alert" className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {error}
@@ -174,7 +178,7 @@ export function BenchmarkView({
           <FacilitySummary result={shown} lastYear={facility?.lastYear ?? latestYear} />
 
           {shown.peers.length === 0 ? (
-            <div className="rounded-2xl bg-card p-8 text-center shadow-card">
+            <div className="glass rounded-2xl p-8 text-center">
               <p className="font-medium">No hospitals match these filters.</p>
               <p className="mt-1 text-sm text-muted-foreground">Remove a filter to widen the peer group.</p>
             </div>
@@ -212,50 +216,83 @@ function FacilitySummary({ result, lastYear }: { result: BenchmarkResult; lastYe
   const facts = [
     f.city && f.county ? `${f.city}, ${f.county} County` : f.county,
     OWNERSHIP_LABEL[f.ownership],
-    f.licensedBeds != null ? `${f.licensedBeds} licensed beds` : null,
     f.teaching ? "Teaching" : null,
     f.rural ? "Small & rural" : null,
     f.traumaLevel ? `Trauma level ${f.traumaLevel}` : null,
     f.owner && f.owner.toLowerCase() !== f.hcaiName.toLowerCase() ? `Operated by ${titleCase(f.owner)}` : null,
   ].filter(Boolean)
-  const noData =
-    result.category === "utilization" ? f.utilizationYears.length === 0 : f.financialYears.length === 0
+  const dataYears = result.category === "utilization" ? f.utilizationYears : f.financialYears
+  const noData = dataYears.length === 0
+  const similar = result.filters.mode === "similar"
 
+  // Two at-a-glance widgets: who the hospital is, and who it's compared with.
   return (
-    <div className="space-y-2">
-      <h2 className="text-2xl font-semibold tracking-tight">{f.name}</h2>
-      <p className="text-sm text-muted-foreground">{facts.join(" · ")}</p>
-      <p className="text-[13px] text-muted-foreground">
-        Compared with <span className="font-medium text-foreground">{result.peers.length}</span>{" "}
-        {result.filters.mode === "similar" ? "similar hospitals" : `hospital${result.peers.length === 1 ? "" : "s"}`}:{" "}
-        {result.peerGroup.description.charAt(0).toLowerCase() + result.peerGroup.description.slice(1)}
-        {!result.filters.includeNonComparable && ", not counting Kaiser and other non-comparable hospitals"}.
-        {result.peerGroup.note && ` ${result.peerGroup.note}`}
-        {lastYear < latestOf(result) && ` This hospital last reported in ${lastYear}.`}
-      </p>
-      {result.category === "utilization" && f.campuses.length > 0 && (
-        <p className="text-[13px] text-muted-foreground">
-          Includes {f.campuses.length === 1 ? "the" : "its"} {listFormat(f.campuses)} campus
-          {f.campuses.length === 1 ? "" : "es"}, which report{f.campuses.length === 1 ? "s" : ""} utilization separately
-          under the same license.
+    <div className="grid gap-4 lg:grid-cols-3">
+      <section aria-label="Hospital" className="widget fade-up flex flex-col gap-2 p-5 lg:col-span-2">
+        <p className="text-[11px] font-medium tracking-wide text-tertiary-foreground uppercase">Hospital</p>
+        <h2 className="text-2xl leading-tight font-semibold tracking-tight">{f.name}</h2>
+        <p className="text-sm text-muted-foreground">{facts.join(" · ")}</p>
+        {result.category === "utilization" && f.campuses.length > 0 && (
+          <p className="text-[13px] text-muted-foreground">
+            Includes {f.campuses.length === 1 ? "the" : "its"} {listFormat(f.campuses)} campus
+            {f.campuses.length === 1 ? "" : "es"}, which report{f.campuses.length === 1 ? "s" : ""} utilization separately
+            under the same license.
+          </p>
+        )}
+        {lastYear < latestOf(result) && <p className="text-[13px] text-muted-foreground">Last reported in {lastYear}.</p>}
+        {noData && (
+          <p className="rounded-xl bg-black/4 px-3.5 py-2.5 text-[13px] leading-relaxed text-muted-foreground dark:bg-white/6">
+            HCAI has no {result.category === "utilization" ? "utilization" : "financial"} data for this hospital in these
+            years.
+          </p>
+        )}
+        {f.hospitalType && f.hospitalType !== "Comparable" && (
+          <p className="rounded-xl bg-black/4 px-3.5 py-2.5 text-[13px] leading-relaxed text-muted-foreground dark:bg-white/6">
+            HCAI classifies this hospital as <span className="font-medium text-foreground">{f.hospitalType}</span>, so its
+            numbers may not be directly comparable.
+            {f.hospitalType === "Kaiser" && " Kaiser hospitals report financials differently from other hospitals."}
+          </p>
+        )}
+        <dl className="mt-auto grid grid-cols-3 gap-3 border-t border-black/6 pt-3 dark:border-white/8">
+          <Stat label="Licensed beds" value={f.licensedBeds != null ? f.licensedBeds.toLocaleString("en-US") : "—"} />
+          <Stat
+            label="Fiscal year ends"
+            value={
+              f.fiscalYearEnd
+                ? new Date(`${f.fiscalYearEnd}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })
+                : "—"
+            }
+          />
+          <Stat label={result.category === "utilization" ? "Utilization data" : "Financial data"} value={yearRange(dataYears) ?? "None"} />
+        </dl>
+      </section>
+      <section aria-label="Peer group" className="widget fade-up flex flex-col gap-1 p-5">
+        <p className="text-[11px] font-medium tracking-wide text-tertiary-foreground uppercase">Compared with</p>
+        <p className="num text-[40px] leading-none font-semibold tracking-tight">{result.peers.length}</p>
+        <p className="text-[13px] font-medium">
+          {similar ? "similar hospitals" : result.filters.mode === "statewide" ? "hospitals statewide" : `hospital${result.peers.length === 1 ? "" : "s"} you chose`}
         </p>
-      )}
-      {noData && (
-        <p className="rounded-xl bg-muted px-3.5 py-2.5 text-[13px] leading-relaxed text-muted-foreground">
-          HCAI has no {result.category === "utilization" ? "utilization" : "financial"} data for this hospital in these
-          years.
+        <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
+          {result.peerGroup.description}
+          {!result.filters.includeNonComparable && ", not counting Kaiser and other non-comparable hospitals"}.
         </p>
-      )}
-      {f.hospitalType && f.hospitalType !== "Comparable" && (
-        <p className="rounded-xl bg-muted px-3.5 py-2.5 text-[13px] leading-relaxed text-muted-foreground">
-          HCAI classifies this hospital as <span className="font-medium text-foreground">{f.hospitalType}</span>, so its
-          numbers may not be directly comparable.
-          {f.hospitalType === "Kaiser" && " Kaiser hospitals report financials differently from other hospitals."}
-        </p>
-      )}
+        {result.peerGroup.note && <p className="text-xs leading-relaxed text-tertiary-foreground">{result.peerGroup.note}</p>}
+      </section>
     </div>
   )
 }
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0">
+      <dt className="truncate text-[11px] text-tertiary-foreground">{label}</dt>
+      <dd className="num truncate text-[15px] font-semibold tracking-tight">{value}</dd>
+    </div>
+  )
+}
+
+const yearRange = (years: number[]) =>
+  years.length ? (years.length === 1 ? String(years[0]) : `${years[0]}–${years.at(-1)}`) : null
 
 function latestOf(result: BenchmarkResult) {
   return Math.max(...Object.values(result.series).map((s) => s.at(-1)?.year ?? 0))
@@ -266,7 +303,7 @@ const listFormat = (items: string[]) => new Intl.ListFormat("en-US", { style: "l
 function PeerList({ peers }: { peers: BenchmarkResult["peers"] }) {
   const [open, setOpen] = useState(false)
   return (
-    <section className="rounded-2xl bg-card shadow-card">
+    <section className="glass rounded-2xl">
       <button
         type="button"
         aria-expanded={open}
@@ -305,7 +342,7 @@ function EmptyState({
   onPick: (id: string) => void
 }) {
   return (
-    <div className="rounded-2xl bg-card px-6 py-12 text-center shadow-card sm:px-12">
+    <div className="glass rounded-2xl px-6 py-12 text-center sm:px-12">
       <p className="text-lg font-semibold tracking-tight">Pick a hospital to see how it compares.</p>
       <p className="mx-auto mt-1.5 max-w-md text-sm leading-relaxed text-muted-foreground">
         You&apos;ll see {CATEGORY_BY_ID[category].description.toLowerCase().replace(/\.$/, "")} against a peer group you can
@@ -317,7 +354,7 @@ function EmptyState({
             key={s.id}
             type="button"
             onClick={() => onPick(s.id)}
-            className="rounded-full bg-muted px-3 py-1.5 text-[13px] transition-colors hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+            className="glass-subtle rounded-full px-3 py-1.5 text-[13px] transition-colors hover:bg-white/80 dark:hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
           >
             {s.name}
           </button>
@@ -336,7 +373,7 @@ function LoadingState({ count }: { count: number }) {
       </div>
       <div className="grid gap-4 md:grid-cols-2">
         {Array.from({ length: Math.max(2, count) }, (_, i) => (
-          <div key={i} className="h-80 animate-pulse rounded-2xl bg-card shadow-card" />
+          <div key={i} className="widget h-80 animate-pulse" />
         ))}
       </div>
     </div>

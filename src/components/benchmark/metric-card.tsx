@@ -29,7 +29,7 @@ export function MetricCard({ meta, points }: { meta: DictionaryMetric; points: S
   return (
     <section
       aria-labelledby={`metric-${meta.id}`}
-      className="fade-up flex flex-col rounded-2xl bg-card p-5 shadow-card"
+      className="widget fade-up flex flex-col p-5"
     >
       <header className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-1.5">
@@ -83,7 +83,7 @@ function ViewToggle({
   label: string
 }) {
   return (
-    <div role="radiogroup" aria-label={`${label} view`} className="flex rounded-md bg-muted p-0.5">
+    <div role="radiogroup" aria-label={`${label} view`} className="flex rounded-md bg-black/5 p-0.5 dark:bg-white/8">
       {(["chart", "table"] as const).map((v) => (
         <button
           key={v}

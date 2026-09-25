@@ -146,7 +146,7 @@ export function DeadlinesView({
             <button
               type="button"
               onClick={() => pickFacility(null)}
-              className="h-11 shrink-0 rounded-xl px-3 text-[13px] text-muted-foreground hover:bg-card focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+              className="h-11 shrink-0 rounded-xl px-3 text-[13px] text-muted-foreground hover:bg-white/60 dark:hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
             >
               Clear
             </button>
@@ -198,9 +198,9 @@ export function DeadlinesView({
           <p className="text-xs text-muted-foreground">Progress you mark is saved in this browser only.</p>
         </div>
         {!now ? (
-          <div className="h-96 animate-pulse rounded-2xl bg-card shadow-card" />
+          <div className="surface h-96 animate-pulse rounded-2xl" />
         ) : (
-          <ul className="divide-y divide-border overflow-hidden rounded-2xl bg-card shadow-card">
+          <ul className="surface divide-y divide-border overflow-hidden rounded-2xl">
             {rows.map(({ d, p, status }) => (
               <DeadlineRow key={d.id} d={d} p={p} status={status} now={now} onChange={(patch) => setProgress(d, patch)} />
             ))}
@@ -209,7 +209,7 @@ export function DeadlinesView({
       </section>
 
       {/* Off-cycle modeling */}
-      <section className="rounded-2xl bg-card p-5 shadow-card">
+      <section className="glass rounded-2xl p-5">
         <h2 className="text-[15px] font-semibold tracking-tight">Closing, relocating, or changing owners?</h2>
         <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-muted-foreground">
           Under 22 CCR §97040(b), a report period also ends on the last day of patient care before a closure or
@@ -341,7 +341,7 @@ function SummaryTile({
   tone?: "warning"
 }) {
   return (
-    <div className="rounded-2xl bg-card px-5 py-4 shadow-card">
+    <div className="widget px-5 py-4">
       <p className="text-[13px] text-muted-foreground">{label}</p>
       <p className="num mt-1 flex items-center gap-2 text-[28px] leading-tight font-semibold tracking-tight">
         {tone === "warning" && <AlertCircle className="size-5 text-warning" aria-label="Needs attention" />}

@@ -35,7 +35,7 @@ export function ExtractInput({ onLoad, onCancel }: { onLoad: (extract: Extract) 
   }
 
   return (
-    <section className="fade-up rounded-2xl bg-card p-5 shadow-card" aria-labelledby="extract-title">
+    <section className="glass fade-up rounded-2xl p-5" aria-labelledby="extract-title">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 id="extract-title" className="text-[15px] font-semibold tracking-tight">
@@ -77,7 +77,7 @@ export function ExtractInput({ onLoad, onCancel }: { onLoad: (extract: Extract) 
           <button
             type="button"
             onClick={() => input.current?.click()}
-            className="rounded-full bg-primary px-3.5 py-1.5 text-[13px] font-medium text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
+            className="btn-accent rounded-full px-3.5 py-1.5 text-[13px] font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
           >
             Choose file
           </button>

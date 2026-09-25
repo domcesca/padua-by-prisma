@@ -37,7 +37,7 @@ export function PayerMixCard({
       : null
 
   return (
-    <section aria-labelledby="metric-payer-mix" className="fade-up rounded-2xl bg-card p-5 shadow-card">
+    <section aria-labelledby="metric-payer-mix" className="glass fade-up rounded-2xl p-5">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-1.5">

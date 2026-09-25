@@ -41,8 +41,8 @@ export function FacilityPicker({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         className={cn(
-          "flex h-11 w-full min-w-0 items-center gap-2.5 rounded-xl bg-card px-3.5 text-left shadow-card ring-1 ring-black/5 transition-shadow duration-150 dark:ring-white/10",
-          "hover:ring-black/10 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none dark:hover:ring-white/20",
+          "glass flex h-11 w-full min-w-0 items-center gap-2.5 rounded-xl px-3.5 text-left transition-shadow duration-200",
+          "hover:glow-soft focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none data-[popup-open]:glow-soft",
           className
         )}
         aria-label={selected ? `Hospital: ${selected.name}. Change hospital` : "Choose a hospital"}
