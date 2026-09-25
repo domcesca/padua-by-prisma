@@ -411,11 +411,14 @@
   }
 }
 
-/* Every focusable control shows focus, even one without its own ring style. :where() keeps this at zero specificity,
-   so a component's own focus-visible ring (ring-2 + outline-none) still wins. */
-:where(a[href], button, input, select, textarea, summary, [tabindex]:not([tabindex="-1"]), [role="button"], [role="radio"], [role="option"], [role="tab"], [role="switch"], [role="checkbox"]):focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 2px;
+/* Every focusable control shows focus, even one without its own ring style. It sits in the base layer, below the
+   utilities, so a component's own focus style (a rounded ring-2 with outline-none, or a ring on its wrapper) always
+   wins; unlayered, it would override them and draw a square outline around inputs inside rounded fields. */
+@layer base {
+  :where(a[href], button, input, select, textarea, summary, [tabindex]:not([tabindex="-1"]), [role="button"], [role="radio"], [role="option"], [role="tab"], [role="switch"], [role="checkbox"]):focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
 }
 
 /* Recharts: keep focus rings off SVG paths; the chart itself is not a control. */
