@@ -36,7 +36,7 @@ import type {
 
 const PROCESSED_DIR = path.join(process.cwd(), "data", "processed")
 
-export const DATASET_IDS: DatasetId[] = ["hafd-selected", "hau", "cms-care-compare", "cdph-hai"]
+export const DATASET_IDS: DatasetId[] = ["hafd-selected", "hau", "case-mix-index", "cms-care-compare", "cdph-hai"]
 
 const CATEGORY_ORDER = { financial: 0, utilization: 1, quality: 2 } as const
 

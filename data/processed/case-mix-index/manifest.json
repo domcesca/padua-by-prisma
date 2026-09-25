@@ -1,0 +1,30 @@
+{
+  "id": "case-mix-index",
+  "title": "HCAI Case Mix Index",
+  "sourcePage": "https://data.chhs.ca.gov/dataset/case-mix-index",
+  "package": {
+    "title": "Case Mix Index",
+    "metadata_modified": "2026-09-17T22:02:18.730790"
+  },
+  "years": [
+    2019,
+    2020,
+    2021,
+    2022,
+    2023,
+    2024,
+    2025
+  ],
+  "sources": [
+    {
+      "name": "Case Mix Index-1996-2025",
+      "url": "https://data.chhs.ca.gov/dataset/5448f054-aa7f-4797-9de2-85767db93dff/resource/3ed58730-7dbb-4a48-bae5-0e66929c44f7/download/casemixindex_1996_2025.xlsx"
+    }
+  ],
+  "generatedAt": "2026-09-25T05:40:00Z",
+  "notes": [
+    "Federal fiscal years (October–September), filed under the year they end.",
+    "CMI = sum of Medicare MS-DRG weights ÷ discharges, from HCAI's Patient Discharge Data.",
+    "Campuses on one license are combined, weighted by their utilization-report discharges."
+  ]
+}

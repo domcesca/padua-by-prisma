@@ -5,7 +5,7 @@
 export type HcaiDatasetId = "hafd-selected" | "hau"
 
 /** Output folder / id of each ETL dataset under data/processed. The non-HCAI ones map onto HCAI facility numbers. */
-export type DatasetId = HcaiDatasetId | "cdph-hai" | "cms-care-compare"
+export type DatasetId = HcaiDatasetId | "case-mix-index" | "cdph-hai" | "cms-care-compare"
 
 /** What the user picks on the home page; each metric belongs to one. */
 export type MetricCategory = "financial" | "utilization" | "quality"

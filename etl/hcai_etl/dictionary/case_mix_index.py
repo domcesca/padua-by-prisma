@@ -1,0 +1,42 @@
+"""Plain-language definition of the Case Mix Index metric (datasets/case_mix_index.py)."""
+
+from __future__ import annotations
+
+METRICS: dict[str, dict] = {
+    "caseMixIndex": {
+        "category": "utilization",
+        "label": "Case mix index",
+        "unit": "number",
+        "decimals": 2,
+        "summary": (
+            "How resource-intensive the hospital's inpatients are: the average Medicare MS-DRG weight of its discharges. "
+            "1.00 is an average Medicare stay; higher means sicker or more complex patients."
+        ),
+        "formula": "Sum of MS-DRG weights ÷ inpatient discharges (HCAI Patient Discharge Data, federal fiscal year)",
+        "inputs": [],
+        "higherIsBetter": None,
+        "caution": (
+            "Federal fiscal years (October–September), so it doesn't line up exactly with the calendar-year utilization "
+            "figures or the hospital's own fiscal year. Medicare weights applied to every payer's discharges: normal "
+            "newborns and obstetrics pull it down, and weights are recalibrated each year. Campuses on one license are "
+            "combined, weighted by discharges."
+        ),
+        "drivers": [
+            "Service lines: cardiac surgery, transplant, trauma, and neurosurgery raise it; obstetrics and newborns lower it.",
+            "Coding and documentation: capturing complications and comorbidities moves patients into higher-weight DRGs.",
+            "Shifting simpler cases to outpatient or observation leaves a sicker inpatient mix.",
+            "Transfers in from community hospitals (tertiary centers) or out to them.",
+        ],
+    },
+}
+
+
+def export() -> dict:
+    return {
+        "dataset": "case-mix-index",
+        "source": "HCAI Case Mix Index data dictionary and calculation example",
+        "sections": [],
+        "fields": [],
+        "metrics": [{"id": k, **v} for k, v in METRICS.items()],
+        "payerGroups": [],
+    }

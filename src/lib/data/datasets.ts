@@ -5,31 +5,49 @@ import type { DatasetId, DictionaryMetric, HcaiDatasetId, MetricCategory, PayerL
 
 export const DATASETS: Record<
   DatasetId,
-  { label: string; shortLabel: string; sourcePage: string; yearNote: string }
+  {
+    label: string
+    shortLabel: string
+    sourcePage: string
+    yearNote: string
+    /** Tag on a metric card when the chart's topic mostly uses another kind of year. */
+    yearTag: string | null
+  }
 > = {
   "hafd-selected": {
     label: "HCAI Hospital Annual Financial Data – Selected File",
     shortLabel: "Financial data",
     sourcePage: "https://data.chhs.ca.gov/dataset/hospital-annual-financial-data-selected-data-pivot-tables",
     yearNote: "Report years: each covers the hospital's fiscal year that ended in that calendar year.",
+    yearTag: "Fiscal years",
   },
   hau: {
     label: "HCAI Hospital Annual Utilization Report",
     shortLabel: "Utilization data",
     sourcePage: "https://data.chhs.ca.gov/dataset/hospital-annual-utilization-report",
     yearNote: "Calendar years (January–December).",
+    yearTag: "Calendar years",
+  },
+  "case-mix-index": {
+    label: "HCAI Case Mix Index",
+    shortLabel: "Case mix index",
+    sourcePage: "https://data.chhs.ca.gov/dataset/case-mix-index",
+    yearNote: "Federal fiscal years (October–September), filed under the year they end.",
+    yearTag: "Federal fiscal years",
   },
   "cms-care-compare": {
     label: "CMS Care Compare – hospital quality measures",
     shortLabel: "Care Compare",
     sourcePage: "https://data.cms.gov/provider-data/topics/hospitals",
     yearNote: "Filed under the year each measurement period ends; most periods span one to three years.",
+    yearTag: null,
   },
   "cdph-hai": {
     label: "CDPH Healthcare-Associated Infections in California Hospitals",
     shortLabel: "Infection data",
     sourcePage: "https://www.cdph.ca.gov/Programs/CHCQ/HAI/Pages/HAIreport.aspx",
     yearNote: "Calendar years (January–December).",
+    yearTag: null,
   },
 }
 
@@ -70,7 +88,7 @@ export const CATEGORIES: CategoryInfo[] = [
   {
     id: "utilization",
     label: "Utilization",
-    description: "Beds, occupancy, length of stay, ED visits, and surgeries.",
+    description: "Beds, occupancy, length of stay, census, case mix, ED visits, and surgeries.",
     defaultMetrics: ["occupancy", "edVisits", "alos", "discharges", "ipSurgeries", "opSurgeries"],
   },
   {
@@ -83,7 +101,7 @@ export const CATEGORIES: CategoryInfo[] = [
 
 /** Categories planned for later phases; shown as "coming soon" on the home page. */
 export const FUTURE_CATEGORIES = [
-  { id: "caseMix", label: "Case mix", description: "Case mix index and the conditions hospitals treat." },
+  { id: "caseMix", label: "Case mix", description: "The conditions and procedures hospitals treat. (Case mix index is under Utilization.)" },
 ] as const
 
 export const CATEGORY_BY_ID = Object.fromEntries(CATEGORIES.map((c) => [c.id, c])) as Record<MetricCategory, CategoryInfo>
