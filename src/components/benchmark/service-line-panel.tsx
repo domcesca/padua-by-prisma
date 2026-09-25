@@ -4,6 +4,10 @@ import { ChevronRight, Info } from "lucide-react"
 import { useState } from "react"
 
 import { SourceTag } from "@/components/propose/source-tag"
+import { StandingBadge } from "@/components/shell/standing"
+import { StatusLine } from "@/components/shell/status-line"
+import { metricStanding, rankText } from "@/lib/favorability"
+import { CONTEXT_REASONS } from "@/lib/favorability/directions"
 import { formatInt } from "@/lib/format"
 import type { ComponentRow, LinePeerStats, LineRow, LineValues, ServiceLineRollup } from "@/lib/service-lines/compute"
 import { cn } from "@/lib/utils"
@@ -20,13 +24,16 @@ const pct = (v: number | null | undefined) => (v != null ? `${v.toFixed(1)}%` : 
 const int = (v: number | null | undefined) => (v != null ? formatInt(Math.round(v)) : null)
 const days = (v: number | null | undefined) => (v != null ? v.toFixed(1) : null)
 
+/** Occupancy isn't favorable or unfavorable in itself: the label says so, and the rank follows. */
 function standing(peers: LinePeerStats) {
-  if (peers.percentile == null || peers.reporting < 3) return null
-  const p = Math.round(peers.percentile * 100)
-  if (p >= 45 && p <= 55) return "About the median"
-  if (p >= 100) return `Highest of ${peers.reporting}`
-  if (p <= 0) return `Lowest of ${peers.reporting}`
-  return `Above ${p}% of ${peers.reporting}`
+  if (peers.percentile == null || peers.reporting === 0) return null
+  const s = metricStanding("occupancy", peers.percentile, peers.reporting)!
+  return (
+    <span className="mt-0.5 flex flex-col items-end gap-0.5">
+      <StandingBadge standing={s} short title={s === "depends" ? CONTEXT_REASONS.occupancy : undefined} />
+      <span>{rankText(peers.percentile, peers.reporting)}</span>
+    </span>
+  )
 }
 
 export function ServiceLinePanel({
@@ -49,7 +56,7 @@ export function ServiceLinePanel({
   const yearData = rollup.years.find((y) => y.year === picked) ?? rollup.years[0]
   if (!yearData) {
     return (
-      <p className="glass rounded-2xl px-5 py-4 text-sm text-muted-foreground">HCAI has no bed classification data for this hospital.</p>
+      <p className="glass rounded-2xl px-5 py-4 text-sm text-muted-foreground">HCAI has no unit data for this hospital.</p>
     )
   }
   const lines = focus ? yearData.lines.filter((l) => l.id === focus) : yearData.lines
@@ -65,7 +72,6 @@ export function ServiceLinePanel({
             <h3 className="text-sm font-medium">
               {focused ? `What's in ${focused.label}, ${yearData.year}` : `Service lines, ${yearData.year}`}
             </h3>
-            {yearData.annualized && <span className="text-xs text-tertiary-foreground">Annualized: the hospital reported part of the year.</span>}
           </div>
           {rollup.years.length > 1 && (
             <FilterPill
@@ -77,8 +83,20 @@ export function ServiceLinePanel({
             />
           )}
         </div>
+        <StatusLine
+          className="px-4 pb-2.5"
+          through={String(yearData.year)}
+          periodType="Calendar year"
+          published={rollup.source.published[yearData.year] ? `Published ${rollup.source.published[yearData.year]}` : null}
+          processed={`Processed ${rollup.source.processed}`}
+          flags={[
+            ...(rollup.years[0].year < rollup.latestYear ? (["stale"] as const) : []),
+            ...(yearData.annualized ? (["partial-period"] as const) : []),
+          ]}
+          flagDetail={{ stale: `This hospital's latest report is ${rollup.years[0].year}; HCAI has published ${rollup.latestYear}.` }}
+        />
         {focus && !focused ? (
-          <p className="px-4 pb-4 text-[13px] text-muted-foreground">The hospital had none of this line&apos;s bed classifications in {yearData.year}.</p>
+          <p className="px-4 pb-4 text-[13px] text-muted-foreground">The hospital had none of this line&apos;s units in {yearData.year}.</p>
         ) : (
           <LineTable lines={lines} total={focus ? null : yearData.total} focus={!!focus} onLine={onLine} onUnit={onUnit} />
         )}
@@ -94,12 +112,13 @@ function ScopeNote({ rollup, year }: { rollup: ServiceLineRollup; year: number }
     <section aria-label="What this covers" className="glass rounded-2xl px-5 py-4 text-[13px] leading-relaxed">
       <div className="flex flex-wrap items-center gap-2">
         <SourceTag kind="data">Public data · HCAI {year}</SourceTag>
-        <p className="font-medium">HCAI&apos;s bed classifications grouped into service lines, every payer.</p>
+        <p className="font-medium">Units grouped into service lines, every payer.</p>
       </div>
       <p className="mt-1.5 text-muted-foreground">
-        Each line adds up the licensed beds, patient days, and discharges its classifications reported, and recomputes
-        occupancy and length of stay from those totals. Every classification is in exactly one line, so the lines add up
-        to the hospital&apos;s own totals. Each line&apos;s classifications are listed under it.
+        A unit is the hospital&apos;s beds in one of HCAI&apos;s bed classifications. Each line adds up the licensed
+        beds, patient days, and discharges its units reported, and recomputes occupancy and length of stay from those
+        totals. Every unit is in exactly one line, so the lines add up to the hospital&apos;s own totals. Each line&apos;s
+        units are listed under it.
       </p>
       <button
         type="button"
@@ -119,7 +138,7 @@ function ScopeNote({ rollup, year }: { rollup: ServiceLineRollup; year: number }
             it&apos;s time in the unit, not the whole hospital stay.
           </li>
           <li>
-            Licensed beds are as of December 31. A classification that closed during the year still counts toward its
+            Licensed beds are as of December 31. A unit that closed during the year still counts toward its
             line&apos;s patient days and discharges.
           </li>
           <li>
@@ -127,8 +146,8 @@ function ScopeNote({ rollup, year }: { rollup: ServiceLineRollup; year: number }
             licensed beds, so there&apos;s no occupancy, and a baby moved from the NICU to the nursery would be counted twice.
           </li>
           <li>
-            Where a hospital reported beds for a classification but left its patient days or discharges blank, the
-            combined line counts that as none, as HCAI&apos;s own hospital totals do; the classification&apos;s row shows
+            Where a hospital reported beds for a unit but left its patient days or discharges blank, the
+            combined line counts that as none, as HCAI&apos;s own hospital totals do; the unit&apos;s row shows
             the blank.
           </li>
           <li>
@@ -162,12 +181,12 @@ function LineTable({
       <table className="w-full min-w-[44rem] text-[13px]">
         <caption className="sr-only">
           Licensed beds, patient days, discharges, occupancy with the peer median, and average length of stay by service
-          line, each followed by its bed classifications.
+          line, each followed by its units.
         </caption>
         <thead>
-          <tr className="border-y border-border text-left text-[11px] text-tertiary-foreground">
+          <tr className="border-y border-border text-left text-xs text-tertiary-foreground">
             <th scope="col" className={cn(STICKY, "px-4 py-2.5 font-medium")}>
-              {focus ? "Line and classifications" : "Service line"}
+              {focus ? "Line and units" : "Service line"}
             </th>
             <th scope="col" className="px-3 py-2.5 text-right font-medium">Licensed beds</th>
             <th scope="col" className="px-3 py-2.5 text-right font-medium">Patient days</th>
@@ -188,7 +207,7 @@ function LineTable({
                 <Cells values={line.values} strong />
                 <td className="num px-3 py-2 text-right whitespace-nowrap text-muted-foreground">
                   {pct(line.peers.occupancy) ?? "—"}
-                  <span className="block text-[11px] text-tertiary-foreground">
+                  <span className="block text-xs text-tertiary-foreground">
                     {standing(line.peers) ?? `${line.peers.reporting} peer${line.peers.reporting === 1 ? "" : "s"} with it`}
                   </span>
                 </td>
@@ -201,7 +220,7 @@ function LineTable({
                       <button type="button" onClick={() => onUnit(c.id)} className="rounded text-left outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">
                         {c.label}
                       </button>
-                      {c.blank.length > 0 && <span className="block text-[11px] text-tertiary-foreground">{blankNote(c)}</span>}
+                      {c.blank.length > 0 && <span className="block text-xs text-tertiary-foreground">{blankNote(c)}</span>}
                     </th>
                     <Cells values={c.values} />
                     <td />
@@ -212,13 +231,13 @@ function LineTable({
                 <tr className="text-muted-foreground">
                   <th scope="row" className={cn(STICKY, "py-1.5 pr-4 pl-8 text-left font-normal")}>
                     Well-baby nursery
-                    <span className="block text-[11px] text-tertiary-foreground">Not in the line&apos;s totals</span>
+                    <span className="block text-xs text-tertiary-foreground">Not in the line&apos;s totals</span>
                   </th>
                   <td className="px-3 py-1.5 text-right text-[12px] text-tertiary-foreground">Bassinets</td>
                   <td className="num px-3 py-1.5 text-right whitespace-nowrap">{int(line.nursery.inpatientDays) ?? "—"}</td>
                   <td className="num px-3 py-1.5 text-right whitespace-nowrap">
                     {int(line.nursery.infants) ?? "—"}
-                    <span className="block text-[11px] text-tertiary-foreground">infants</span>
+                    <span className="block text-xs text-tertiary-foreground">infants</span>
                   </td>
                   <td className="px-3 py-1.5 text-right text-[12px] text-tertiary-foreground">n/a</td>
                   <td />
@@ -261,7 +280,7 @@ function StayCell({ value, timeInUnit, strong = false }: { value: number | null;
   return (
     <td className={cn("num px-4 text-right whitespace-nowrap", strong ? "py-2 font-semibold text-foreground" : "py-1.5")}>
       {days(value) ?? "—"}
-      {value != null && timeInUnit && <span className="block text-[11px] font-normal text-tertiary-foreground">time in unit</span>}
+      {value != null && timeInUnit && <span className="block text-xs font-normal text-tertiary-foreground">time in unit</span>}
     </td>
   )
 }
@@ -295,8 +314,8 @@ function LineName({ line, onSelect }: { line: LineRow; onSelect?: () => void }) 
           </span>
         </span>
       )}
-      {line.units.length === 1 && line.components[0] && line.components[0].label !== line.label && <span className="block text-[11px] text-tertiary-foreground">One classification: {line.components[0]?.label}</span>}
-      {line.blank && <span className="block text-[11px] text-tertiary-foreground">Includes a blank, counted as none</span>}
+      {line.units.length === 1 && line.components[0] && line.components[0].label !== line.label && <span className="block text-xs text-tertiary-foreground">One unit: {line.components[0]?.label}</span>}
+      {line.blank && <span className="block text-xs text-tertiary-foreground">Includes a blank, counted as none</span>}
     </span>
   )
 }
@@ -305,7 +324,7 @@ function Footnotes({ lines, peerCount }: { lines: LineRow[]; peerCount: number }
   const stayKinds = [...new Set(lines.map((l) => l.timeInUnit).filter(Boolean))]
   return (
     <div className="space-y-1 border-t border-border px-4 py-3 text-xs leading-relaxed text-tertiary-foreground">
-      {lines.length > 1 && <p>Choose a line or a classification to see its trend against peers.</p>}
+      {lines.length > 1 && <p>Choose a line or a unit to see its trend against peers.</p>}
       {stayKinds.length > 0 && (
         <p>
           &ldquo;Time in unit&rdquo;: per HCAI&apos;s instructions a critical care (including NICU) or skilled nursing stay

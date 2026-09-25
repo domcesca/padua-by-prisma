@@ -12,6 +12,8 @@ export const DATASETS: Record<
     yearNote: string
     /** Tag on a metric card when the chart's topic mostly uses another kind of year. */
     yearTag: string | null
+    /** What a year means for this source, on every card's status line (shared vocabulary). */
+    periodType: string
   }
 > = {
   "hafd-selected": {
@@ -19,7 +21,8 @@ export const DATASETS: Record<
     shortLabel: "Financial data",
     sourcePage: "https://data.chhs.ca.gov/dataset/hospital-annual-financial-data-selected-data-pivot-tables",
     yearNote: "Report years: each covers the hospital's fiscal year that ended in that calendar year.",
-    yearTag: "Fiscal years",
+    yearTag: "Report years",
+    periodType: "Report year (hospital fiscal year)",
   },
   hau: {
     label: "HCAI Hospital Annual Utilization Report",
@@ -27,6 +30,7 @@ export const DATASETS: Record<
     sourcePage: "https://data.chhs.ca.gov/dataset/hospital-annual-utilization-report",
     yearNote: "Calendar years (January–December).",
     yearTag: "Calendar years",
+    periodType: "Calendar year",
   },
   "case-mix-index": {
     label: "HCAI Case Mix Index",
@@ -34,6 +38,7 @@ export const DATASETS: Record<
     sourcePage: "https://data.chhs.ca.gov/dataset/case-mix-index",
     yearNote: "Federal fiscal years (October–September), filed under the year they end.",
     yearTag: "Federal fiscal years",
+    periodType: "Federal fiscal year",
   },
   "cms-care-compare": {
     label: "CMS Care Compare – hospital quality measures",
@@ -41,6 +46,7 @@ export const DATASETS: Record<
     sourcePage: "https://data.cms.gov/provider-data/topics/hospitals",
     yearNote: "Filed under the year each measurement period ends; most periods span one to three years.",
     yearTag: null,
+    periodType: "Measurement period",
   },
   "cdph-hai": {
     label: "CDPH Healthcare-Associated Infections in California Hospitals",
@@ -48,6 +54,7 @@ export const DATASETS: Record<
     sourcePage: "https://www.cdph.ca.gov/Programs/CHCQ/HAI/Pages/HAIreport.aspx",
     yearNote: "Calendar years (January–December).",
     yearTag: null,
+    periodType: "Calendar year",
   },
 }
 

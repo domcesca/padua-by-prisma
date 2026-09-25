@@ -9,7 +9,7 @@ export default function WatchPage() {
   return (
     <ComingSoon
       title="Watch"
-      description="Upload your facility’s own data and see which numbers moved more than they should have."
+      description="Upload your hospital’s own data and see which numbers moved more than they should have."
       icon={ScanEye}
       points={[
         {

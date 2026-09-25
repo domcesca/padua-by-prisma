@@ -303,6 +303,9 @@ export type InpatientCasesManifest = { years: number[]; sourcePage: string; shar
 const loadReference = <T>(dir: string, file: string) =>
   memo(`${dir}/${file}`, () => readFile(path.join(PROCESSED_DIR, dir, file), "utf8").then((text) => JSON.parse(text) as T))
 
+/** Any processed source's manifest by folder (status lines read dates and matches from it). */
+export const getSourceManifest = (dir: string) => loadReference<Manifest>(dir, "manifest.json")
+
 /** MS-DRGs with relative weights, from the latest IPPS Final Rule (Table 5). */
 export const getIppsDrgs = () => loadReference<IppsDrg[]>("cms-ipps", "drgs.json")
 export const getIppsManifest = () => loadReference<IppsManifest>("cms-ipps", "manifest.json")

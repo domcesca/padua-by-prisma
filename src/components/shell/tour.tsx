@@ -322,7 +322,7 @@ export function Tour() {
         style={cardStyle}
       >
         <div className="flex items-start justify-between gap-3">
-          <p className="text-[11px] font-medium tracking-wide text-tertiary-foreground uppercase">
+          <p className="text-xs font-medium tracking-wide text-tertiary-foreground uppercase">
             {TOURS[tourId].label} · {step + 1} of {STEPS.length}
           </p>
           <button

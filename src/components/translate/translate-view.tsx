@@ -8,11 +8,15 @@ import Link from "next/link"
 
 import { FacilityPicker, type FacilityOption } from "@/components/benchmark/facility-picker"
 import { FilterPill } from "@/components/benchmark/filter-pill"
+import { LiveStatus } from "@/components/shell/live-status"
 import { Segmented } from "@/components/shell/segmented"
+import { StatusLine } from "@/components/shell/status-line"
 import { DATASET_SLUG, DATASETS, parseDatasetSlug } from "@/lib/data/datasets"
+import type { SourceStatus } from "@/lib/data/freshness"
 import type { Dictionary, DictionaryField, DictionaryMetric, FieldYearMeta, HcaiDatasetId } from "@/lib/data/types"
 import { normalizeColumn, type Extract } from "@/lib/translate/columns"
 import { rememberSelection } from "@/lib/selection"
+import { auditLabel } from "@/lib/status"
 import { cn } from "@/lib/utils"
 import { ExtractInput } from "./extract-input"
 import { BIG_CHANGE, FieldRow, type FieldValues } from "./field-row"
@@ -32,6 +36,8 @@ export function TranslateView({
   otherSource,
   facilities,
   latestYear,
+  sourceStatus,
+  sourceLatestYear,
   initialFacilityId,
   initialFacilityData,
   initialFocus,
@@ -42,6 +48,10 @@ export function TranslateView({
   otherSource: { slug: string; codes: string[] }
   facilities: FacilityOption[]
   latestYear: number
+  /** This source's publication and processing dates, for the status line. */
+  sourceStatus: SourceStatus
+  /** The newest year this source has for any hospital. */
+  sourceLatestYear: number
   initialFacilityId: string | null
   initialFacilityData: FacilityFields | null
   /** Field code or metric id to open and scroll to on load. */
@@ -197,6 +207,15 @@ export function TranslateView({
 
   return (
     <div className="space-y-6">
+      <LiveStatus
+        message={
+          loadingFacility
+            ? `Loading ${facilityName ?? "the hospital"}’s values…`
+            : query.trim()
+              ? `${rows.length + metrics.length} ${rows.length + metrics.length === 1 ? "match" : "matches"} for “${query.trim()}”.`
+              : ""
+        }
+      />
       <Segmented
         label="Which HCAI dataset"
         value={source}
@@ -206,7 +225,7 @@ export function TranslateView({
 
       {/* Search + value source */}
       <div className="grid gap-3 md:grid-cols-2">
-        <label className="glass flex h-11 min-w-0 items-center gap-2.5 rounded-xl px-3.5 transition-shadow duration-200 focus-within:glow-soft">
+        <label className="glass flex h-11 min-w-0 items-center gap-2.5 rounded-xl px-3.5 transition-shadow duration-200 focus-within:glow-soft focus-within:ring-2 focus-within:ring-ring">
           <Search className="size-4 shrink-0 text-tertiary-foreground" aria-hidden />
           <span className="sr-only">Search fields</span>
           <input
@@ -290,8 +309,8 @@ export function TranslateView({
           </button>
         )}
         {loadingFacility && (
-          <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground" role="status">
-            <Loader2 className="size-3.5 animate-spin" /> Loading values
+          <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground" aria-hidden>
+            <Loader2 className="size-3.5 animate-spin" /> Loading {facilityName ?? "the hospital"}&apos;s values
           </span>
         )}
       </div>
@@ -355,8 +374,28 @@ export function TranslateView({
               <span className="font-medium text-foreground">{bigMoves}</span> field{bigMoves === 1 ? "" : "s"} moved by 20% or more.
             </>
           )}
-          {facilityData.meta[activeYear]?.annualized && " This year was annualized from a partial-year report."}
         </p>
+      )}
+      {facilityData && !extract && activeYear != null && (
+        <StatusLine
+          through={String(activeYear)}
+          periodType={DATASETS[dataset].periodType}
+          published={
+            sourceStatus.published[activeYear]
+              ? `Published ${sourceStatus.published[activeYear]}`
+              : sourceStatus.sourceUpdated
+                ? `Source updated ${sourceStatus.sourceUpdated}`
+                : null
+          }
+          processed={`Processed ${sourceStatus.processed}`}
+          audit={dataset === "hafd-selected" ? auditLabel(facilityData.meta[activeYear]?.status) : null}
+          flags={[
+            ...(years.at(-1)! < sourceLatestYear ? (["stale"] as const) : []),
+            ...(sourceStatus.provisional.includes(activeYear) ? (["provisional"] as const) : []),
+            ...(facilityData.meta[activeYear]?.annualized ? (["partial-period"] as const) : []),
+          ]}
+          flagDetail={{ stale: `This hospital's latest report is ${years.at(-1)}; HCAI has published ${sourceLatestYear}.` }}
+        />
       )}
 
       {/* Benchmark metrics share this dictionary; list them first. */}

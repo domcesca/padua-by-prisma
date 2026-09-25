@@ -215,8 +215,8 @@ function Editor({ state, onChange, data, context }: ModuleEditorProps<State, Rei
                             : `${baselineYear}: fewer than 11 Medicare cases here`)}
                         {data.peers &&
                           (peer
-                            ? `${data.baseline ? " · " : ""}similar hospitals: median ${formatInt(peer.median)} (${peer.reporting} of ${data.peers.count} had 11+)`
-                            : `${data.baseline ? " · " : ""}none of ${data.peers.count} similar hospitals had 11+`)}
+                            ? `${data.baseline ? " · " : ""}peer median ${formatInt(peer.median)} (${peer.reporting} of ${data.peers.count} peers had 11+)`
+                            : `${data.baseline ? " · " : ""}none of ${data.peers.count} peers had 11+`)}
                       </p>
                     )}
                   </div>
@@ -254,7 +254,7 @@ function Editor({ state, onChange, data, context }: ModuleEditorProps<State, Rei
                   )}
                   <div className="mb-1 ml-auto text-right">
                     <p className="num text-[14px] font-medium">{formatUsd(r.revenue)}</p>
-                    <p className="num text-[11px] text-muted-foreground">
+                    <p className="num text-xs text-muted-foreground">
                       {casesText(r.added)} × {formatUsd(r.payment)}
                     </p>
                   </div>

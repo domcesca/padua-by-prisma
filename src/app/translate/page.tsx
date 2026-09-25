@@ -4,13 +4,8 @@ import { AboutTool } from "@/components/shell/about-tool"
 import { PageHeader } from "@/components/shell/page-header"
 import { TranslateView } from "@/components/translate/translate-view"
 import { DATASET_SLUG, parseDatasetSlug } from "@/lib/data/datasets"
-import {
-  getDictionary,
-  getFacilities,
-  getFacilityFieldValues,
-  getLatestYear,
-  toFacilityOption,
-} from "@/lib/data/store"
+import { getSourceStatus } from "@/lib/data/freshness"
+import { getDictionary, getFacilities, getFacilityFieldValues, getLatestYear, getManifest, toFacilityOption } from "@/lib/data/store"
 
 export const metadata: Metadata = { title: "Translate" }
 
@@ -30,11 +25,13 @@ export default async function TranslatePage({ searchParams }: PageProps<"/transl
   const one = (v: string | string[] | undefined) => (typeof v === "string" ? v : null)
   const dataset = parseDatasetSlug(one(sp.source))
   const otherDataset = dataset === "hau" ? "hafd-selected" : "hau"
-  const [dictionary, otherDictionary, facilities, latestYear] = await Promise.all([
+  const [dictionary, otherDictionary, facilities, latestYear, source, manifest] = await Promise.all([
     getDictionary(dataset),
     getDictionary(otherDataset),
     getFacilities(),
     getLatestYear(),
+    getSourceStatus(dataset, null),
+    getManifest(dataset),
   ])
 
   const facilityParam = one(sp.facility)
@@ -60,6 +57,8 @@ export default async function TranslatePage({ searchParams }: PageProps<"/transl
         otherSource={{ slug: DATASET_SLUG[otherDataset], codes: otherDictionary.fields.map((f) => f.code) }}
         facilities={facilities.map(toFacilityOption)}
         latestYear={latestYear}
+        sourceStatus={source}
+        sourceLatestYear={manifest.years.at(-1)!}
         initialFacilityId={facilityId}
         initialFacilityData={facilityId ? (initialFacilityData ?? { values: {}, meta: {} }) : null}
         initialFocus={one(sp.metric) ?? one(sp.field)?.toUpperCase() ?? null}

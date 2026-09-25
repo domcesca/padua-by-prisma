@@ -5,6 +5,7 @@ import type { PeerFilters } from "@/lib/benchmark/filters"
 import { resolvePeerGroup } from "@/lib/benchmark/peers"
 import type { UnitSource } from "@/lib/benchmark/units"
 import { getFacilities, getFields, getManifest, getUnits } from "@/lib/data/store"
+import { getSourceStatus, type SourceStatus } from "@/lib/data/freshness"
 import type { FieldsFile, MetricsFile, UnitInfo } from "@/lib/data/types"
 import { checkServiceLines, SERVICE_LINES, type ServiceLine } from "./lines"
 
@@ -84,6 +85,10 @@ export type ServiceLineRollup = {
   years: ServiceLineYear[]
   peerGroup: { description: string; count: number }
   sourcePage: string
+  /** Publication and processing dates, for the status line. */
+  source: SourceStatus
+  /** The newest year HCAI has published for any hospital. */
+  latestYear: number
 }
 
 /** A line the hospital has had (the picker's options). */
@@ -330,5 +335,7 @@ export async function computeServiceLines({ facilityId, filters }: { facilityId:
     years: out,
     peerGroup: { description: group.description, count: group.peers.length },
     sourcePage: manifest.sourcePage,
+    source: await getSourceStatus("hau", facilityId),
+    latestYear: manifest.years.at(-1)!,
   }
 }

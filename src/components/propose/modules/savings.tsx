@@ -181,7 +181,7 @@ function Editor({ state, onChange, data, context }: ModuleEditorProps<State, Sav
               <>
                 {context.facilityName ?? "This hospital"}’s {cpd.year} average: {formatUsd(cpd.value)} a patient day (operating expense{" "}
                 {formatUsd(cpd.operatingExpense, { compact: true })} ÷ {formatInt(cpd.adjustedPatientDays)} adjusted patient days).
-                {data?.peers && ` Similar hospitals: median ${formatUsd(data.peers.median)} (${data.peers.count} hospitals).`}{" "}
+                {data?.peers && ` Peer median ${formatUsd(data.peers.median)} (${data.peers.count} peers).`}{" "}
                 {!prefill &&
                   `${Math.round(cpd.longTermCareShare * 100)}% of its patient days are in long-term care units (skilled nursing, sub-acute), which pulls that average well below the cost of an acute day, so it isn’t filled in: enter your own. `}
               </>
@@ -318,7 +318,7 @@ function Block({
         </h3>
         <div className="text-right">
           <p className="num text-[14px] font-medium">{formatUsd(amount)}</p>
-          {amount !== 0 && <p className="num text-[11px] text-muted-foreground">{detail}</p>}
+          {amount !== 0 && <p className="num text-xs text-muted-foreground">{detail}</p>}
         </div>
       </div>
       {header}

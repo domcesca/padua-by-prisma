@@ -78,7 +78,7 @@ export function unitMetricDef(base: MetricDef, unit: UnitInfo): MetricDef {
       inputs: [`${c}_CEN_DAYS`],
     },
     licensedBeds: {
-      summary: `Beds licensed in this classification on December 31 (${name}).`,
+      summary: `Beds licensed in this unit on December 31 (${name}).`,
       formula: `${p}_LIC_BEDS`,
       inputs: [`${p}_LIC_BEDS`],
     },
@@ -134,7 +134,7 @@ export function lineMetricDef(base: MetricDef, line: { label: string }, units: U
       inputs: days,
     },
     licensedBeds: {
-      summary: `Beds licensed in the service line's classifications on December 31 ${of}.`,
+      summary: `Beds licensed in the service line's units on December 31 ${of}.`,
       formula: add(all((u) => `${u.prefix}_LIC_BEDS`)),
       inputs: all((u) => `${u.prefix}_LIC_BEDS`),
     },

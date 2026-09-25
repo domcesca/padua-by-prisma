@@ -51,15 +51,15 @@ export function TrendChart({ metric, points }: { metric: DictionaryMetric; point
             dataKey="year"
             tickLine={false}
             axisLine={{ stroke: "var(--border)" }}
-            tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+            tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
             tickMargin={8}
             interval="preserveStartEnd"
           />
           <YAxis
-            width={44}
+            width={50}
             tickLine={false}
             axisLine={false}
-            tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+            tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
             tickFormatter={(v: number) => formatMetric(metric, v, true)}
             ticks={ticks}
             domain={[ticks[0], ticks.at(-1)!]}
@@ -72,7 +72,7 @@ export function TrendChart({ metric, points }: { metric: DictionaryMetric; point
               stroke="var(--muted-foreground)"
               strokeOpacity={0.6}
               strokeDasharray="3 3"
-              label={{ value: "Expected", position: "insideTopRight", fontSize: 10, fill: "var(--muted-foreground)" }}
+              label={{ value: "Expected", position: "insideTopRight", fontSize: 11, fill: "var(--muted-foreground)" }}
             />
           )}
           <Tooltip

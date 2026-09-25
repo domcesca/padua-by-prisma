@@ -134,10 +134,10 @@ export function ModuleIntake({
 
 function Badge({ suggested }: { suggested: boolean }) {
   return suggested ? (
-    <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] leading-none font-medium text-primary">
+    <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs leading-none font-medium text-primary">
       <Sparkles className="size-3" aria-hidden /> Suggested
     </span>
   ) : (
-    <span className="rounded-full bg-black/5 px-2 py-0.5 text-[11px] leading-none font-medium text-muted-foreground dark:bg-white/8">Your choice</span>
+    <span className="rounded-full bg-black/5 px-2 py-0.5 text-xs leading-none font-medium text-muted-foreground dark:bg-white/8">Your choice</span>
   )
 }

@@ -5,7 +5,7 @@ export function SourceTag({ kind, children, className }: { kind: "data" | "assum
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] leading-none font-medium whitespace-nowrap",
+        "inline-flex items-center rounded-full px-2 py-0.5 text-xs leading-none font-medium whitespace-nowrap",
         kind === "data" ? "bg-primary/10 text-primary" : "bg-black/5 text-muted-foreground dark:bg-white/8",
         className
       )}

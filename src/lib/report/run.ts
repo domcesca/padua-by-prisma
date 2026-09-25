@@ -5,6 +5,7 @@ import { DEFAULT_FILTERS } from "@/lib/benchmark/filters"
 import { milesBetween, resolvePeerGroup } from "@/lib/benchmark/peers"
 import { isTrendMetric, type MetricDef } from "@/lib/data/datasets"
 import { getFacilities, getManifest, getMetricCatalog, getMetrics } from "@/lib/data/store"
+import { getSourceStatus } from "@/lib/data/freshness"
 import type { Facility } from "@/lib/data/types"
 import { MAX_PEER_BARS, type ReportPanel, type ReportResult, type ReportSpec } from "./spec"
 
@@ -28,8 +29,8 @@ export async function runReport(spec: ReportSpec): Promise<ReportResult | RunErr
   const state = resolvePeerGroup(focus, facilities, { ...DEFAULT_FILTERS, mode: "statewide" })
   const usesPeers = spec.groupBy === "peerGroup" || (spec.groupBy === "facility" && spec.hospitals === "peers") || spec.groupBy === "year"
 
-  const panels = await Promise.all(
-    metrics.map(async (metric): Promise<ReportPanel> => {
+  const built = await Promise.all(
+    metrics.map(async (metric): Promise<Omit<ReportPanel, "through" | "latestYear">> => {
       const [file, manifest] = await Promise.all([getMetrics(metric.dataset), getManifest(metric.dataset)])
       const years = manifest.years
       const value = (id: string, year: number) => metricValue(file, id, year, metric.id)
@@ -136,6 +137,18 @@ export async function runReport(spec: ReportSpec): Promise<ReportResult | RunErr
     })
   )
 
+  const panels: ReportPanel[] = await Promise.all(
+    built.map(async (panel, i) => {
+      const [file, manifest] = await Promise.all([getMetrics(metrics[i].dataset), getManifest(metrics[i].dataset)])
+      const years = manifest.years.filter((y) => panel.year == null || y <= panel.year)
+      const through = [...years].reverse().find((y) => metricValue(file, focus.id, y, metrics[i].id) != null) ?? null
+      return { ...panel, through, latestYear: manifest.years.at(-1) ?? null }
+    })
+  )
+  const sources = Object.fromEntries(
+    await Promise.all([...new Set(metrics.map((m) => m.dataset))].map(async (d) => [d, await getSourceStatus(d, focus.id)] as const))
+  )
+
   const groupLabel = { year: "by year", facility: "by hospital", peerGroup: "vs. peer group" }[spec.groupBy]
   // "Occupancy rate and operating margin" — lower-case later labels unless they start with an acronym (ED).
   const metricLabels = metrics.map((m, i) => (i > 0 && /^[A-Z][a-z]/.test(m.label) ? m.label.charAt(0).toLowerCase() + m.label.slice(1) : m.label))
@@ -153,5 +166,6 @@ export async function runReport(spec: ReportSpec): Promise<ReportResult | RunErr
     subtitle,
     panels,
     peerGroup: usesPeers ? { description: group.description, count: group.peers.length } : null,
+    sources,
   }
 }

@@ -7,8 +7,14 @@ import { MetricInfo } from "@/components/benchmark/metric-info"
 import { FacilityPicker, type FacilityOption } from "@/components/benchmark/facility-picker"
 import { FilterPill } from "@/components/benchmark/filter-pill"
 import { GroupedPicker } from "@/components/shell/grouped-picker"
+import { LiveStatus } from "@/components/shell/live-status"
 import { Segmented } from "@/components/shell/segmented"
-import { type MetricDef } from "@/lib/data/datasets"
+import { StandingBadge } from "@/components/shell/standing"
+import { StatusLine } from "@/components/shell/status-line"
+import { DATASETS, type MetricDef } from "@/lib/data/datasets"
+import type { SourceStatus } from "@/lib/data/freshness"
+import { metricStanding } from "@/lib/favorability"
+import { CONTEXT_REASONS } from "@/lib/favorability/directions"
 import { metricPickerOptions } from "@/lib/data/metric-options"
 import { formatMetric } from "@/lib/format"
 import {
@@ -22,6 +28,7 @@ import {
   type ReportSpec,
 } from "@/lib/report/spec"
 import { rememberSelection } from "@/lib/selection"
+import type { QualityFlag } from "@/lib/status"
 import { cn } from "@/lib/utils"
 import { ReportChart, ReportLegend, ReportTable } from "./report-chart"
 
@@ -130,6 +137,17 @@ export function BuildView({
 
   return (
     <div className="grid gap-8 lg:grid-cols-[20rem_minmax(0,1fr)]">
+      <LiveStatus
+        message={
+          loading
+            ? `Building the report for ${facilityById.get(spec.facilityId ?? "")?.name ?? "the hospital"}…`
+            : error
+              ? error
+              : current
+                ? `${current.title}: ${current.panels.length} chart${current.panels.length === 1 ? "" : "s"} for ${current.subtitle}.`
+                : ""
+        }
+      />
       {/* Controls */}
       <div className="space-y-6 lg:sticky lg:top-8 lg:self-start">
         <Field label="Hospital">
@@ -208,7 +226,7 @@ export function BuildView({
         )}
 
         {showCompare && (
-          <Field label="Compare with" hint={`Up to ${MAX_COMPARE} more hospitals.`}>
+          <Field label="Hospitals side by side" hint={`Up to ${MAX_COMPARE} more hospitals.`}>
             <div className="space-y-2">
               {spec.compare.map((id) => (
                 <div key={id} className="glass-subtle flex h-9 items-center gap-2 rounded-lg px-3 text-[13px]">
@@ -284,7 +302,7 @@ export function BuildView({
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                {loading && <Loader2 className="size-4 animate-spin text-muted-foreground" aria-label="Updating" />}
+                {loading && <Loader2 className="size-4 animate-spin text-muted-foreground" aria-hidden />}
                 <ActionButton onClick={copyLink} icon={copied ? Check : Link2}>
                   {copied ? "Copied" : "Copy link"}
                 </ActionButton>
@@ -310,9 +328,7 @@ export function BuildView({
                         {panel.year != null && <span className="text-xs text-tertiary-foreground">{panel.year}</span>}
                       </div>
                       {typeof focusValue === "number" && panel.rowKind === "facility" && (
-                        <p className="text-[13px] text-muted-foreground">
-                          {rankSentence(panel, metric, focusValue)}
-                        </p>
+                        <RankLine panel={panel} metric={metric} value={focusValue} />
                       )}
                       {current.spec.chart !== "table" && <ReportLegend panel={panel} />}
                     </header>
@@ -323,6 +339,7 @@ export function BuildView({
                       </div>
                     )}
                     {panel.note && <p className="mt-3 text-xs text-tertiary-foreground">{panel.note}</p>}
+                    <PanelStatus panel={panel} metric={metric} source={current.sources[metric.dataset]} />
                   </section>
                 )
               })}
@@ -330,6 +347,10 @@ export function BuildView({
           </div>
         ) : (
           <div className="grid gap-4" aria-busy>
+            <p className="flex items-center gap-2 text-[13px] text-muted-foreground">
+              <Loader2 className="size-3.5 animate-spin" aria-hidden />
+              Building the report for {facilityById.get(spec.facilityId ?? "")?.name ?? "the hospital"}…
+            </p>
             <div className="h-8 w-72 animate-pulse rounded-lg bg-muted" />
             <div className="glass h-80 animate-pulse rounded-2xl" />
           </div>
@@ -339,10 +360,45 @@ export function BuildView({
   )
 }
 
-function rankSentence(panel: ReportResult["panels"][number], metric: MetricDef, value: number) {
+/** The standing label first (lib/favorability), then the rank among the hospitals charted as its evidence. */
+function RankLine({ panel, metric, value }: { panel: ReportResult["panels"][number]; metric: MetricDef; value: number }) {
   const ranked = panel.rows.filter((r) => typeof r.value === "number")
   const rank = ranked.findIndex((r) => r.role === "focus") + 1
-  return `${formatMetric(metric, value)} — ${rank === 1 ? "highest" : rank === ranked.length ? "lowest" : `${ordinalWord(rank)} highest`} of ${ranked.length}.`
+  const others = ranked.filter((r) => r.role !== "focus").map((r) => r.value as number)
+  const below = others.filter((v) => v < value).length + others.filter((v) => v === value).length / 2
+  const s = metricStanding(metric.id, others.length ? below / others.length : null, others.length)
+  return (
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+      {s && <StandingBadge standing={s} title={s === "depends" ? CONTEXT_REASONS[metric.id] : undefined} />}
+      <p className="text-[13px] text-muted-foreground">
+        {formatMetric(metric, value)} — {rank === 1 ? "highest" : rank === ranked.length ? "lowest" : `${ordinalWord(rank)} highest`} of{" "}
+        {ranked.length} hospitals charted.
+      </p>
+    </div>
+  )
+}
+
+function PanelStatus({ panel, metric, source }: { panel: ReportResult["panels"][number]; metric: MetricDef; source?: SourceStatus }) {
+  const published = panel.through != null ? source?.published[panel.through] : null
+  const flags: QualityFlag[] = []
+  if (panel.through == null) flags.push("unavailable")
+  else if (panel.latestYear != null && panel.year == null && panel.through < panel.latestYear) flags.push("stale")
+  if (panel.through != null && source?.provisional.includes(panel.through)) flags.push("provisional")
+  if (source?.matched) flags.push("matched-record")
+  return (
+    <StatusLine
+      className="mt-3 border-t border-border pt-2.5"
+      through={panel.through != null ? String(panel.through) : null}
+      periodType={DATASETS[metric.dataset].periodType}
+      published={published ? `Published ${published}` : source?.sourceUpdated ? `Source updated ${source.sourceUpdated}` : null}
+      processed={source ? `Processed ${source.processed}` : null}
+      flags={flags}
+      flagDetail={{
+        stale: panel.through != null ? `This hospital's latest value is from ${panel.through}; the source has ${panel.latestYear}.` : undefined,
+        "matched-record": source?.matched ?? undefined,
+      }}
+    />
+  )
 }
 
 function ordinalWord(n: number) {

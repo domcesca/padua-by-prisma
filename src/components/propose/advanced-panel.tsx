@@ -303,7 +303,7 @@ function PayerMix({ value, onChange, facilityId }: { value: AdvancedSettings; on
       <div className="overflow-x-auto">
         <table className="num w-full text-[13px]">
           <thead>
-            <tr className="text-left text-[11px] text-muted-foreground">
+            <tr className="text-left text-xs text-muted-foreground">
               <th className="py-1 font-medium">Payer</th>
               <th className="py-1 font-medium">Share</th>
               <th className="py-1 font-medium">vs Medicare</th>

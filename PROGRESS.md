@@ -292,6 +292,19 @@ downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and
   Outdated = newest report more than 2 years behind the newest data (13 hospitals, some of them campuses now reported
   under a parent).
 
+### V6.13 (Shared vocabulary: favorability, freshness, visual polish)
+- Favorability labels, direction words, status lines, terminology, contrast, loading/empty states, mobile summary bar
+  and sheet, and focus/announcement fixes across Benchmark, Build, Correlate, Propose, Translate, and Deadlines. Details
+  in the README. No data or calculation changes: 136/136 API responses (Benchmark, Specialty, Propose, Build,
+  Correlate, Translate fields) identical to V6.12 apart from the new status metadata.
+- Decisions to confirm: (1) Favorable/Unfavorable = outside the peer middle 50% (25th–75th percentile), matching the
+  chart band; (2) directions come from the ETL dictionaries unchanged (context for volumes, LOS, occupancy, CMI, payer
+  mix; revenue per adjusted discharge stays higher-is-better as the dictionary has it); (3) "provisional" is driven by
+  a source marking a year preliminary (none loaded today), kept separate from HCAI's audit status, which shows as
+  "Unaudited (HCAI audit in process)"; (4) "matched record" = CMS reports the hospital under another's CCN, or its CCN
+  was matched by ZIP and name; (5) Build's step-by-step form stays a form on small screens (only filter strips fold
+  into the sheet).
+
 ### V6.12 (Service lines)
 - Benchmark → Utilization's unit picker ("Unit or service line") adds "All service lines, side by side" and the four
   combined lines; single classifications are still there. Config in `src/lib/service-lines/lines.ts`; computed on

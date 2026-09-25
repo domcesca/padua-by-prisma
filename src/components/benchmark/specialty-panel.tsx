@@ -6,6 +6,9 @@ import { useState } from "react"
 import { PickerPill } from "@/components/shell/grouped-picker"
 import { Segmented } from "@/components/shell/segmented"
 import { SourceTag } from "@/components/propose/source-tag"
+import { StandingBadge } from "@/components/shell/standing"
+import { StatusLine } from "@/components/shell/status-line"
+import { metricStanding, rankText } from "@/lib/favorability"
 import { formatInt, formatPercent, formatUsd } from "@/lib/format"
 import type { PeerStats, SpecialtyCell, SpecialtyHospital, SpecialtyResult } from "@/lib/specialty/compute"
 import { MAX_COMPARE, MDC_BY_CODE, mdcLabel, type MdcInfo } from "@/lib/specialty/mdc"
@@ -46,15 +49,16 @@ function formatStat(stats: PeerStats, measure: Measure) {
   return measure === "cases" ? formatInt(Math.round(v)) : measure === "payment" ? formatUsd(v, { compact: true }) : formatPercent(v)
 }
 
+/** Case volume isn't favorable or unfavorable in itself: the label says so, and the rank follows. */
 function standing(stats: PeerStats | undefined) {
-  if (!stats || stats.percentile == null) return null
-  // Too few peers with a count to rank against.
-  if (stats.reporting < 3) return null
-  const pct = Math.round(stats.percentile * 100)
-  if (pct >= 45 && pct <= 55) return "About the median"
-  if (pct >= 100) return `Highest of ${stats.reporting}`
-  if (pct <= 0) return `Lowest of ${stats.reporting}`
-  return `Above ${pct}% of ${stats.reporting}`
+  if (!stats || stats.percentile == null || stats.reporting === 0) return null
+  const s = metricStanding("specialtyCases", stats.percentile, stats.reporting)!
+  return (
+    <span className="flex flex-col items-end gap-0.5">
+      <StandingBadge standing={s} short title={s === "depends" ? "More or fewer Medicare cases in a specialty depends on the hospital's strategy." : undefined} />
+      <span className="text-xs">{rankText(stats.percentile, stats.reporting)}</span>
+    </span>
+  )
 }
 
 export function SpecialtyPanel({
@@ -122,6 +126,15 @@ function ScopeNote({ result }: { result: SpecialtyResult }) {
         <SourceTag kind="data">Public data · CMS {result.year}</SourceTag>
         <p className="font-medium">Original Medicare (fee-for-service) inpatient cases only, not the hospital&apos;s total volume.</p>
       </div>
+      <StatusLine
+        className="mt-1.5"
+        through={String(result.year)}
+        periodType="Calendar year (discharges)"
+        published={result.source.published[result.year] ? `Published ${result.source.published[result.year]}` : null}
+        processed={`Processed ${result.source.processed}`}
+        flags={[...(result.hospital ? [] : (["unavailable"] as const)), ...(result.source.matched ? (["matched-record"] as const) : [])]}
+        flagDetail={{ "matched-record": result.source.matched ?? undefined }}
+      />
       <p className="mt-1.5 text-muted-foreground">
         {result.year} discharges at hospitals paid under Medicare&apos;s inpatient prospective payment system (IPPS).
         Excluded: Medicare Advantage, Medi-Cal, commercial, and every other payer; critical access, psychiatric,
@@ -234,7 +247,7 @@ function Overview({ result, measure, onSpecialty }: { result: SpecialtyResult; m
             {measureLabel} by Medicare specialty (MDC) for {cols.map((c) => c.name).join(", ")}, with the peer median.
           </caption>
           <thead>
-            <tr className="border-b border-border text-left text-[11px] text-tertiary-foreground">
+            <tr className="border-b border-border text-left text-xs text-tertiary-foreground">
               <th scope="col" className={cn(STICKY, "px-4 py-2.5 font-medium")}>
                 Specialty (MDC)
               </th>
@@ -271,7 +284,7 @@ function Overview({ result, measure, onSpecialty }: { result: SpecialtyResult; m
                   })}
                   <td className="num px-3 py-2 text-right whitespace-nowrap text-muted-foreground">
                     {formatStat(stats, measure) ?? "—"}
-                    <span className="block text-[11px] text-tertiary-foreground">
+                    <span className="block text-xs text-tertiary-foreground">
                       {stats.reporting} of {result.peerGroup.withData}
                     </span>
                   </td>
@@ -327,7 +340,7 @@ function OneSpecialty({ result, mdc, measure }: { result: SpecialtyResult; mdc: 
   return (
     <div className="space-y-4">
       <section aria-label="Specialty" className="widget fade-up space-y-2 p-5">
-        <p className="text-[11px] font-medium tracking-wide text-tertiary-foreground uppercase">
+        <p className="text-xs font-medium tracking-wide text-tertiary-foreground uppercase">
           {m.code === "none" ? "No MDC" : m.code === "PRE" ? "Pre-MDC" : `MDC ${m.code}`}
         </p>
         <h3 className="text-xl leading-tight font-semibold tracking-tight">{mdcLabel(m)}</h3>
@@ -348,6 +361,11 @@ function OneSpecialty({ result, mdc, measure }: { result: SpecialtyResult; mdc: 
               value={stats?.median != null ? formatInt(Math.round(stats.median)) : "—"}
               sub={stats ? `${stats.reporting} of ${result.peerGroup.withData} peers with a count` : undefined}
             />
+            {stats && standing(stats) && (
+              <div className="col-span-2 flex justify-start sm:col-span-4 [&>span]:flex-row [&>span]:items-center [&>span]:gap-2">
+                {standing(stats)}
+              </div>
+            )}
           </dl>
         )}
       </section>
@@ -402,7 +420,7 @@ function OneSpecialty({ result, mdc, measure }: { result: SpecialtyResult; mdc: 
           <div className="overflow-x-auto">
             <table className="mt-2 w-full min-w-[32rem] text-[13px]">
               <thead>
-                <tr className="border-b border-border text-left text-[11px] text-tertiary-foreground">
+                <tr className="border-b border-border text-left text-xs text-tertiary-foreground">
                   <th scope="col" className="px-5 py-2 font-medium">
                     DRG
                   </th>
@@ -419,7 +437,7 @@ function OneSpecialty({ result, mdc, measure }: { result: SpecialtyResult; mdc: 
                   <tr key={d.code} className="border-b border-border/60 last:border-0">
                     <td className="px-5 py-1.5">
                       <span className="num text-tertiary-foreground">{d.code}</span> {sentenceCase(d.title)}
-                      {d.retired && <span className="block text-[11px] text-tertiary-foreground">Retired by CMS; priced at its last published weight</span>}
+                      {d.retired && <span className="block text-xs text-tertiary-foreground">Retired by CMS; priced at its last published weight</span>}
                     </td>
                     <td className="num px-3 py-1.5 text-right">{formatInt(d.cases)}</td>
                     <td className="num px-5 py-1.5 text-right">{formatUsd(d.payment, { compact: true })}</td>
@@ -446,9 +464,9 @@ function Swatch({ color, label, faded = false }: { color: string; label: string;
 function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <div className="min-w-0">
-      <dt className="text-[11px] text-tertiary-foreground">{label}</dt>
+      <dt className="text-xs text-tertiary-foreground">{label}</dt>
       <dd className="num text-[15px] font-semibold tracking-tight">{value}</dd>
-      {sub && <dd className="text-[11px] text-tertiary-foreground">{sub}</dd>}
+      {sub && <dd className="text-xs text-tertiary-foreground">{sub}</dd>}
     </div>
   )
 }

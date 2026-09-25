@@ -4,6 +4,7 @@ import { metricValue } from "@/lib/benchmark/compute"
 import { DEFAULT_FILTERS } from "@/lib/benchmark/filters"
 import { resolvePeerGroup } from "@/lib/benchmark/peers"
 import { isTrendMetric, type MetricDef } from "@/lib/data/datasets"
+import { getSourceStatus } from "@/lib/data/freshness"
 import { getFacilities, getManifest, getMetricCatalog, getMetrics } from "@/lib/data/store"
 import type { DatasetId } from "@/lib/data/types"
 import { lowerLabel, MIN_POINTS, type CorrelatePoint, type CorrelateResult, type CorrelateSpec } from "./spec"
@@ -126,5 +127,7 @@ export async function runCorrelate(spec: CorrelateSpec): Promise<CorrelateResult
     stats: fit(points),
     peerGroup: { description: group.description, count: group.peers.length },
     notes,
+    sources: { x: await getSourceStatus(mx.dataset, focus.id), y: await getSourceStatus(my.dataset, focus.id) },
+    latestYears: { x: manX.years.at(-1)!, y: manY.years.at(-1)! },
   }
 }

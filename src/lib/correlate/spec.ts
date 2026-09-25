@@ -2,6 +2,8 @@
 // peer group. Like Build's ReportSpec, the whole view is a small declarative
 // config that lives in the URL; the server validates and runs it (./run.ts).
 
+import type { SourceStatus } from "@/lib/data/freshness"
+
 export type CorrelateSpec = {
   facilityId: string | null
   /** Catalog metric id on the horizontal axis. */
@@ -70,6 +72,10 @@ export type CorrelateResult = {
   peerGroup: { description: string; count: number }
   /** Caveats about pairing years of different kinds (fiscal vs calendar, multi-year periods). */
   notes: string[]
+  /** Status line per axis: the source's dates, provisional years, and the chosen hospital's record match. */
+  sources: { x: SourceStatus; y: SourceStatus }
+  /** Newest year each axis's source has for any hospital. */
+  latestYears: { x: number; y: number }
 }
 
 /**

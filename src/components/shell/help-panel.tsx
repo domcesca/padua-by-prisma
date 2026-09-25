@@ -32,7 +32,7 @@ function score(e: GlossaryEntry, terms: string[]) {
   const code = e.code?.toLowerCase() ?? ""
   const hay = [term, code, e.hcaiLabel ?? "", e.definition, e.context].join(" ").toLowerCase()
   if (!terms.every((t) => hay.includes(t))) return 0
-  const kind = e.kind === "metric" ? 0.5 : 0
+  const kind = e.kind === "term" ? 0.75 : e.kind === "metric" ? 0.5 : 0
   if (terms.every((t) => term.includes(t) || code.includes(t))) return (term.startsWith(terms[0]) || code.startsWith(terms[0]) ? 4 : 3) + kind
   if (e.hcaiLabel && terms.every((t) => e.hcaiLabel!.toLowerCase().includes(t))) return 2 + kind
   return 1 + kind
@@ -77,7 +77,7 @@ export function HelpPanel() {
           .filter((r) => r.s > 0)
           .sort((a, b) => b.s - a.s)
           .map((r) => r.e)
-      : entries.filter((e) => e.kind === "metric")
+      : entries.filter((e) => e.kind === "term" || e.kind === "metric")
   const fieldCount = entries?.filter((e) => e.kind === "field").length ?? 0
 
   return (
@@ -105,7 +105,7 @@ export function HelpPanel() {
           <div>
             <p className="text-[15px] font-semibold tracking-tight">Glossary</p>
             <p className="text-xs text-muted-foreground">
-              What a metric or HCAI field means, from the same definitions as Translate.
+              Padua&apos;s terms, and what a metric or HCAI field means, from the same definitions as Translate.
             </p>
           </div>
           <button
@@ -118,7 +118,7 @@ export function HelpPanel() {
           </button>
         </div>
         <div className="px-3 pb-2">
-          <label className="flex h-9 items-center gap-2 rounded-lg bg-input/30 px-2.5 focus-within:ring-1 focus-within:ring-ring/60">
+          <label className="flex h-9 items-center gap-2 rounded-lg bg-input/30 px-2.5 focus-within:ring-2 focus-within:ring-ring">
             <Search className="size-4 shrink-0 opacity-50" />
             <input
               ref={input}
@@ -151,8 +151,8 @@ export function HelpPanel() {
           ) : (
             <>
               {!terms.length && (
-                <p className="px-2 pb-1.5 text-[11px] font-medium tracking-wide text-tertiary-foreground uppercase">
-                  Metrics · type to search {fieldCount} report fields too
+                <p className="px-2 pb-1.5 text-xs font-medium tracking-wide text-tertiary-foreground uppercase">
+                  Padua&apos;s terms, then metrics · type to search {fieldCount} report fields too
                 </p>
               )}
               <ul className="space-y-0.5">
@@ -222,12 +222,12 @@ function GlossaryRow({
         <span className="min-w-0 flex-1">
           <span className="flex flex-wrap items-baseline gap-x-2">
             <span className="text-sm font-medium">{e.term}</span>
-            {e.code && <code className="font-mono text-[11px] text-muted-foreground">{e.code}</code>}
+            {e.code && <code className="font-mono text-xs text-muted-foreground">{e.code}</code>}
           </span>
           <span className={cn("mt-0.5 block text-[13px] leading-snug text-muted-foreground", !open && "line-clamp-2")}>
             {e.definition}
           </span>
-          <span className="mt-0.5 block text-[11px] text-tertiary-foreground">{e.context}</span>
+          <span className="mt-0.5 block text-xs text-tertiary-foreground">{e.context}</span>
         </span>
         {detail && (
           <ChevronDown className={cn("mt-1 size-3.5 shrink-0 text-tertiary-foreground transition-transform", open && "rotate-180")} />
@@ -244,7 +244,7 @@ function GlossaryRow({
           {e.formula && (
             <p>
               <span className="text-muted-foreground">Formula: </span>
-              <code className="font-mono text-[11px] break-words">{e.formula}</code>
+              <code className="font-mono text-xs break-words">{e.formula}</code>
             </p>
           )}
           {e.caution && <p className="text-warning">{e.caution}</p>}

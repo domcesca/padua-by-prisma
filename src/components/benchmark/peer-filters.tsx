@@ -85,7 +85,7 @@ export function PeerFilterBar({
   return (
     <div className="space-y-2.5" role="group" aria-label="Peer group">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-[13px] font-medium text-muted-foreground">Compare with</span>
+        <span className="text-[13px] font-medium text-muted-foreground">Peer group</span>
         <Segmented
           label="Peer group"
           size="sm"
@@ -120,7 +120,7 @@ export function PeerFilterBar({
             ]}
             selected={[shown.radiusMiles != null ? String(shown.radiusMiles) : "any"]}
             onChange={([v]) => edit({ radiusMiles: v === "any" ? null : Number(v), counties: v === "any" ? shown.counties : [] })}
-            footer={<p className="px-1 text-[11px] leading-snug text-muted-foreground">Straight-line distance, not drive time.</p>}
+            footer={<p className="px-1 text-xs leading-snug text-muted-foreground">Straight-line distance, not drive time.</p>}
           />
         )}
         <FilterPill

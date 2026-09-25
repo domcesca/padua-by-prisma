@@ -7,6 +7,8 @@ import { FacilityPicker, type FacilityOption } from "@/components/benchmark/faci
 import { FilterPill } from "@/components/benchmark/filter-pill"
 import { MetricInfo } from "@/components/benchmark/metric-info"
 import { PickerPill } from "@/components/shell/grouped-picker"
+import { LiveStatus } from "@/components/shell/live-status"
+import { MobileControls } from "@/components/shell/mobile-controls"
 import { Segmented } from "@/components/shell/segmented"
 import {
   correlateSpecToParams,
@@ -16,7 +18,10 @@ import {
   type CorrelateResult,
   type CorrelateSpec,
 } from "@/lib/correlate/spec"
-import { type MetricDef } from "@/lib/data/datasets"
+import { StatusLine } from "@/components/shell/status-line"
+import { DATASETS, type MetricDef } from "@/lib/data/datasets"
+import type { SourceStatus } from "@/lib/data/freshness"
+import type { QualityFlag } from "@/lib/status"
 import { metricPickerOptions } from "@/lib/data/metric-options"
 import { rememberSelection } from "@/lib/selection"
 import { cn } from "@/lib/utils"
@@ -121,12 +126,8 @@ export function CorrelateView({
     }
   }
 
-  return (
-    <div className="space-y-6">
-      <div className="space-y-3">
-        <div data-tour="correlate-hospital">
-          <FacilityPicker facilities={facilities} value={spec.facilityId} onChange={(id) => update({ facilityId: id, year: null })} latestYear={latestYear} />
-        </div>
+  const controls = (
+    <>
         <div data-tour="correlate-measures" className="flex flex-wrap items-center gap-2">
           <PickerPill
             noun="measures"
@@ -182,11 +183,41 @@ export function CorrelateView({
             />
           )}
           {loading && (
-            <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground" role="status">
+            <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground" aria-hidden>
               <Loader2 className="size-3.5 animate-spin" /> Updating
             </span>
           )}
         </div>
+    </>
+  )
+
+  return (
+    <div className="space-y-6">
+      <LiveStatus
+        message={
+          loading
+            ? "Loading the two measures for the peer group…"
+            : error
+              ? error
+              : current && stats
+                ? `Correlation r = ${fmtR(stats.r)} across ${stats.n} hospitals, ${current.year}.`
+                : ""
+        }
+      />
+      <MobileControls
+        hospital={facilities.find((f) => f.id === spec.facilityId)?.name ?? null}
+        topic={mx && my ? `${my.label} vs. ${lowerLabel(mx.label)}` : "Correlate"}
+        period={current ? `${current.year} · ${spec.peers === "similar" ? "similar hospitals" : "all of California"}` : null}
+        active={(spec.peers !== "similar" ? 1 : 0) + (spec.year != null ? 1 : 0)}
+        title="Measures and peer group"
+      >
+        {controls}
+      </MobileControls>
+      <div className="space-y-3">
+        <div data-tour="correlate-hospital">
+          <FacilityPicker facilities={facilities} value={spec.facilityId} onChange={(id) => update({ facilityId: id, year: null })} latestYear={latestYear} />
+        </div>
+        <div className="hidden space-y-3 md:block">{controls}</div>
       </div>
 
       <div className="-my-3 h-0.5" aria-hidden>
@@ -211,7 +242,7 @@ export function CorrelateView({
         <div className={cn("space-y-4 transition-opacity duration-200", loading && "opacity-60")}>
           <div className="grid gap-4 lg:grid-cols-3">
             <section aria-label="Correlation" data-tour="correlate-r" className="widget fade-up flex flex-col gap-1 p-5">
-              <p className="text-[11px] font-medium tracking-wide text-tertiary-foreground uppercase">Correlation · {current.year}</p>
+              <p className="text-xs font-medium tracking-wide text-tertiary-foreground uppercase">Correlation · {current.year}</p>
               {stats ? (
                 <>
                   <p className="num text-[40px] leading-none font-semibold tracking-tight">
@@ -242,7 +273,7 @@ export function CorrelateView({
               )}
             </section>
             <section aria-label="Who's plotted" className="widget fade-up flex flex-col gap-1 p-5 lg:col-span-2">
-              <p className="text-[11px] font-medium tracking-wide text-tertiary-foreground uppercase">Plotted</p>
+              <p className="text-xs font-medium tracking-wide text-tertiary-foreground uppercase">Plotted</p>
               <p className="text-[15px] font-semibold tracking-tight">{current.facilityName}</p>
               <p className="text-[13px] leading-relaxed text-muted-foreground">
                 and {current.peerGroup.count} {spec.peers === "similar" ? "similar hospitals" : "hospitals statewide"}:{" "}
@@ -313,6 +344,10 @@ export function CorrelateView({
                 Up: {ry.label} <MetricInfo metric={ry} />
               </span>
             </div>
+            <div className="mt-3 space-y-1.5 border-t border-border pt-2.5">
+              <AxisStatus axis="Horizontal" metric={rx} year={current.year} latest={current.latestYears.x} source={current.sources.x} reported={current.focusReported} />
+              <AxisStatus axis="Vertical" metric={ry} year={current.year} latest={current.latestYears.y} source={current.sources.y} reported={current.focusReported} />
+            </div>
           </section>
 
           <p data-tour="correlate-notes" className="text-xs leading-relaxed text-tertiary-foreground">
@@ -325,6 +360,10 @@ export function CorrelateView({
         </div>
       ) : !error ? (
         <div className="grid gap-4" aria-busy>
+          <p className="flex items-center gap-2 text-[13px] text-muted-foreground">
+            <Loader2 className="size-3.5 animate-spin" aria-hidden />
+            Loading the two measures for {facilities.find((f) => f.id === spec.facilityId)?.name ?? "the hospital"}&apos;s peer group…
+          </p>
           <div className="grid gap-4 lg:grid-cols-3">
             <div className="widget h-40 animate-pulse" />
             <div className="widget h-40 animate-pulse lg:col-span-2" />
@@ -358,5 +397,46 @@ function ActionButton({ onClick, icon: Icon, label }: { onClick: () => void; ico
       <Icon className="size-3.5" />
       {label}
     </button>
+  )
+}
+
+/** One status line per axis (lib/status): the two measures can come from sources with different kinds of year. */
+function AxisStatus({
+  axis,
+  metric,
+  year,
+  latest,
+  source,
+  reported,
+}: {
+  axis: string
+  metric: MetricDef
+  year: number
+  latest: number
+  source: SourceStatus
+  reported: boolean
+}) {
+  const flags: QualityFlag[] = []
+  if (!reported) flags.push("unavailable")
+  if (source.provisional.includes(year)) flags.push("provisional")
+  if (source.matched) flags.push("matched-record")
+  return (
+    <div>
+      <p className="text-xs font-medium text-foreground">
+        {axis}: {metric.label}
+      </p>
+      <StatusLine
+        through={String(year)}
+        periodType={DATASETS[metric.dataset].periodType}
+        published={source.published[year] ? `Published ${source.published[year]}` : source.sourceUpdated ? `Source updated ${source.sourceUpdated}` : null}
+        processed={`Processed ${source.processed}`}
+        note={year < latest ? `Newest year in source: ${latest}` : null}
+        flags={flags}
+        flagDetail={{
+          unavailable: "The chosen hospital doesn't report both measures this year, so it isn't on the chart.",
+          "matched-record": source.matched ?? undefined,
+        }}
+      />
+    </div>
   )
 }
