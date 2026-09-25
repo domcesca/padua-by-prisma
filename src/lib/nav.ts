@@ -4,7 +4,6 @@ import {
   Calculator,
   CalendarClock,
   ChartColumnBig,
-  ChartScatter,
   House,
   MessageSquareText,
   ScanEye,
@@ -37,14 +36,8 @@ export const NAV_ITEMS: NavItem[] = [
   {
     href: "/build",
     label: "Build",
-    description: "Make a chart or table from the data",
+    description: "Make a chart or table, or see how two measures relate",
     icon: ChartColumnBig,
-  },
-  {
-    href: "/correlate",
-    label: "Correlate",
-    description: "See whether two measures move together",
-    icon: ChartScatter,
   },
   {
     href: "/propose",

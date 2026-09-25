@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 
 import { ProposeView } from "@/components/propose/propose-view"
+import { AboutTool } from "@/components/shell/about-tool"
 import { PageHeader } from "@/components/shell/page-header"
 import { getFacilityOptions, getLatestYear } from "@/lib/data/store"
 
@@ -15,6 +16,7 @@ export default async function ProposePage({ searchParams }: PageProps<"/propose"
     <div className="space-y-8">
       <PageHeader
         title="Propose"
+        actions={<AboutTool id="propose" />}
         description="Build the financial case for a new technology, service, or piece of equipment: what it costs, what it brings in, and when it pays back."
         className="print:hidden"
       />

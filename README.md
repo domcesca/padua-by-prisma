@@ -181,6 +181,20 @@ used (they cover traditional Medicare only, by calendar year, and need a CCN cro
   fiscal-year and include long-term care units. Cards say so.
 - Medicare Advantage share (MA discharges ÷ all Medicare discharges) is available under the Medicare view and in Build.
 
+## Navigation and help (V6.9)
+
+- **Build hub.** "Build" in the nav opens `/build`, a landing page for its two tools: the report builder
+  (`/build/report`, formerly `/build`) and Correlate (`/build/correlate`, formerly `/correlate`). Old links keep working:
+  `/correlate?…` redirects (308, `next.config.ts`) to `/build/correlate?…`, and a `/build?…` link carrying report
+  settings (anything beyond `facility`/`category`) redirects to `/build/report?…`. The tools themselves are unchanged.
+- **About this tool.** Every tab has an "About this tool" button beside its title, a popup styled like the glossary with
+  two or three plain sentences (`src/lib/about.ts`; keep them that short). Quality isn't a separate tab: it's a
+  Benchmark view, and Benchmark's panel covers it.
+- **Tours** (`components/shell/tour.tsx`, one engine): the first-visit **welcome** tour is now three steps (the nav,
+  the hospital picker, where help lives) and still plays once per browser. **Propose** (7 steps) and **Correlate**
+  (6 steps) have step-by-step walkthroughs, started only from "Show me how this works" in their About panels; steps
+  point at `data-tour` targets and skip any that aren't on screen.
+
 ## Propose (business cases)
 
 `/propose` builds the case for a new initiative. The **core engine** (`src/lib/propose/engine.ts`, pure functions) is

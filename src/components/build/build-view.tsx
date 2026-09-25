@@ -66,7 +66,7 @@ export function BuildView({
     next.compare = next.compare.filter((id) => id !== next.facilityId)
     setSpec(next)
     const params = specToParams(next)
-    window.history.replaceState(null, "", `/build?${params}`)
+    window.history.replaceState(null, "", `/build/report?${params}`)
     if (!next.facilityId || !next.metrics.length) {
       setResult(null)
       return

@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 
 import { CorrelateView } from "@/components/correlate/correlate-view"
+import { AboutTool } from "@/components/shell/about-tool"
 import { PageHeader } from "@/components/shell/page-header"
 import { runCorrelate } from "@/lib/correlate/run"
 import { parseCorrelateSpec } from "@/lib/correlate/spec"
@@ -8,7 +9,7 @@ import { getFacilityOptions, getLatestYear, getTrendMetrics } from "@/lib/data/s
 
 export const metadata: Metadata = { title: "Correlate" }
 
-export default async function CorrelatePage({ searchParams }: PageProps<"/correlate">) {
+export default async function CorrelatePage({ searchParams }: PageProps<"/build/correlate">) {
   const sp = await searchParams
   const params = new URLSearchParams(Object.entries(sp).flatMap(([k, v]) => (typeof v === "string" ? [[k, v]] : [])))
   const [facilities, catalog, latestYear] = await Promise.all([getFacilityOptions(), getTrendMetrics(), getLatestYear()])
@@ -20,6 +21,7 @@ export default async function CorrelatePage({ searchParams }: PageProps<"/correl
     <div className="space-y-8">
       <PageHeader
         title="Correlate"
+        actions={<AboutTool id="correlate" />}
         description="Plot any two measures against each other across a hospital’s peer group, to see whether they move together."
       />
       <CorrelateView

@@ -32,7 +32,7 @@ export function Sidebar() {
         </Link>
       </div>
 
-      <nav aria-label="Sections" className="flex-1 px-3">
+      <nav aria-label="Sections" data-tour="nav" className="flex-1 px-3">
         <ul className="space-y-0.5">
           {NAV_ITEMS.map(({ href, label, icon: Icon, soon }) => {
             const active = isActivePath(pathname, href)

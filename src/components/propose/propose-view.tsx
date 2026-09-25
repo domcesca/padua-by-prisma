@@ -185,6 +185,7 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
             />
           </div>
         </div>
+        <div data-tour="propose-method">
         <ModuleIntake
           modules={MODULES}
           current={mod}
@@ -196,10 +197,11 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
           onPick={pickModule}
           onToggle={() => setPickerOpen(!moduleListOpen)}
         />
+        </div>
       </section>
 
       <div className="grid gap-4 lg:grid-cols-5 print:hidden">
-        <section aria-labelledby="benefit-title" className="glass min-w-0 rounded-2xl p-5 lg:col-span-3">
+        <section aria-labelledby="benefit-title" data-tour="propose-benefit" className="glass min-w-0 rounded-2xl p-5 lg:col-span-3">
           <h2 id="benefit-title" className="mb-3 text-[15px] font-semibold tracking-tight">
             Benefit: {mod.label.toLowerCase()}
           </h2>
@@ -216,7 +218,7 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
             />
           )}
         </section>
-        <section aria-labelledby="costs-title" className="glass min-w-0 space-y-3 rounded-2xl p-5 lg:col-span-2">
+        <section aria-labelledby="costs-title" data-tour="propose-costs" className="glass min-w-0 space-y-3 rounded-2xl p-5 lg:col-span-2">
           <h2 id="costs-title" className="text-[15px] font-semibold tracking-tight">
             Costs
           </h2>
@@ -255,7 +257,7 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
               Each scenario takes a share of the estimated benefit (edit the rates below); costs stay the same.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2 print:hidden">
+          <div data-tour="propose-print" className="flex flex-wrap items-center gap-2 print:hidden">
             <ActionButton onClick={copyLink} icon={copied ? Check : Link2} label={copied ? "Copied" : "Copy link"} />
             <button
               type="button"
@@ -317,7 +319,7 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
           )}
         </div>
 
-        <div {...printSlot("scenarios")} className={cn("grid gap-3 md:grid-cols-3 print:grid-cols-3", printSlot("scenarios").className)}>
+        <div data-tour="propose-scenarios" {...printSlot("scenarios")} className={cn("grid gap-3 md:grid-cols-3 print:grid-cols-3", printSlot("scenarios").className)}>
           {projections.map((p) => (
             <ScenarioCard
               key={p.scenario}
@@ -332,6 +334,7 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
         </div>
 
         <section
+          data-tour="propose-chart"
           aria-label="Cumulative net benefit over time"
           style={printSlot("chart").style}
           className={cn("glass min-w-0 rounded-2xl p-5 print:break-inside-avoid", printSlot("chart").className)}
@@ -396,7 +399,7 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
           </section>
         )}
 
-        <div className="space-y-1.5 text-xs leading-relaxed text-tertiary-foreground print:order-last">
+        <div data-tour="propose-notes" className="space-y-1.5 text-xs leading-relaxed text-tertiary-foreground print:order-last">
           {[...benefit.notes, ...advancedNotes].map((n) => (
             <p key={n}>{n}</p>
           ))}

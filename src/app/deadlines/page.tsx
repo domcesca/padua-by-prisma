@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 
 import { DeadlinesView, type DeadlineFacility } from "@/components/deadlines/deadlines-view"
+import { AboutTool } from "@/components/shell/about-tool"
 import { PageHeader } from "@/components/shell/page-header"
 import { getFacilities, getLatestYear, lastReportedYear, toFacilityOption } from "@/lib/data/store"
 import { SOURCES } from "@/lib/deadlines/rules"
@@ -20,6 +21,7 @@ export default async function DeadlinesPage({ searchParams }: PageProps<"/deadli
     <div className="space-y-8">
       <PageHeader
         title="Deadlines"
+        actions={<AboutTool id="deadlines" />}
         description="HCAI financial reporting due dates for your hospital’s fiscal year, with extension limits and what’s coming up next."
       />
       <DeadlinesView
