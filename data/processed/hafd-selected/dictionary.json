@@ -2384,6 +2384,7 @@
   "metrics": [
     {
       "id": "operatingMargin",
+      "category": "financial",
       "label": "Operating margin",
       "unit": "ratio",
       "summary": "Cents of operating profit per dollar of operating revenue.",
@@ -2403,6 +2404,7 @@
     },
     {
       "id": "daysCashOnHand",
+      "category": "financial",
       "label": "Days cash on hand",
       "unit": "days",
       "summary": "How many days the hospital could pay its operating expenses from the cash on its own balance sheet.",
@@ -2424,6 +2426,7 @@
     },
     {
       "id": "occupancy",
+      "category": null,
       "label": "Occupancy rate",
       "unit": "pct",
       "summary": "Share of licensed beds filled on an average day.",
@@ -2441,6 +2444,7 @@
     },
     {
       "id": "edVisits",
+      "category": null,
       "label": "ED visits",
       "unit": "count",
       "summary": "Emergency department visits in the year (annualized if the report didn't cover a full year).",
@@ -2455,7 +2459,105 @@
       ]
     },
     {
+      "id": "netPatientRevenue",
+      "category": "financial",
+      "label": "Net patient revenue",
+      "unit": "usd",
+      "summary": "What the hospital expects to collect for patient care after contractual discounts, charity care, and bad debt.",
+      "formula": "NET_PT_REV",
+      "inputs": [
+        "NET_PT_REV"
+      ],
+      "higherIsBetter": null,
+      "drivers": [
+        "Volume and payment-rate changes (annual Medicare updates, commercial contract renegotiations).",
+        "Medi-Cal supplemental payments such as the Hospital Quality Assurance Fee program arrive in lumpy, multi-year cycles and can swing results sharply year to year.",
+        "Labor costs: the 2021–22 travel-nurse surge and California's health care worker minimum wage (SB 525, phased in from October 2024).",
+        "One-time items: COVID relief grants in 2020–21, prior-year cost report settlements."
+      ]
+    },
+    {
+      "id": "totalOperatingExpense",
+      "category": "financial",
+      "label": "Operating expense",
+      "unit": "usd",
+      "summary": "Total cost of running the hospital for the year, including depreciation and interest.",
+      "formula": "TOT_OP_EXP",
+      "inputs": [
+        "TOT_OP_EXP"
+      ],
+      "higherIsBetter": null,
+      "drivers": [
+        "Volume and payment-rate changes (annual Medicare updates, commercial contract renegotiations).",
+        "Medi-Cal supplemental payments such as the Hospital Quality Assurance Fee program arrive in lumpy, multi-year cycles and can swing results sharply year to year.",
+        "Labor costs: the 2021–22 travel-nurse surge and California's health care worker minimum wage (SB 525, phased in from October 2024).",
+        "One-time items: COVID relief grants in 2020–21, prior-year cost report settlements."
+      ]
+    },
+    {
+      "id": "expensePerAdjDischarge",
+      "category": "financial",
+      "label": "Expense per adjusted discharge",
+      "unit": "usd",
+      "summary": "Operating cost per inpatient discharge, scaled up to count outpatient work — the standard unit-cost comparison between hospitals.",
+      "formula": "TOT_OP_EXP ÷ (DIS_TOT × GR_PT_REV ÷ GR_IP_TOT)",
+      "inputs": [
+        "TOT_OP_EXP",
+        "DIS_TOT",
+        "GR_PT_REV",
+        "GR_IP_TOT"
+      ],
+      "higherIsBetter": false,
+      "caution": "Case mix matters: trauma, transplant, and tertiary centers treat sicker patients and cost more per discharge. Compare within similar hospitals.",
+      "drivers": [
+        "Labor cost per hour (wage increases, travel and registry staff, SB 525 minimum wage).",
+        "Supply and drug costs, especially for surgery-heavy or oncology service lines.",
+        "Volume: fixed costs spread over fewer discharges push the unit cost up.",
+        "Charge-master changes move the outpatient adjustment, since it's based on gross charges."
+      ]
+    },
+    {
+      "id": "revenuePerAdjDischarge",
+      "category": "financial",
+      "label": "Revenue per adjusted discharge",
+      "unit": "usd",
+      "summary": "Operating revenue per inpatient discharge, scaled up to count outpatient work. Compare with expense per adjusted discharge to see where the margin comes from.",
+      "formula": "(NET_PT_REV + OTH_OP_REV) ÷ (DIS_TOT × GR_PT_REV ÷ GR_IP_TOT)",
+      "inputs": [
+        "NET_PT_REV",
+        "OTH_OP_REV",
+        "DIS_TOT",
+        "GR_PT_REV",
+        "GR_IP_TOT"
+      ],
+      "higherIsBetter": true,
+      "drivers": [
+        "Payer mix: Medicare and Medi-Cal pay less per case than commercial insurers.",
+        "Commercial contract renegotiations and annual Medicare rate updates.",
+        "Medi-Cal supplemental payments (Hospital Quality Assurance Fee program) arriving in lumpy cycles.",
+        "Case mix: sicker patients bring higher payments per discharge."
+      ]
+    },
+    {
+      "id": "outpatientVisits",
+      "category": "utilization",
+      "label": "Outpatient visits",
+      "unit": "count",
+      "summary": "Outpatient visits of every kind in the hospital's fiscal year, from the financial report (the utilization report doesn't total them).",
+      "formula": "VIS_TOT",
+      "inputs": [
+        "VIS_TOT"
+      ],
+      "higherIsBetter": null,
+      "caution": "Counted by fiscal year, not calendar year like the other utilization measures. Hospitals count visits differently (a series of therapy sessions may be one visit or many), so compare trends more than levels.",
+      "drivers": [
+        "ED volume swings with respiratory-virus seasons, the 2020 COVID drop, and nearby urgent-care or ED openings/closures.",
+        "Clinic volume moves with sites being added, sold, or moved to an affiliated medical group."
+      ]
+    },
+    {
       "id": "payerMix",
+      "category": "financial",
       "label": "Payer mix",
       "unit": "share",
       "summary": "Share of the hospital's business by payer, measured by gross charges (inpatient + outpatient) or by inpatient days.",

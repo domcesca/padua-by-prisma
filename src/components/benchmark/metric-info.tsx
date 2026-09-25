@@ -4,10 +4,11 @@ import { Info } from "lucide-react"
 import Link from "next/link"
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import type { DictionaryMetric } from "@/lib/data/types"
+import { translateHref } from "@/lib/data/datasets"
+import type { DatasetId, DictionaryMetric } from "@/lib/data/types"
 
 /** Small ⓘ button that explains a metric in plain language. */
-export function MetricInfo({ metric }: { metric: DictionaryMetric }) {
+export function MetricInfo({ metric }: { metric: DictionaryMetric & { dataset?: DatasetId } }) {
   return (
     <Popover>
       <PopoverTrigger
@@ -25,7 +26,7 @@ export function MetricInfo({ metric }: { metric: DictionaryMetric }) {
           {metric.formula}
         </p>
         {metric.caution && <p className="text-xs leading-relaxed text-muted-foreground">{metric.caution}</p>}
-        <Link href={`/translate?metric=${metric.id}`} className="text-xs font-medium text-primary hover:underline">
+        <Link href={translateHref(metric.dataset ?? "hafd-selected", { metric: metric.id })} className="text-xs font-medium text-primary hover:underline">
           Why this number moves →
         </Link>
       </PopoverContent>

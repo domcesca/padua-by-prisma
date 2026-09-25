@@ -1,0 +1,2608 @@
+{
+  "dataset": "hau",
+  "source": "HCAI Instructions for Completing the Annual Utilization Report of Hospitals (11/01/2024) and 2024 reporting form",
+  "sections": [
+    {
+      "id": "report",
+      "title": "Report information",
+      "summary": "Which report the numbers came from and the period it covers.",
+      "drivers": []
+    },
+    {
+      "id": "profile",
+      "title": "Hospital profile",
+      "summary": "License, ownership, location, and designations (page 1–2).",
+      "drivers": []
+    },
+    {
+      "id": "beds",
+      "title": "Licensed beds",
+      "summary": "Beds on the hospital's license by type on December 31, filled in by HCAI from CDPH licensing data (page 3, column 1).",
+      "drivers": [
+        "License changes: units opened, closed, or converted from one bed type to another.",
+        "Beds placed in suspense (temporarily out of service, e.g. for seismic work) still count as licensed.",
+        "A campus consolidated onto another hospital's license moves its beds to that license."
+      ]
+    },
+    {
+      "id": "bed_days",
+      "title": "Licensed bed days",
+      "summary": "Licensed beds × the days each was licensed during the year — the denominator for occupancy (page 3, column 2).",
+      "drivers": [
+        "Changes in licensed beds, prorated by when during the year they happened.",
+        "Leap years add a day for every bed."
+      ]
+    },
+    {
+      "id": "discharges",
+      "title": "Discharges & transfers",
+      "summary": "Patients discharged (including deaths) from each type of bed, and transfers out of critical care units (page 3, columns 3–4).",
+      "drivers": [
+        "Admission volume: service-line growth, physician recruitment or departures, a competitor opening or closing.",
+        "Moving a patient to a different type of care (e.g. acute to skilled nursing) counts as a discharge and a new admission.",
+        "Respiratory-virus seasons and the 2020–21 COVID surges."
+      ]
+    },
+    {
+      "id": "census_days",
+      "title": "Patient (census) days",
+      "summary": "Total inpatient days by bed type; a patient admitted and discharged the same day counts as one day (page 3, column 5).",
+      "drivers": [
+        "Admissions × length of stay: either one moving shifts days.",
+        "Discharge delays — waiting for a skilled nursing or psychiatric placement — add days without adding patients.",
+        "Units opening, closing, or converting."
+      ]
+    },
+    {
+      "id": "alos",
+      "title": "Average length of stay",
+      "summary": "Patient days ÷ discharges for each bed type; critical care units also count transfers out (page 3, column 6).",
+      "drivers": [
+        "Case mix: sicker or more complex patients stay longer.",
+        "Placement delays for patients who no longer need acute care.",
+        "Care management and discharge planning programs."
+      ],
+      "caution": "Recalculated here from days and discharges, so it matches HCAI's figure for single-campus hospitals and correctly combines campuses on one license."
+    },
+    {
+      "id": "psych",
+      "title": "Acute psychiatric patients",
+      "summary": "A snapshot of acute psychiatric inpatients on December 31, by unit type, age, and payer (page 3, lines 43–65).",
+      "drivers": [
+        "A single-day count, so it moves with that day's census and can swing a lot for small units.",
+        "County contracts (Short-Doyle) and Medi-Cal managed-care behavioral health changes shift the payer split."
+      ]
+    },
+    {
+      "id": "programs",
+      "title": "Hospice & palliative care",
+      "summary": "Whether the hospital runs inpatient hospice or palliative care programs, and the program's staffing (page 3, lines 70–90).",
+      "drivers": [
+        "Program launches or closures; staff certification drives."
+      ]
+    },
+    {
+      "id": "ed",
+      "title": "Emergency department",
+      "summary": "ED designation, visits by severity, admissions, treatment stations, walkouts, and ambulance diversion (page 4).",
+      "drivers": [
+        "Respiratory-virus seasons, the 2020 COVID drop, and nearby urgent-care or ED openings and closures.",
+        "Medi-Cal enrollment swings (the 2023–24 end of continuous coverage, the 2024 expansion to undocumented adults).",
+        "Coding changes: the 2023 CPT revision of ED visit levels (99281–99285) shifted visits between severity levels.",
+        "Inpatient bed availability: boarding admitted patients in the ED causes walkouts and diversion."
+      ]
+    },
+    {
+      "id": "surgery",
+      "title": "Surgery",
+      "summary": "Surgical operations, operating room minutes, and operating rooms (page 5, lines 1–15).",
+      "drivers": [
+        "Surgeon recruitment and departures; new service lines (robotics, orthopedics, spine).",
+        "Cases moving to ambulatory surgery centers, often owned by the same system but reported separately.",
+        "Elective surgery shutdowns in 2020 and staffing-related cancellations."
+      ]
+    },
+    {
+      "id": "births",
+      "title": "Births",
+      "summary": "Live births and low-birth-weight births (page 5, lines 20–37).",
+      "drivers": [
+        "Falling California birth rates and labor & delivery unit closures, especially at rural hospitals."
+      ],
+      "caution": "HCAI's public data files leave these fields blank from 2022 on."
+    },
+    {
+      "id": "cardiac",
+      "title": "Cardiac surgery & catheterization",
+      "summary": "Open-heart surgery, cardiac cath lab visits, and cath procedures by type (page 5, lines 41–84).",
+      "drivers": [
+        "Cardiologist and cardiac surgeon recruitment; opening or closing a cath lab or heart program.",
+        "Procedures shifting to outpatient settings."
+      ]
+    },
+    {
+      "id": "capital",
+      "title": "Major equipment & capital projects",
+      "summary": "Equipment over $500,000 acquired and capital projects over $1 million in the year (page 6).",
+      "drivers": [
+        "Construction cycles, seismic compliance projects (SB 1953), and major imaging or robotics purchases."
+      ]
+    }
+  ],
+  "fields": [
+    {
+      "code": "FAC_NO",
+      "section": "profile",
+      "hcaiLabel": "Facility Number",
+      "label": "HCAI facility number",
+      "summary": "HCAI's 9-digit ID for the facility; the same ID used in the financial data.",
+      "unit": "code"
+    },
+    {
+      "code": "FAC_NAME",
+      "section": "profile",
+      "hcaiLabel": "Facility Name",
+      "label": "Facility name",
+      "summary": "Name on the license.",
+      "unit": "text"
+    },
+    {
+      "code": "FAC_STR_ADDR",
+      "section": "profile",
+      "hcaiLabel": "Street Address",
+      "label": "Address",
+      "summary": "Street address.",
+      "unit": "text"
+    },
+    {
+      "code": "FAC_CITY",
+      "section": "profile",
+      "hcaiLabel": "City",
+      "label": "City",
+      "summary": "City.",
+      "unit": "text"
+    },
+    {
+      "code": "FAC_ZIP",
+      "section": "profile",
+      "hcaiLabel": "Zip Code",
+      "label": "ZIP code",
+      "summary": "ZIP code.",
+      "unit": "code"
+    },
+    {
+      "code": "FAC_PHONE",
+      "section": "profile",
+      "hcaiLabel": "Phone",
+      "label": "Phone",
+      "summary": "Main phone number.",
+      "unit": "text"
+    },
+    {
+      "code": "FAC_ADMIN_NAME",
+      "section": "profile",
+      "hcaiLabel": "Administrator Name",
+      "label": "Administrator",
+      "summary": "Chief executive or administrator.",
+      "unit": "text"
+    },
+    {
+      "code": "FAC_OPERATED_THIS_YR",
+      "section": "report",
+      "hcaiLabel": "Facility Operated This Year",
+      "label": "Operated this year",
+      "summary": "Whether the hospital operated at any point in the year.",
+      "unit": "text"
+    },
+    {
+      "code": "FAC_OP_PER_BEGIN_DT",
+      "section": "report",
+      "hcaiLabel": "Operation Period Begin Date",
+      "label": "Period start",
+      "summary": "First day of the period this report covers — January 1 unless the hospital opened mid-year.",
+      "unit": "date"
+    },
+    {
+      "code": "FAC_OP_PER_END_DT",
+      "section": "report",
+      "hcaiLabel": "Operation Period End Date",
+      "label": "Period end",
+      "summary": "Last day of the period — December 31 unless the hospital closed or changed licensee.",
+      "unit": "date"
+    },
+    {
+      "code": "FAC_PAR_CORP_NAME",
+      "section": "profile",
+      "hcaiLabel": "Parent Corporation Name",
+      "label": "Parent organization",
+      "summary": "Health system or parent corporation, if any.",
+      "unit": "text"
+    },
+    {
+      "code": "FAC_PAR_CORP_BUS_ADDR",
+      "section": "profile",
+      "hcaiLabel": "Parent Corporation Address",
+      "label": "Parent address",
+      "summary": "Parent organization's address.",
+      "unit": "text"
+    },
+    {
+      "code": "FAC_PAR_CORP_CITY",
+      "section": "profile",
+      "hcaiLabel": "Parent Corporation City",
+      "label": "Parent city",
+      "summary": "Parent organization's city.",
+      "unit": "text"
+    },
+    {
+      "code": "FAC_PAR_CORP_STATE",
+      "section": "profile",
+      "hcaiLabel": "Parent Corporation State",
+      "label": "Parent state",
+      "summary": "Parent organization's state.",
+      "unit": "text"
+    },
+    {
+      "code": "FAC_PAR_CORP_ZIP",
+      "section": "profile",
+      "hcaiLabel": "Parent Corporation Zip",
+      "label": "Parent ZIP",
+      "summary": "Parent organization's ZIP code.",
+      "unit": "code"
+    },
+    {
+      "code": "REPT_PREP_NAME",
+      "section": "report",
+      "hcaiLabel": "Report Prepared By",
+      "label": "Prepared by",
+      "summary": "Person who prepared the report.",
+      "unit": "text"
+    },
+    {
+      "code": "SUBMITTED_DT",
+      "section": "report",
+      "hcaiLabel": "Submitted Date",
+      "label": "Submitted",
+      "summary": "Date the report was submitted in SIERA.",
+      "unit": "date"
+    },
+    {
+      "code": "REV_REPT_PREP_NAME",
+      "section": "report",
+      "hcaiLabel": "Revised Report Prepared By",
+      "label": "Revised by",
+      "summary": "Person who prepared a revision.",
+      "unit": "text"
+    },
+    {
+      "code": "REVISED_DT",
+      "section": "report",
+      "hcaiLabel": "Revised Date",
+      "label": "Revised",
+      "summary": "Date of the latest revision.",
+      "unit": "date"
+    },
+    {
+      "code": "CORRECTED_DT",
+      "section": "report",
+      "hcaiLabel": "Corrected Date",
+      "label": "Corrected",
+      "summary": "Date of the latest HCAI correction.",
+      "unit": "date"
+    },
+    {
+      "code": "LICENSE_NO",
+      "section": "profile",
+      "hcaiLabel": "License Number",
+      "label": "CDPH license number",
+      "summary": "Campuses that share a license number report financials together; this app combines their utilization to match.",
+      "unit": "code"
+    },
+    {
+      "code": "LICENSE_EFF_DATE",
+      "section": "profile",
+      "hcaiLabel": "License Effective Date",
+      "label": "License effective",
+      "summary": "Start of the current license.",
+      "unit": "date"
+    },
+    {
+      "code": "LICENSE_EXP_DATE",
+      "section": "profile",
+      "hcaiLabel": "License Expiration Date",
+      "label": "License expires",
+      "summary": "Expiration of the current license.",
+      "unit": "date"
+    },
+    {
+      "code": "LICENSE_STATUS",
+      "section": "profile",
+      "hcaiLabel": "License Status",
+      "label": "License status",
+      "summary": "Open, Closed, or Suspense.",
+      "unit": "text"
+    },
+    {
+      "code": "FACILITY_LEVEL",
+      "section": "profile",
+      "hcaiLabel": "Facility Level",
+      "label": "Facility level",
+      "summary": "Parent facility (holds the license), consolidated facility (another campus on it), or distinct part.",
+      "unit": "text"
+    },
+    {
+      "code": "TRAUMA_CTR",
+      "section": "profile",
+      "hcaiLabel": "Trauma Center",
+      "label": "Trauma center",
+      "summary": "Adult and pediatric trauma center levels.",
+      "unit": "text"
+    },
+    {
+      "code": "TEACH_HOSP",
+      "section": "profile",
+      "hcaiLabel": "Teaching Hospital",
+      "label": "Teaching hospital",
+      "summary": "Whether HCAI classifies the hospital as a teaching hospital.",
+      "unit": "text"
+    },
+    {
+      "code": "TEACH_RURAL",
+      "section": "profile",
+      "hcaiLabel": "Small and Rural Hospital",
+      "label": "Small & rural",
+      "summary": "Whether the hospital is a designated small and rural hospital.",
+      "unit": "text"
+    },
+    {
+      "code": "LONGITUDE",
+      "section": "profile",
+      "hcaiLabel": "Longitude",
+      "label": "Longitude",
+      "summary": "Location, used here to find nearby hospitals.",
+      "unit": "code"
+    },
+    {
+      "code": "LATITUDE",
+      "section": "profile",
+      "hcaiLabel": "Latitude",
+      "label": "Latitude",
+      "summary": "Location, used here to find nearby hospitals.",
+      "unit": "code"
+    },
+    {
+      "code": "ASSEMBLY_DIST",
+      "section": "profile",
+      "hcaiLabel": "Assembly District",
+      "label": "Assembly district",
+      "summary": "California State Assembly district.",
+      "unit": "code"
+    },
+    {
+      "code": "SENATE_DIST",
+      "section": "profile",
+      "hcaiLabel": "Senate District",
+      "label": "Senate district",
+      "summary": "California State Senate district.",
+      "unit": "code"
+    },
+    {
+      "code": "CONGRESS_DIST",
+      "section": "profile",
+      "hcaiLabel": "Congressional District",
+      "label": "Congressional district",
+      "summary": "U.S. House district.",
+      "unit": "code"
+    },
+    {
+      "code": "CENSUS_KEY",
+      "section": "profile",
+      "hcaiLabel": "Census Key",
+      "label": "Census tract",
+      "summary": "Census tract key.",
+      "unit": "code"
+    },
+    {
+      "code": "MED_SVC_STUDY_AREA",
+      "section": "profile",
+      "hcaiLabel": "Medical Service Study Area",
+      "label": "Medical Service Study Area",
+      "summary": "HCAI's sub-county planning area (MSSA).",
+      "unit": "code"
+    },
+    {
+      "code": "LA_COUNTY_SVC_PLAN_AREA",
+      "section": "profile",
+      "hcaiLabel": "LA County Service Planning Area",
+      "label": "LA County service area",
+      "summary": "Los Angeles County Service Planning Area, if applicable.",
+      "unit": "text"
+    },
+    {
+      "code": "HEALTH_SVC_AREA",
+      "section": "profile",
+      "hcaiLabel": "Health Service Area",
+      "label": "Health Service Area",
+      "summary": "One of California's 14 regional health planning areas.",
+      "unit": "text"
+    },
+    {
+      "code": "COUNTY",
+      "section": "profile",
+      "hcaiLabel": "County",
+      "label": "County",
+      "summary": "County.",
+      "unit": "text"
+    },
+    {
+      "code": "LIC_CAT",
+      "section": "profile",
+      "hcaiLabel": "License Category",
+      "label": "License category",
+      "summary": "General acute care, acute psychiatric, psychiatric health facility, or chemical dependency recovery.",
+      "unit": "text"
+    },
+    {
+      "code": "LICEE_TOC",
+      "section": "profile",
+      "hcaiLabel": "Licensee Type of Control",
+      "label": "Ownership (licensee)",
+      "summary": "Type of organization that holds the license: nonprofit, investor, district, city/county, UC, or state.",
+      "unit": "text"
+    },
+    {
+      "code": "PRIN_SERVICE_TYPE",
+      "section": "profile",
+      "hcaiLabel": "Principal Service Type",
+      "label": "Principal service",
+      "summary": "Service used by most of the hospital's patient days (general medical/surgical, psychiatric, pediatric, rehab…).",
+      "unit": "text"
+    },
+    {
+      "code": "EMSA_TRAUMA_DESIGNATION",
+      "section": "ed",
+      "hcaiLabel": "EMSA Trauma Center Designation",
+      "label": "Trauma level (adult)",
+      "summary": "Adult trauma center level designated by the state EMS Authority; Level I is highest.",
+      "unit": "text"
+    },
+    {
+      "code": "EMSA_TRAUMA_DESIGNATION_PEDIATRIC",
+      "section": "ed",
+      "hcaiLabel": "EMSA Trauma Center Designation — Pediatric",
+      "label": "Trauma level (pediatric)",
+      "summary": "Pediatric trauma center level (I or II).",
+      "unit": "text"
+    },
+    {
+      "code": "LIC_ED_LEV_BEGIN",
+      "section": "ed",
+      "hcaiLabel": "Licensed ED Level — Beginning",
+      "label": "ED level (start of year)",
+      "summary": "Licensed emergency service level: Standby, Basic, or Comprehensive.",
+      "unit": "text"
+    },
+    {
+      "code": "LIC_ED_LEV_END",
+      "section": "ed",
+      "hcaiLabel": "Licensed ED Level — Ending",
+      "label": "ED level (end of year)",
+      "summary": "Licensed emergency service level at year end.",
+      "unit": "text"
+    },
+    {
+      "code": "EMER_DEPT_AMBULANCE_DIVERSION_HOURS",
+      "section": "ed",
+      "hcaiLabel": "Ambulance Diversion Occurred",
+      "label": "Any ambulance diversion",
+      "summary": "Whether the ED went on full ambulance diversion during the year.",
+      "unit": "text"
+    },
+    {
+      "code": "MED_SURG_LIC_BEDS",
+      "section": "beds",
+      "hcaiLabel": "Medical/Surgical — Licensed Beds",
+      "label": "Medical/surgical licensed beds",
+      "summary": "Medical/surgical beds on the hospital's license on December 31.",
+      "unit": "beds"
+    },
+    {
+      "code": "PERINATAL_LIC_BEDS",
+      "section": "beds",
+      "hcaiLabel": "Perinatal — Licensed Beds",
+      "label": "Perinatal (obstetrics) licensed beds",
+      "summary": "Perinatal (obstetrics) beds on the hospital's license on December 31.",
+      "unit": "beds"
+    },
+    {
+      "code": "PEDIATRIC_LIC_BEDS",
+      "section": "beds",
+      "hcaiLabel": "Pediatric — Licensed Beds",
+      "label": "Pediatric licensed beds",
+      "summary": "Pediatric beds on the hospital's license on December 31.",
+      "unit": "beds"
+    },
+    {
+      "code": "IC_LIC_BEDS",
+      "section": "beds",
+      "hcaiLabel": "Intensive Care — Licensed Beds",
+      "label": "Intensive care (ICU) licensed beds",
+      "summary": "Intensive care (ICU) beds on the hospital's license on December 31.",
+      "unit": "beds"
+    },
+    {
+      "code": "CORONARY_CARE_LIC_BEDS",
+      "section": "beds",
+      "hcaiLabel": "Coronary Care — Licensed Beds",
+      "label": "Coronary care (CCU) licensed beds",
+      "summary": "Coronary care (CCU) beds on the hospital's license on December 31.",
+      "unit": "beds"
+    },
+    {
+      "code": "ACUTE_RESPIRATORY_CARE_LIC_BEDS",
+      "section": "beds",
+      "hcaiLabel": "Acute Respiratory Care — Licensed Beds",
+      "label": "Acute respiratory care licensed beds",
+      "summary": "Acute respiratory care beds on the hospital's license on December 31.",
+      "unit": "beds"
+    },
+    {
+      "code": "BURN_LIC_BEDS",
+      "section": "beds",
+      "hcaiLabel": "Burn — Licensed Beds",
+      "label": "Burn unit licensed beds",
+      "summary": "Burn unit beds on the hospital's license on December 31.",
+      "unit": "beds"
+    },
+    {
+      "code": "IC_NEWBORN_LIC_BEDS",
+      "section": "beds",
+      "hcaiLabel": "Intensive Care Newborn Nursery — Licensed Beds",
+      "label": "Neonatal intensive care (NICU) licensed beds",
+      "summary": "Neonatal intensive care (NICU) beds on the hospital's license on December 31.",
+      "unit": "beds"
+    },
+    {
+      "code": "REHAB_CTR_LIC_BEDS",
+      "section": "beds",
+      "hcaiLabel": "Rehabilitation Center — Licensed Beds",
+      "label": "Acute rehabilitation licensed beds",
+      "summary": "Acute rehabilitation beds on the hospital's license on December 31.",
+      "unit": "beds"
+    },
+    {
+      "code": "GAC_SUBTOT_LIC_BEDS",
+      "section": "beds",
+      "hcaiLabel": "General Acute Care Subtotal — Licensed Beds",
+      "label": "General acute care, all units licensed beds",
+      "summary": "General acute care, all units beds on the hospital's license on December 31. Sum of the nine general acute bed types.",
+      "unit": "beds"
+    },
+    {
+      "code": "CHEM_DEPEND_RECOVERY_LIC_BEDS",
+      "section": "beds",
+      "hcaiLabel": "Chemical Dependency Recovery Hospital — Licensed Beds",
+      "label": "Chemical dependency recovery hospital beds licensed beds",
+      "summary": "Chemical dependency recovery hospital beds beds on the hospital's license on December 31.",
+      "unit": "beds"
+    },
+    {
+      "code": "ACUTE_PSYCHIATRIC_LIC_BEDS",
+      "section": "beds",
+      "hcaiLabel": "Acute Psychiatric — Licensed Beds",
+      "label": "Acute psychiatric licensed beds",
+      "summary": "Acute psychiatric beds on the hospital's license on December 31.",
+      "unit": "beds"
+    },
+    {
+      "code": "SN_LIC_BEDS",
+      "section": "beds",
+      "hcaiLabel": "Skilled Nursing — Licensed Beds",
+      "label": "Skilled nursing licensed beds",
+      "summary": "Skilled nursing beds on the hospital's license on December 31.",
+      "unit": "beds"
+    },
+    {
+      "code": "INTERMEDIATE_CARE_LIC_BEDS",
+      "section": "beds",
+      "hcaiLabel": "Intermediate Care — Licensed Beds",
+      "label": "Intermediate care licensed beds",
+      "summary": "Intermediate care beds on the hospital's license on December 31.",
+      "unit": "beds"
+    },
+    {
+      "code": "INTERMEDIATE_CARE_DEV_DIS_LIC_BEDS",
+      "section": "beds",
+      "hcaiLabel": "Intermediate Care/Developmentally Disabled — Licensed Beds",
+      "label": "Intermediate care, developmentally disabled licensed beds",
+      "summary": "Intermediate care, developmentally disabled beds on the hospital's license on December 31.",
+      "unit": "beds"
+    },
+    {
+      "code": "TOT_LIC_BEDS",
+      "section": "beds",
+      "hcaiLabel": "Total — Licensed Beds",
+      "label": "Total licensed beds",
+      "summary": "All bed types beds on the hospital's license on December 31.",
+      "unit": "beds"
+    },
+    {
+      "code": "GAC_CDRS_LIC_BEDS",
+      "section": "beds",
+      "hcaiLabel": "Chemical Dependency Recovery Services in Licensed GAC Beds — Licensed Beds",
+      "label": "Chemical dependency services in general acute beds licensed beds",
+      "summary": "Chemical dependency services in general acute beds beds on the hospital's license on December 31.",
+      "unit": "beds",
+      "caution": "Already included in the general acute or acute psychiatric totals — don't add it again."
+    },
+    {
+      "code": "ACUTE_PSYCH_LIC_BEDS",
+      "section": "beds",
+      "hcaiLabel": "Chemical Dependency Recovery Services in Licensed Acute Psychiatric Beds — Licensed Beds",
+      "label": "Chemical dependency services in acute psychiatric beds licensed beds",
+      "summary": "Chemical dependency services in acute psychiatric beds beds on the hospital's license on December 31.",
+      "unit": "beds",
+      "caution": "Already included in the general acute or acute psychiatric totals — don't add it again."
+    },
+    {
+      "code": "NEWBORN_NURSERY_BASSINETS",
+      "section": "beds",
+      "hcaiLabel": "Newborn Nursery Bassinets",
+      "label": "Newborn nursery bassinets",
+      "summary": "Bassinets in the normal newborn nursery on December 31.",
+      "unit": "beds"
+    },
+    {
+      "code": "GEN_ACUTE_CARE_SN_SWING_BEDS",
+      "section": "beds",
+      "hcaiLabel": "Skilled Nursing Swing Beds",
+      "label": "Swing beds",
+      "summary": "General acute beds also approved for skilled nursing care — common at small and rural hospitals.",
+      "unit": "beds"
+    },
+    {
+      "code": "ACUTE_PSYCHIATRIC_PATS_LOCKED_ON_1231",
+      "section": "psych",
+      "hcaiLabel": "Acute Psychiatric Patients — Locked Unit",
+      "label": "Psych patients, locked units",
+      "summary": "Acute psychiatric inpatients in locked units on December 31.",
+      "unit": "count"
+    },
+    {
+      "code": "ACUTE_PSYCHIATRIC_PATS_OPEN_ON_1231",
+      "section": "psych",
+      "hcaiLabel": "Acute Psychiatric Patients — Open Unit",
+      "label": "Psych patients, open units",
+      "summary": "Acute psychiatric inpatients in open units on December 31.",
+      "unit": "count"
+    },
+    {
+      "code": "ACUTE_PSYCHIATRIC_PATS_TOT_BY_UNIT_ON_1231",
+      "section": "psych",
+      "hcaiLabel": "Acute Psychiatric Total (By Unit)",
+      "label": "Psych patients on Dec 31",
+      "summary": "Total acute psychiatric inpatients on December 31.",
+      "unit": "count"
+    },
+    {
+      "code": "ACUTE_PSYCHIATRIC_PATS_0_TO_17_ON_1231",
+      "section": "psych",
+      "hcaiLabel": "Acute Psychiatric Patients — Age 0–17",
+      "label": "Psych patients, age 0–17",
+      "summary": "Children and adolescents in acute psychiatric beds on December 31.",
+      "unit": "count"
+    },
+    {
+      "code": "ACUTE_PSYCHIATRIC_PATS_18_TO_64_ON_1231",
+      "section": "psych",
+      "hcaiLabel": "Acute Psychiatric Patients — Age 18–64",
+      "label": "Psych patients, age 18–64",
+      "summary": "Adults 18–64 in acute psychiatric beds on December 31.",
+      "unit": "count"
+    },
+    {
+      "code": "ACUTE_PSYCHIATRIC_PATS_65_AND_UP_ON_1231",
+      "section": "psych",
+      "hcaiLabel": "Acute Psychiatric Patients — Age 65+",
+      "label": "Psych patients, age 65+",
+      "summary": "Adults 65 and older in acute psychiatric beds on December 31.",
+      "unit": "count"
+    },
+    {
+      "code": "ACUTE_PSYCHIATRIC_PATS_TOT_BY_AGE_ON_1231",
+      "section": "psych",
+      "hcaiLabel": "Acute Psychiatric Total (By Age)",
+      "label": "Psych patients (by age total)",
+      "summary": "Same total, counted by age.",
+      "unit": "count"
+    },
+    {
+      "code": "ACUTE_PSYCHIATRIC_PATS_MED_TRAD_ON_1231",
+      "section": "psych",
+      "hcaiLabel": "Acute Psychiatric Patients — Medicare Traditional",
+      "label": "Psych patients, Medicare FFS",
+      "summary": "Psych inpatients on December 31 covered by traditional Medicare.",
+      "unit": "count"
+    },
+    {
+      "code": "ACUTE_PSYCHIATRIC_PATS_MED_MANAGED_CARE_ON_1231",
+      "section": "psych",
+      "hcaiLabel": "Acute Psychiatric Patients — Medicare Managed Care",
+      "label": "Psych patients, Medicare Advantage",
+      "summary": "Psych inpatients on December 31 covered by Medicare Advantage.",
+      "unit": "count"
+    },
+    {
+      "code": "ACUTE_PSYCHIATRIC_PATS_MED_CAL_TRAD_ON_1231",
+      "section": "psych",
+      "hcaiLabel": "Acute Psychiatric Patients — Medi-Cal Traditional",
+      "label": "Psych patients, Medi-Cal FFS",
+      "summary": "Psych inpatients on December 31 covered by fee-for-service Medi-Cal.",
+      "unit": "count"
+    },
+    {
+      "code": "ACUTE_PSYCHIATRIC_PATS_MED_CAL_MANAGED_CARE_ON_1231",
+      "section": "psych",
+      "hcaiLabel": "Acute Psychiatric Patients — Medi-Cal Managed Care",
+      "label": "Psych patients, Medi-Cal managed care",
+      "summary": "Psych inpatients on December 31 covered by a Medi-Cal managed care plan.",
+      "unit": "count"
+    },
+    {
+      "code": "ACUTE_PSYCHIATRIC_PATS_COUNTY_INDIGENT_PROG",
+      "section": "psych",
+      "hcaiLabel": "Acute Psychiatric Patients — County Indigent Programs",
+      "label": "Psych patients, county programs",
+      "summary": "Psych inpatients on December 31 covered by county indigent programs.",
+      "unit": "count"
+    },
+    {
+      "code": "ACUTE_PSYCHIATRIC_PATS_3RD_PARTIES_TRAD",
+      "section": "psych",
+      "hcaiLabel": "Acute Psychiatric Patients — Other Third Parties Traditional",
+      "label": "Psych patients, commercial (non-managed)",
+      "summary": "Psych inpatients on December 31 with commercial indemnity coverage.",
+      "unit": "count"
+    },
+    {
+      "code": "ACUTE_PSYCHIATRIC_PATS_3RD_PARTIES_MANAGED_CARE",
+      "section": "psych",
+      "hcaiLabel": "Acute Psychiatric Patients — Other Third Parties Managed Care",
+      "label": "Psych patients, commercial managed care",
+      "summary": "Psych inpatients on December 31 in commercial HMO/PPO plans.",
+      "unit": "count"
+    },
+    {
+      "code": "ACUTE_PSYCHIATRIC_PATS_SHORT_DOYLE",
+      "section": "psych",
+      "hcaiLabel": "Acute Psychiatric Patients — Short-Doyle",
+      "label": "Psych patients, Short-Doyle",
+      "summary": "Psych inpatients on December 31 under a county mental health (Short-Doyle) contract.",
+      "unit": "count"
+    },
+    {
+      "code": "ACUTE_PSYCHIATRIC_PATS_OTHER_INDIGENT",
+      "section": "psych",
+      "hcaiLabel": "Acute Psychiatric Patients — Other Indigent",
+      "label": "Psych patients, other indigent",
+      "summary": "Psych inpatients on December 31 receiving charity care.",
+      "unit": "count"
+    },
+    {
+      "code": "ACUTE_PSYCHIATRIC_PATS_OTHER_PAYERS",
+      "section": "psych",
+      "hcaiLabel": "Acute Psychiatric Patients — Other Payers",
+      "label": "Psych patients, other payers",
+      "summary": "Psych inpatients on December 31 with self-pay or other coverage.",
+      "unit": "count"
+    },
+    {
+      "code": "ACUTE_PSYCHIATRIC_PATS_TOT_BY_PAYOR",
+      "section": "psych",
+      "hcaiLabel": "Acute Psychiatric Total (By Payer)",
+      "label": "Psych patients (by payer total)",
+      "summary": "Same total, counted by payer.",
+      "unit": "count"
+    },
+    {
+      "code": "INPATIENT_PALLIATIVE_CARE_PROG_NURSES",
+      "section": "programs",
+      "hcaiLabel": "Palliative Care Program — Nurses",
+      "label": "Palliative care nurses",
+      "summary": "Nurses on the palliative care team.",
+      "unit": "count"
+    },
+    {
+      "code": "INPATIENT_PALLIATIVE_CARE_PROG_NURSES_CERTIFIED",
+      "section": "programs",
+      "hcaiLabel": "Palliative Care Program — Certified Nurses",
+      "label": "Certified palliative nurses",
+      "summary": "Of those, nurses with palliative certification.",
+      "unit": "count"
+    },
+    {
+      "code": "INPATIENT_PALLIATIVE_CARE_PROG_PHYSICIAN",
+      "section": "programs",
+      "hcaiLabel": "Palliative Care Program — Physicians",
+      "label": "Palliative care physicians",
+      "summary": "Physicians on the palliative care team.",
+      "unit": "count"
+    },
+    {
+      "code": "INPATIENT_PALLIATIVE_CARE_PROG_PHYSICIAN_CERTIFIED",
+      "section": "programs",
+      "hcaiLabel": "Palliative Care Program — Certified Physicians",
+      "label": "Certified palliative physicians",
+      "summary": "Of those, board-certified in hospice and palliative medicine.",
+      "unit": "count"
+    },
+    {
+      "code": "INPATIENT_PALLIATIVE_CARE_PROG_SOCIAL_WORKER",
+      "section": "programs",
+      "hcaiLabel": "Palliative Care Program — Social Workers",
+      "label": "Palliative care social workers",
+      "summary": "Social workers on the palliative care team.",
+      "unit": "count"
+    },
+    {
+      "code": "INPATIENT_PALLIATIVE_CARE_PROG_SOCIAL_WORKER_CERTIFIED",
+      "section": "programs",
+      "hcaiLabel": "Palliative Care Program — Certified Social Workers",
+      "label": "Certified palliative social workers",
+      "summary": "Of those, with palliative certification.",
+      "unit": "count"
+    },
+    {
+      "code": "INPATIENT_PALLIATIVE_CARE_PROG_CHAPLAINS",
+      "section": "programs",
+      "hcaiLabel": "Palliative Care Program — Chaplains",
+      "label": "Palliative care chaplains",
+      "summary": "Chaplains on the palliative care team.",
+      "unit": "count"
+    },
+    {
+      "code": "MED_SURG_LIC_BED_DAYS",
+      "section": "bed_days",
+      "hcaiLabel": "Medical/Surgical — Licensed Bed Days",
+      "label": "Medical/surgical licensed bed days",
+      "summary": "Medical/surgical beds × days licensed during the year; the denominator for occupancy.",
+      "unit": "days"
+    },
+    {
+      "code": "PERINATAL_LIC_BED_DAYS",
+      "section": "bed_days",
+      "hcaiLabel": "Perinatal — Licensed Bed Days",
+      "label": "Perinatal (obstetrics) licensed bed days",
+      "summary": "Perinatal (obstetrics) beds × days licensed during the year; the denominator for occupancy.",
+      "unit": "days"
+    },
+    {
+      "code": "PEDIATRIC_LIC_BED_DAYS",
+      "section": "bed_days",
+      "hcaiLabel": "Pediatric — Licensed Bed Days",
+      "label": "Pediatric licensed bed days",
+      "summary": "Pediatric beds × days licensed during the year; the denominator for occupancy.",
+      "unit": "days"
+    },
+    {
+      "code": "IC_LIC_BED_DAYS",
+      "section": "bed_days",
+      "hcaiLabel": "Intensive Care — Licensed Bed Days",
+      "label": "Intensive care (ICU) licensed bed days",
+      "summary": "Intensive care (ICU) beds × days licensed during the year; the denominator for occupancy.",
+      "unit": "days"
+    },
+    {
+      "code": "CORONARY_CARE_LIC_BED_DAYS",
+      "section": "bed_days",
+      "hcaiLabel": "Coronary Care — Licensed Bed Days",
+      "label": "Coronary care (CCU) licensed bed days",
+      "summary": "Coronary care (CCU) beds × days licensed during the year; the denominator for occupancy.",
+      "unit": "days"
+    },
+    {
+      "code": "ACUTE_RESPIRATORY_CARE_LIC_BED_DAYS",
+      "section": "bed_days",
+      "hcaiLabel": "Acute Respiratory Care — Licensed Bed Days",
+      "label": "Acute respiratory care licensed bed days",
+      "summary": "Acute respiratory care beds × days licensed during the year; the denominator for occupancy.",
+      "unit": "days"
+    },
+    {
+      "code": "BURN_LIC_BED_DAYS",
+      "section": "bed_days",
+      "hcaiLabel": "Burn — Licensed Bed Days",
+      "label": "Burn unit licensed bed days",
+      "summary": "Burn unit beds × days licensed during the year; the denominator for occupancy.",
+      "unit": "days"
+    },
+    {
+      "code": "IC_NEWBORN_LIC_BED_DAYS",
+      "section": "bed_days",
+      "hcaiLabel": "Intensive Care Newborn Nursery — Licensed Bed Days",
+      "label": "Neonatal intensive care (NICU) licensed bed days",
+      "summary": "Neonatal intensive care (NICU) beds × days licensed during the year; the denominator for occupancy.",
+      "unit": "days"
+    },
+    {
+      "code": "REHAB_CTR_LIC_BED_DAYS",
+      "section": "bed_days",
+      "hcaiLabel": "Rehabilitation Center — Licensed Bed Days",
+      "label": "Acute rehabilitation licensed bed days",
+      "summary": "Acute rehabilitation beds × days licensed during the year; the denominator for occupancy.",
+      "unit": "days"
+    },
+    {
+      "code": "GAC_SUBTOT_LIC_BED_DAYS",
+      "section": "bed_days",
+      "hcaiLabel": "General Acute Care Subtotal — Licensed Bed Days",
+      "label": "General acute care, all units licensed bed days",
+      "summary": "General acute care, all units beds × days licensed during the year; the denominator for occupancy. Sum of the nine general acute bed types.",
+      "unit": "days"
+    },
+    {
+      "code": "CHEM_DEPEND_RECOVERY_LIC_BED_DAYS",
+      "section": "bed_days",
+      "hcaiLabel": "Chemical Dependency Recovery Hospital — Licensed Bed Days",
+      "label": "Chemical dependency recovery hospital beds licensed bed days",
+      "summary": "Chemical dependency recovery hospital beds beds × days licensed during the year; the denominator for occupancy.",
+      "unit": "days"
+    },
+    {
+      "code": "ACUTE_PSYCHIATRIC_LIC_BED_DAYS",
+      "section": "bed_days",
+      "hcaiLabel": "Acute Psychiatric — Licensed Bed Days",
+      "label": "Acute psychiatric licensed bed days",
+      "summary": "Acute psychiatric beds × days licensed during the year; the denominator for occupancy.",
+      "unit": "days"
+    },
+    {
+      "code": "SN_LIC_BED_DAYS",
+      "section": "bed_days",
+      "hcaiLabel": "Skilled Nursing — Licensed Bed Days",
+      "label": "Skilled nursing licensed bed days",
+      "summary": "Skilled nursing beds × days licensed during the year; the denominator for occupancy.",
+      "unit": "days"
+    },
+    {
+      "code": "INTERMEDIATE_CARE_LIC_BED_DAYS",
+      "section": "bed_days",
+      "hcaiLabel": "Intermediate Care — Licensed Bed Days",
+      "label": "Intermediate care licensed bed days",
+      "summary": "Intermediate care beds × days licensed during the year; the denominator for occupancy.",
+      "unit": "days"
+    },
+    {
+      "code": "INTERMEDIATE_CARE_DEV_DIS_LIC_BED_DAYS",
+      "section": "bed_days",
+      "hcaiLabel": "Intermediate Care/Developmentally Disabled — Licensed Bed Days",
+      "label": "Intermediate care, developmentally disabled licensed bed days",
+      "summary": "Intermediate care, developmentally disabled beds × days licensed during the year; the denominator for occupancy.",
+      "unit": "days"
+    },
+    {
+      "code": "TOT_LIC_BED_DAYS",
+      "section": "bed_days",
+      "hcaiLabel": "Total — Licensed Bed Days",
+      "label": "Total licensed bed days",
+      "summary": "All bed types beds × days licensed during the year; the denominator for occupancy.",
+      "unit": "days"
+    },
+    {
+      "code": "MED_SURG_DISCHARGES",
+      "section": "discharges",
+      "hcaiLabel": "Medical/Surgical — Hospital Discharges",
+      "label": "Medical/surgical discharges",
+      "summary": "Patients discharged from medical/surgical beds, including deaths and transfers to another type of care.",
+      "unit": "count"
+    },
+    {
+      "code": "PERINATAL_DISCHARGES",
+      "section": "discharges",
+      "hcaiLabel": "Perinatal — Hospital Discharges",
+      "label": "Perinatal (obstetrics) discharges",
+      "summary": "Patients discharged from perinatal (obstetrics) beds, including deaths and transfers to another type of care.",
+      "unit": "count"
+    },
+    {
+      "code": "PEDIATRIC_DISCHARGES",
+      "section": "discharges",
+      "hcaiLabel": "Pediatric — Hospital Discharges",
+      "label": "Pediatric discharges",
+      "summary": "Patients discharged from pediatric beds, including deaths and transfers to another type of care.",
+      "unit": "count"
+    },
+    {
+      "code": "IC_DISCHARGES",
+      "section": "discharges",
+      "hcaiLabel": "Intensive Care — Hospital Discharges",
+      "label": "Intensive care (ICU) discharges",
+      "summary": "Patients discharged from intensive care (ICU) beds, including deaths and transfers to another type of care.",
+      "unit": "count"
+    },
+    {
+      "code": "CORONARY_CARE_DISCHARGES",
+      "section": "discharges",
+      "hcaiLabel": "Coronary Care — Hospital Discharges",
+      "label": "Coronary care (CCU) discharges",
+      "summary": "Patients discharged from coronary care (CCU) beds, including deaths and transfers to another type of care.",
+      "unit": "count"
+    },
+    {
+      "code": "ACUTE_RESPIRATORY_CARE_DISCHARGES",
+      "section": "discharges",
+      "hcaiLabel": "Acute Respiratory Care — Hospital Discharges",
+      "label": "Acute respiratory care discharges",
+      "summary": "Patients discharged from acute respiratory care beds, including deaths and transfers to another type of care.",
+      "unit": "count"
+    },
+    {
+      "code": "BURN_DISCHARGES",
+      "section": "discharges",
+      "hcaiLabel": "Burn — Hospital Discharges",
+      "label": "Burn unit discharges",
+      "summary": "Patients discharged from burn unit beds, including deaths and transfers to another type of care.",
+      "unit": "count"
+    },
+    {
+      "code": "IC_NEWBORN_DISCHARGES",
+      "section": "discharges",
+      "hcaiLabel": "Intensive Care Newborn Nursery — Hospital Discharges",
+      "label": "Neonatal intensive care (NICU) discharges",
+      "summary": "Patients discharged from neonatal intensive care (NICU) beds, including deaths and transfers to another type of care.",
+      "unit": "count"
+    },
+    {
+      "code": "REHAB_CTR_DISCHARGES",
+      "section": "discharges",
+      "hcaiLabel": "Rehabilitation Center — Hospital Discharges",
+      "label": "Acute rehabilitation discharges",
+      "summary": "Patients discharged from acute rehabilitation beds, including deaths and transfers to another type of care.",
+      "unit": "count"
+    },
+    {
+      "code": "GAC_SUBTOT_DISCHARGES",
+      "section": "discharges",
+      "hcaiLabel": "General Acute Care Subtotal — Hospital Discharges",
+      "label": "General acute care, all units discharges",
+      "summary": "Patients discharged from general acute care, all units beds, including deaths and transfers to another type of care. Sum of the nine general acute bed types.",
+      "unit": "count"
+    },
+    {
+      "code": "CHEM_DEPEND_RECOVERY_DISCHARGES",
+      "section": "discharges",
+      "hcaiLabel": "Chemical Dependency Recovery Hospital — Hospital Discharges",
+      "label": "Chemical dependency recovery hospital beds discharges",
+      "summary": "Patients discharged from chemical dependency recovery hospital beds beds, including deaths and transfers to another type of care.",
+      "unit": "count"
+    },
+    {
+      "code": "ACUTE_PSYCHIATRIC_DISCHARGES",
+      "section": "discharges",
+      "hcaiLabel": "Acute Psychiatric — Hospital Discharges",
+      "label": "Acute psychiatric discharges",
+      "summary": "Patients discharged from acute psychiatric beds, including deaths and transfers to another type of care.",
+      "unit": "count"
+    },
+    {
+      "code": "SN_DISCHARGES",
+      "section": "discharges",
+      "hcaiLabel": "Skilled Nursing — Hospital Discharges",
+      "label": "Skilled nursing discharges",
+      "summary": "Patients discharged from skilled nursing beds, including deaths and transfers to another type of care.",
+      "unit": "count"
+    },
+    {
+      "code": "INTERMEDIATE_CARE_DISCHARGES",
+      "section": "discharges",
+      "hcaiLabel": "Intermediate Care — Hospital Discharges",
+      "label": "Intermediate care discharges",
+      "summary": "Patients discharged from intermediate care beds, including deaths and transfers to another type of care.",
+      "unit": "count"
+    },
+    {
+      "code": "INTERMEDIATE_CARE_DEV_DIS_DISCHARGES",
+      "section": "discharges",
+      "hcaiLabel": "Intermediate Care/Developmentally Disabled — Hospital Discharges",
+      "label": "Intermediate care, developmentally disabled discharges",
+      "summary": "Patients discharged from intermediate care, developmentally disabled beds, including deaths and transfers to another type of care.",
+      "unit": "count"
+    },
+    {
+      "code": "TOT_DISCHARGES",
+      "section": "discharges",
+      "hcaiLabel": "Total — Hospital Discharges",
+      "label": "Total discharges",
+      "summary": "Patients discharged from all beds, including deaths and transfers to another type of care.",
+      "unit": "count"
+    },
+    {
+      "code": "GAC_CDRS_DISCHARGES",
+      "section": "discharges",
+      "hcaiLabel": "Chemical Dependency Recovery Services in Licensed GAC Beds — Hospital Discharges",
+      "label": "Chemical dependency services in general acute beds discharges",
+      "summary": "Patients discharged from chemical dependency services in general acute beds beds, including deaths and transfers to another type of care.",
+      "unit": "count",
+      "caution": "Already included in the general acute or acute psychiatric totals — don't add it again."
+    },
+    {
+      "code": "ACUTE_PSYCH_DISCHARGES",
+      "section": "discharges",
+      "hcaiLabel": "Chemical Dependency Recovery Services in Licensed Acute Psychiatric Beds — Hospital Discharges",
+      "label": "Chemical dependency services in acute psychiatric beds discharges",
+      "summary": "Patients discharged from chemical dependency services in acute psychiatric beds beds, including deaths and transfers to another type of care.",
+      "unit": "count",
+      "caution": "Already included in the general acute or acute psychiatric totals — don't add it again."
+    },
+    {
+      "code": "NEWBORN_NURSERY_INFANTS",
+      "section": "discharges",
+      "hcaiLabel": "Nursery Infants",
+      "label": "Nursery discharges",
+      "summary": "Newborns discharged from the normal nursery (not counted in hospital discharges).",
+      "unit": "count",
+      "drivers": [
+        "Falling California birth rates and labor & delivery unit closures, especially at rural hospitals."
+      ]
+    },
+    {
+      "code": "IC_INTRA_TRANSFERS",
+      "section": "discharges",
+      "hcaiLabel": "Intensive Care — Intra-Hospital Transfers",
+      "label": "Intensive care (ICU) transfers out",
+      "summary": "Patients moved from intensive care (ICU) to a general acute bed before leaving the hospital.",
+      "unit": "count"
+    },
+    {
+      "code": "CORONARY_CARE_INTRA_TRANSFERS",
+      "section": "discharges",
+      "hcaiLabel": "Coronary Care — Intra-Hospital Transfers",
+      "label": "Coronary care (CCU) transfers out",
+      "summary": "Patients moved from coronary care (CCU) to a general acute bed before leaving the hospital.",
+      "unit": "count"
+    },
+    {
+      "code": "ACUTE_RESPIRATORY_CARE_INTRA_TRANSFERS",
+      "section": "discharges",
+      "hcaiLabel": "Acute Respiratory Care — Intra-Hospital Transfers",
+      "label": "Acute respiratory care transfers out",
+      "summary": "Patients moved from acute respiratory care to a general acute bed before leaving the hospital.",
+      "unit": "count"
+    },
+    {
+      "code": "BURN_INTRA_TRANSFERS",
+      "section": "discharges",
+      "hcaiLabel": "Burn — Intra-Hospital Transfers",
+      "label": "Burn unit transfers out",
+      "summary": "Patients moved from burn unit to a general acute bed before leaving the hospital.",
+      "unit": "count"
+    },
+    {
+      "code": "IC_NEWBORN_INTRA_TRANSFERS",
+      "section": "discharges",
+      "hcaiLabel": "Intensive Care Newborn Nursery — Intra-Hospital Transfers",
+      "label": "Neonatal intensive care (NICU) transfers out",
+      "summary": "Patients moved from neonatal intensive care (NICU) to a general acute bed before leaving the hospital.",
+      "unit": "count"
+    },
+    {
+      "code": "SN_INTRA_TRANSFERS",
+      "section": "discharges",
+      "hcaiLabel": "Skilled Nursing — Intra-Hospital Transfers",
+      "label": "Skilled nursing transfers out",
+      "summary": "Patients moved from skilled nursing back to a general acute bed.",
+      "unit": "count"
+    },
+    {
+      "code": "MED_SURG_CEN_DAYS",
+      "section": "census_days",
+      "hcaiLabel": "Medical/Surgical — Patient (Census) Days",
+      "label": "Medical/surgical patient days",
+      "summary": "Inpatient days in medical/surgical beds during the year.",
+      "unit": "days"
+    },
+    {
+      "code": "PERINATAL_CEN_DAYS",
+      "section": "census_days",
+      "hcaiLabel": "Perinatal — Patient (Census) Days",
+      "label": "Perinatal (obstetrics) patient days",
+      "summary": "Inpatient days in perinatal (obstetrics) beds during the year.",
+      "unit": "days"
+    },
+    {
+      "code": "PEDIATRIC_CEN_DAYS",
+      "section": "census_days",
+      "hcaiLabel": "Pediatric — Patient (Census) Days",
+      "label": "Pediatric patient days",
+      "summary": "Inpatient days in pediatric beds during the year.",
+      "unit": "days"
+    },
+    {
+      "code": "IC_CEN_DAYS",
+      "section": "census_days",
+      "hcaiLabel": "Intensive Care — Patient (Census) Days",
+      "label": "Intensive care (ICU) patient days",
+      "summary": "Inpatient days in intensive care (ICU) beds during the year.",
+      "unit": "days"
+    },
+    {
+      "code": "CORONARY_CARE_CEN_DAYS",
+      "section": "census_days",
+      "hcaiLabel": "Coronary Care — Patient (Census) Days",
+      "label": "Coronary care (CCU) patient days",
+      "summary": "Inpatient days in coronary care (CCU) beds during the year.",
+      "unit": "days"
+    },
+    {
+      "code": "ACUTE_RESPIRATORY_CARE_CEN_DAYS",
+      "section": "census_days",
+      "hcaiLabel": "Acute Respiratory Care — Patient (Census) Days",
+      "label": "Acute respiratory care patient days",
+      "summary": "Inpatient days in acute respiratory care beds during the year.",
+      "unit": "days"
+    },
+    {
+      "code": "BURN_CEN_DAYS",
+      "section": "census_days",
+      "hcaiLabel": "Burn — Patient (Census) Days",
+      "label": "Burn unit patient days",
+      "summary": "Inpatient days in burn unit beds during the year.",
+      "unit": "days"
+    },
+    {
+      "code": "IC_NEWBORN_CEN_DAYS",
+      "section": "census_days",
+      "hcaiLabel": "Intensive Care Newborn Nursery — Patient (Census) Days",
+      "label": "Neonatal intensive care (NICU) patient days",
+      "summary": "Inpatient days in neonatal intensive care (NICU) beds during the year.",
+      "unit": "days"
+    },
+    {
+      "code": "REHAB_CTR_CEN_DAYS",
+      "section": "census_days",
+      "hcaiLabel": "Rehabilitation Center — Patient (Census) Days",
+      "label": "Acute rehabilitation patient days",
+      "summary": "Inpatient days in acute rehabilitation beds during the year.",
+      "unit": "days"
+    },
+    {
+      "code": "GAC_SUBTOT_CEN_DAYS",
+      "section": "census_days",
+      "hcaiLabel": "General Acute Care Subtotal — Patient (Census) Days",
+      "label": "General acute care, all units patient days",
+      "summary": "Inpatient days in general acute care, all units beds during the year. Sum of the nine general acute bed types.",
+      "unit": "days"
+    },
+    {
+      "code": "CHEM_DEPEND_RECOV_CEN_DAYS",
+      "section": "census_days",
+      "hcaiLabel": "Chemical Dependency Recovery Hospital — Patient (Census) Days",
+      "label": "Chemical dependency recovery hospital beds patient days",
+      "summary": "Inpatient days in chemical dependency recovery hospital beds beds during the year.",
+      "unit": "days"
+    },
+    {
+      "code": "ACUTE_PSYCHIATRIC_CEN_DAYS",
+      "section": "census_days",
+      "hcaiLabel": "Acute Psychiatric — Patient (Census) Days",
+      "label": "Acute psychiatric patient days",
+      "summary": "Inpatient days in acute psychiatric beds during the year.",
+      "unit": "days"
+    },
+    {
+      "code": "SN_CEN_DAYS",
+      "section": "census_days",
+      "hcaiLabel": "Skilled Nursing — Patient (Census) Days",
+      "label": "Skilled nursing patient days",
+      "summary": "Inpatient days in skilled nursing beds during the year.",
+      "unit": "days"
+    },
+    {
+      "code": "INTERMEDIATE_CARE_CEN_DAYS",
+      "section": "census_days",
+      "hcaiLabel": "Intermediate Care — Patient (Census) Days",
+      "label": "Intermediate care patient days",
+      "summary": "Inpatient days in intermediate care beds during the year.",
+      "unit": "days"
+    },
+    {
+      "code": "INTERMEDIATE_CARE_DEV_DIS_CEN_DAYS",
+      "section": "census_days",
+      "hcaiLabel": "Intermediate Care/Developmentally Disabled — Patient (Census) Days",
+      "label": "Intermediate care, developmentally disabled patient days",
+      "summary": "Inpatient days in intermediate care, developmentally disabled beds during the year.",
+      "unit": "days"
+    },
+    {
+      "code": "TOT_CEN_DAYS",
+      "section": "census_days",
+      "hcaiLabel": "Total — Patient (Census) Days",
+      "label": "Total patient days",
+      "summary": "Inpatient days in all beds during the year.",
+      "unit": "days"
+    },
+    {
+      "code": "GAC_CDRS_CEN_DAYS",
+      "section": "census_days",
+      "hcaiLabel": "Chemical Dependency Recovery Services in Licensed GAC Beds — Patient (Census) Days",
+      "label": "Chemical dependency services in general acute beds patient days",
+      "summary": "Inpatient days in chemical dependency services in general acute beds beds during the year.",
+      "unit": "days",
+      "caution": "Already included in the general acute or acute psychiatric totals — don't add it again."
+    },
+    {
+      "code": "ACUTE_PSYCH_CEN_DAYS",
+      "section": "census_days",
+      "hcaiLabel": "Chemical Dependency Recovery Services in Licensed Acute Psychiatric Beds — Patient (Census) Days",
+      "label": "Chemical dependency services in acute psychiatric beds patient days",
+      "summary": "Inpatient days in chemical dependency services in acute psychiatric beds beds during the year.",
+      "unit": "days",
+      "caution": "Already included in the general acute or acute psychiatric totals — don't add it again."
+    },
+    {
+      "code": "NEWBORN_NURSERY_CEN_DAYS",
+      "section": "census_days",
+      "hcaiLabel": "Nursery Days",
+      "label": "Nursery days",
+      "summary": "Days newborns spent in the normal nursery (not counted in patient days).",
+      "unit": "days",
+      "drivers": [
+        "Falling California birth rates and labor & delivery unit closures, especially at rural hospitals."
+      ]
+    },
+    {
+      "code": "MED_SURG_ALOS_CY",
+      "section": "alos",
+      "hcaiLabel": "Medical/Surgical — Average Length of Stay",
+      "label": "Medical/surgical average length of stay",
+      "summary": "Average days per stay in medical/surgical beds: patient days ÷ discharges.",
+      "unit": "days"
+    },
+    {
+      "code": "PERINATAL_ALOS_CY",
+      "section": "alos",
+      "hcaiLabel": "Perinatal — Average Length of Stay",
+      "label": "Perinatal (obstetrics) average length of stay",
+      "summary": "Average days per stay in perinatal (obstetrics) beds: patient days ÷ discharges.",
+      "unit": "days"
+    },
+    {
+      "code": "PEDIATRIC_ALOS_CY",
+      "section": "alos",
+      "hcaiLabel": "Pediatric — Average Length of Stay",
+      "label": "Pediatric average length of stay",
+      "summary": "Average days per stay in pediatric beds: patient days ÷ discharges.",
+      "unit": "days"
+    },
+    {
+      "code": "IC_ALOS_CY",
+      "section": "alos",
+      "hcaiLabel": "Intensive Care — Average Length of Stay",
+      "label": "Intensive care (ICU) average length of stay",
+      "summary": "Average days per stay in intensive care (ICU) beds: patient days ÷ discharges (+ transfers out).",
+      "unit": "days"
+    },
+    {
+      "code": "CORONARY_CARE_ALOS_CY",
+      "section": "alos",
+      "hcaiLabel": "Coronary Care — Average Length of Stay",
+      "label": "Coronary care (CCU) average length of stay",
+      "summary": "Average days per stay in coronary care (CCU) beds: patient days ÷ discharges (+ transfers out).",
+      "unit": "days"
+    },
+    {
+      "code": "ACUTE_RESPIRATORY_CARE_ALOS_CY",
+      "section": "alos",
+      "hcaiLabel": "Acute Respiratory Care — Average Length of Stay",
+      "label": "Acute respiratory care average length of stay",
+      "summary": "Average days per stay in acute respiratory care beds: patient days ÷ discharges (+ transfers out).",
+      "unit": "days"
+    },
+    {
+      "code": "BURN_ALOS_CY",
+      "section": "alos",
+      "hcaiLabel": "Burn — Average Length of Stay",
+      "label": "Burn unit average length of stay",
+      "summary": "Average days per stay in burn unit beds: patient days ÷ discharges (+ transfers out).",
+      "unit": "days"
+    },
+    {
+      "code": "IC_NEWBORN_ALOS_CY",
+      "section": "alos",
+      "hcaiLabel": "Intensive Care Newborn Nursery — Average Length of Stay",
+      "label": "Neonatal intensive care (NICU) average length of stay",
+      "summary": "Average days per stay in neonatal intensive care (NICU) beds: patient days ÷ discharges (+ transfers out).",
+      "unit": "days"
+    },
+    {
+      "code": "REHAB_CTR_ALOS_CY",
+      "section": "alos",
+      "hcaiLabel": "Rehabilitation Center — Average Length of Stay",
+      "label": "Acute rehabilitation average length of stay",
+      "summary": "Average days per stay in acute rehabilitation beds: patient days ÷ discharges.",
+      "unit": "days"
+    },
+    {
+      "code": "GAC_SUBTOT_ALOS_CY",
+      "section": "alos",
+      "hcaiLabel": "General Acute Care Subtotal — Average Length of Stay",
+      "label": "General acute care, all units average length of stay",
+      "summary": "Average days per stay in general acute care, all units beds: patient days ÷ discharges. Sum of the nine general acute bed types.",
+      "unit": "days"
+    },
+    {
+      "code": "CHEM_DEPEND_RECOV_ALOS_CY",
+      "section": "alos",
+      "hcaiLabel": "Chemical Dependency Recovery Hospital — Average Length of Stay",
+      "label": "Chemical dependency recovery hospital beds average length of stay",
+      "summary": "Average days per stay in chemical dependency recovery hospital beds beds: patient days ÷ discharges.",
+      "unit": "days"
+    },
+    {
+      "code": "ACUTE_PSYCHIATRIC_ALOS_CY",
+      "section": "alos",
+      "hcaiLabel": "Acute Psychiatric — Average Length of Stay",
+      "label": "Acute psychiatric average length of stay",
+      "summary": "Average days per stay in acute psychiatric beds: patient days ÷ discharges.",
+      "unit": "days"
+    },
+    {
+      "code": "SN_ALOS_CY",
+      "section": "alos",
+      "hcaiLabel": "Skilled Nursing — Average Length of Stay",
+      "label": "Skilled nursing average length of stay",
+      "summary": "Average days per stay in skilled nursing beds: patient days ÷ discharges.",
+      "unit": "days"
+    },
+    {
+      "code": "INTERMEDIATE_CARE_ALOS_CY",
+      "section": "alos",
+      "hcaiLabel": "Intermediate Care — Average Length of Stay",
+      "label": "Intermediate care average length of stay",
+      "summary": "Average days per stay in intermediate care beds: patient days ÷ discharges.",
+      "unit": "days"
+    },
+    {
+      "code": "INTERMEDIATE_CARE_DEV_DIS_ALOS_CY",
+      "section": "alos",
+      "hcaiLabel": "Intermediate Care/Developmentally Disabled — Average Length of Stay",
+      "label": "Intermediate care, developmentally disabled average length of stay",
+      "summary": "Average days per stay in intermediate care, developmentally disabled beds: patient days ÷ discharges.",
+      "unit": "days"
+    },
+    {
+      "code": "TOT_ALOS_CY",
+      "section": "alos",
+      "hcaiLabel": "Total — Average Length of Stay",
+      "label": "Total average length of stay",
+      "summary": "Average days per stay in all beds: patient days ÷ discharges.",
+      "unit": "days"
+    },
+    {
+      "code": "GAC_CDRS_ALOS_CY",
+      "section": "alos",
+      "hcaiLabel": "Chemical Dependency Recovery Services in Licensed GAC Beds — Average Length of Stay",
+      "label": "Chemical dependency services in general acute beds average length of stay",
+      "summary": "Average days per stay in chemical dependency services in general acute beds beds: patient days ÷ discharges.",
+      "unit": "days",
+      "caution": "Already included in the general acute or acute psychiatric totals — don't add it again."
+    },
+    {
+      "code": "ACUTE_PSYCH_CDRS_ALOS_CY",
+      "section": "alos",
+      "hcaiLabel": "Chemical Dependency Recovery Services in Licensed Acute Psychiatric Beds — Average Length of Stay",
+      "label": "Chemical dependency services in acute psychiatric beds average length of stay",
+      "summary": "Average days per stay in chemical dependency services in acute psychiatric beds beds: patient days ÷ discharges.",
+      "unit": "days",
+      "caution": "Already included in the general acute or acute psychiatric totals — don't add it again."
+    },
+    {
+      "code": "EMS_VISITS_NON_URGENT_TOT",
+      "section": "ed",
+      "hcaiLabel": "EDS Visits — CPT 99281 (not admitted)",
+      "label": "ED visits, level 1 (minor)",
+      "summary": "Visits where a physician may not be required (CPT 99281), not admitted.",
+      "unit": "count",
+      "drivers": [
+        "Respiratory-virus seasons, the 2020 COVID drop, and nearby urgent-care or ED openings and closures.",
+        "Medi-Cal enrollment swings (the 2023–24 end of continuous coverage, the 2024 expansion to undocumented adults).",
+        "Coding changes: the 2023 CPT revision of ED visit levels (99281–99285) shifted visits between severity levels.",
+        "Inpatient bed availability: boarding admitted patients in the ED causes walkouts and diversion."
+      ]
+    },
+    {
+      "code": "EMS_VISITS_URGENT_TOT",
+      "section": "ed",
+      "hcaiLabel": "EDS Visits — CPT 99282 (not admitted)",
+      "label": "ED visits, level 2 (straightforward)",
+      "summary": "Straightforward visits (CPT 99282), not admitted.",
+      "unit": "count",
+      "drivers": [
+        "Respiratory-virus seasons, the 2020 COVID drop, and nearby urgent-care or ED openings and closures.",
+        "Medi-Cal enrollment swings (the 2023–24 end of continuous coverage, the 2024 expansion to undocumented adults).",
+        "Coding changes: the 2023 CPT revision of ED visit levels (99281–99285) shifted visits between severity levels.",
+        "Inpatient bed availability: boarding admitted patients in the ED causes walkouts and diversion."
+      ]
+    },
+    {
+      "code": "EMS_VISITS_MODERATE_TOT",
+      "section": "ed",
+      "hcaiLabel": "EDS Visits — CPT 99283 (not admitted)",
+      "label": "ED visits, level 3 (low complexity)",
+      "summary": "Low-complexity visits (CPT 99283), not admitted.",
+      "unit": "count",
+      "drivers": [
+        "Respiratory-virus seasons, the 2020 COVID drop, and nearby urgent-care or ED openings and closures.",
+        "Medi-Cal enrollment swings (the 2023–24 end of continuous coverage, the 2024 expansion to undocumented adults).",
+        "Coding changes: the 2023 CPT revision of ED visit levels (99281–99285) shifted visits between severity levels.",
+        "Inpatient bed availability: boarding admitted patients in the ED causes walkouts and diversion."
+      ]
+    },
+    {
+      "code": "EMS_VISITS_SEVERE_TOT",
+      "section": "ed",
+      "hcaiLabel": "EDS Visits — CPT 99284 (not admitted)",
+      "label": "ED visits, level 4 (moderate complexity)",
+      "summary": "Moderate-complexity visits (CPT 99284), not admitted.",
+      "unit": "count",
+      "drivers": [
+        "Respiratory-virus seasons, the 2020 COVID drop, and nearby urgent-care or ED openings and closures.",
+        "Medi-Cal enrollment swings (the 2023–24 end of continuous coverage, the 2024 expansion to undocumented adults).",
+        "Coding changes: the 2023 CPT revision of ED visit levels (99281–99285) shifted visits between severity levels.",
+        "Inpatient bed availability: boarding admitted patients in the ED causes walkouts and diversion."
+      ]
+    },
+    {
+      "code": "EMS_VISITS_CRITICAL_TOT",
+      "section": "ed",
+      "hcaiLabel": "EDS Visits — CPT 99285 (not admitted)",
+      "label": "ED visits, level 5 (high complexity)",
+      "summary": "High-complexity visits (CPT 99285, plus ED critical care 99291), not admitted.",
+      "unit": "count",
+      "drivers": [
+        "Respiratory-virus seasons, the 2020 COVID drop, and nearby urgent-care or ED openings and closures.",
+        "Medi-Cal enrollment swings (the 2023–24 end of continuous coverage, the 2024 expansion to undocumented adults).",
+        "Coding changes: the 2023 CPT revision of ED visit levels (99281–99285) shifted visits between severity levels.",
+        "Inpatient bed availability: boarding admitted patients in the ED causes walkouts and diversion."
+      ]
+    },
+    {
+      "code": "EMER_DEPT_VISITS_NOT_RESULT_ADMISSIONS_TOT",
+      "section": "ed",
+      "hcaiLabel": "EDS Visits Not Resulting in Admission — Total",
+      "label": "ED visits, treated and released",
+      "summary": "ED visits that ended without an inpatient admission.",
+      "unit": "count",
+      "drivers": [
+        "Respiratory-virus seasons, the 2020 COVID drop, and nearby urgent-care or ED openings and closures.",
+        "Medi-Cal enrollment swings (the 2023–24 end of continuous coverage, the 2024 expansion to undocumented adults).",
+        "Coding changes: the 2023 CPT revision of ED visit levels (99281–99285) shifted visits between severity levels.",
+        "Inpatient bed availability: boarding admitted patients in the ED causes walkouts and diversion."
+      ]
+    },
+    {
+      "code": "EMER_MED_TREAT_STATIONS_ON_1231",
+      "section": "ed",
+      "hcaiLabel": "Emergency Medical Treatment Stations",
+      "label": "ED treatment stations",
+      "summary": "Places in the ED that can treat one patient at a time on December 31; excludes holding and observation beds.",
+      "unit": "count"
+    },
+    {
+      "code": "NON_EMER_VISITS_IN_EMER_DEPT",
+      "section": "ed",
+      "hcaiLabel": "Non-Emergency (Clinic) Visits Seen in ED",
+      "label": "Scheduled clinic visits in the ED",
+      "summary": "Scheduled non-emergency visits — usually small hospitals using the ED as a clinic.",
+      "unit": "count"
+    },
+    {
+      "code": "EMER_REGISTRATIONS_PATS_LEAVE_WO_BEING_SEEN",
+      "section": "ed",
+      "hcaiLabel": "Registrations — Patient Left Without Being Seen",
+      "label": "Left without being seen",
+      "summary": "Patients who registered in the ED but left before being treated.",
+      "unit": "count",
+      "drivers": [
+        "ED crowding and long waits, often from boarding admitted patients who can't get an inpatient bed.",
+        "ED staffing levels and triage process changes (e.g. provider-in-triage)."
+      ]
+    },
+    {
+      "code": "EMER_DEPT_HR_DIVERSION_JAN",
+      "section": "ed",
+      "hcaiLabel": "Ambulance Diversion Hours — January",
+      "label": "Diversion hours, January",
+      "summary": "Hours on full ambulance diversion in January.",
+      "unit": "hours"
+    },
+    {
+      "code": "EMER_DEPT_HR_DIVERSION_FEB",
+      "section": "ed",
+      "hcaiLabel": "Ambulance Diversion Hours — February",
+      "label": "Diversion hours, February",
+      "summary": "Hours on full ambulance diversion in February.",
+      "unit": "hours"
+    },
+    {
+      "code": "EMER_DEPT_HR_DIVERSION_MAR",
+      "section": "ed",
+      "hcaiLabel": "Ambulance Diversion Hours — March",
+      "label": "Diversion hours, March",
+      "summary": "Hours on full ambulance diversion in March.",
+      "unit": "hours"
+    },
+    {
+      "code": "EMER_DEPT_HR_DIVERSION_APR",
+      "section": "ed",
+      "hcaiLabel": "Ambulance Diversion Hours — April",
+      "label": "Diversion hours, April",
+      "summary": "Hours on full ambulance diversion in April.",
+      "unit": "hours"
+    },
+    {
+      "code": "EMER_DEPT_HR_DIVERSION_MAY",
+      "section": "ed",
+      "hcaiLabel": "Ambulance Diversion Hours — May",
+      "label": "Diversion hours, May",
+      "summary": "Hours on full ambulance diversion in May.",
+      "unit": "hours"
+    },
+    {
+      "code": "EMER_DEPT_HR_DIVERSION_JUN",
+      "section": "ed",
+      "hcaiLabel": "Ambulance Diversion Hours — June",
+      "label": "Diversion hours, June",
+      "summary": "Hours on full ambulance diversion in June.",
+      "unit": "hours"
+    },
+    {
+      "code": "EMER_DEPT_HR_DIVERSION_JUL",
+      "section": "ed",
+      "hcaiLabel": "Ambulance Diversion Hours — July",
+      "label": "Diversion hours, July",
+      "summary": "Hours on full ambulance diversion in July.",
+      "unit": "hours"
+    },
+    {
+      "code": "EMER_DEPT_HR_DIVERSION_AUG",
+      "section": "ed",
+      "hcaiLabel": "Ambulance Diversion Hours — August",
+      "label": "Diversion hours, August",
+      "summary": "Hours on full ambulance diversion in August.",
+      "unit": "hours"
+    },
+    {
+      "code": "EMER_DEPT_HR_DIVERSION_SEP",
+      "section": "ed",
+      "hcaiLabel": "Ambulance Diversion Hours — September",
+      "label": "Diversion hours, September",
+      "summary": "Hours on full ambulance diversion in September.",
+      "unit": "hours"
+    },
+    {
+      "code": "EMER_DEPT_HR_DIVERSION_OCT",
+      "section": "ed",
+      "hcaiLabel": "Ambulance Diversion Hours — October",
+      "label": "Diversion hours, October",
+      "summary": "Hours on full ambulance diversion in October.",
+      "unit": "hours"
+    },
+    {
+      "code": "EMER_DEPT_HR_DIVERSION_NOV",
+      "section": "ed",
+      "hcaiLabel": "Ambulance Diversion Hours — November",
+      "label": "Diversion hours, November",
+      "summary": "Hours on full ambulance diversion in November.",
+      "unit": "hours"
+    },
+    {
+      "code": "EMER_DEPT_HR_DIVERSION_DEC",
+      "section": "ed",
+      "hcaiLabel": "Ambulance Diversion Hours — December",
+      "label": "Diversion hours, December",
+      "summary": "Hours on full ambulance diversion in December.",
+      "unit": "hours"
+    },
+    {
+      "code": "EMER_DEPT_HR_DIVERSION_TOT",
+      "section": "ed",
+      "hcaiLabel": "Ambulance Diversion Hours — Total",
+      "label": "Ambulance diversion hours",
+      "summary": "Hours the ED was closed to all ambulance traffic during the year.",
+      "unit": "hours",
+      "drivers": [
+        "Inpatient capacity: no beds for admitted patients backs up the ED.",
+        "County EMS policies — several California counties restrict or ban diversion.",
+        "Respiratory-virus surges."
+      ]
+    },
+    {
+      "code": "EMS_VISITS_NON_URGENT_ADMITTED",
+      "section": "ed",
+      "hcaiLabel": "EDS Visits — CPT 99281 (admitted)",
+      "label": "ED admissions, level 1",
+      "summary": "Level-1 visits that resulted in admission (optional detail).",
+      "unit": "count"
+    },
+    {
+      "code": "EMS_VISITS_URGENT_ADMITTED",
+      "section": "ed",
+      "hcaiLabel": "EDS Visits — CPT 99282 (admitted)",
+      "label": "ED admissions, level 2",
+      "summary": "Level-2 visits that resulted in admission (optional detail).",
+      "unit": "count"
+    },
+    {
+      "code": "EMS_VISITS_MODERATE_ADMITTED",
+      "section": "ed",
+      "hcaiLabel": "EDS Visits — CPT 99283 (admitted)",
+      "label": "ED admissions, level 3",
+      "summary": "Level-3 visits that resulted in admission (optional detail).",
+      "unit": "count"
+    },
+    {
+      "code": "EMS_VISITS_SEVERE_ADMITTED",
+      "section": "ed",
+      "hcaiLabel": "EDS Visits — CPT 99284 (admitted)",
+      "label": "ED admissions, level 4",
+      "summary": "Level-4 visits that resulted in admission (optional detail).",
+      "unit": "count"
+    },
+    {
+      "code": "EMS_VISITS_CRITICAL_ADMITTED",
+      "section": "ed",
+      "hcaiLabel": "EDS Visits — CPT 99285 (admitted)",
+      "label": "ED admissions, level 5",
+      "summary": "Level-5 visits that resulted in admission (optional detail).",
+      "unit": "count"
+    },
+    {
+      "code": "ADMITTED_FROM_EMER_DEPT_TOT",
+      "section": "ed",
+      "hcaiLabel": "EDS Visits Resulting in Admission — Total",
+      "label": "Admitted from the ED",
+      "summary": "ED visits that became an inpatient admission.",
+      "unit": "count",
+      "drivers": [
+        "Respiratory-virus seasons, the 2020 COVID drop, and nearby urgent-care or ED openings and closures.",
+        "Medi-Cal enrollment swings (the 2023–24 end of continuous coverage, the 2024 expansion to undocumented adults).",
+        "Coding changes: the 2023 CPT revision of ED visit levels (99281–99285) shifted visits between severity levels.",
+        "Inpatient bed availability: boarding admitted patients in the ED causes walkouts and diversion."
+      ]
+    },
+    {
+      "code": "ER_TRAFFIC_TOT",
+      "section": "ed",
+      "hcaiLabel": "Total ED Traffic",
+      "label": "ED visits, total",
+      "summary": "All ED visits: treated and released plus admitted. Excludes patients who left without being seen and scheduled clinic visits.",
+      "unit": "count",
+      "drivers": [
+        "Respiratory-virus seasons, the 2020 COVID drop, and nearby urgent-care or ED openings and closures.",
+        "Medi-Cal enrollment swings (the 2023–24 end of continuous coverage, the 2024 expansion to undocumented adults).",
+        "Coding changes: the 2023 CPT revision of ED visit levels (99281–99285) shifted visits between severity levels.",
+        "Inpatient bed availability: boarding admitted patients in the ED causes walkouts and diversion."
+      ]
+    },
+    {
+      "code": "INPATIENT_SURG_OPER",
+      "section": "surgery",
+      "hcaiLabel": "Inpatient Surgical Operations",
+      "label": "Inpatient surgeries",
+      "summary": "Operations in a surgical suite on admitted patients; multiple procedures in one operation count once.",
+      "unit": "count"
+    },
+    {
+      "code": "OUTPATIENT_SURG_OPER",
+      "section": "surgery",
+      "hcaiLabel": "Outpatient Surgical Operations",
+      "label": "Outpatient surgeries",
+      "summary": "Same-day operations in the hospital's surgical suites.",
+      "unit": "count"
+    },
+    {
+      "code": "INPAT_OPER_RM",
+      "section": "surgery",
+      "hcaiLabel": "Operating Rooms — Inpatient Only",
+      "label": "Inpatient-only ORs",
+      "summary": "Operating rooms used only for inpatients on December 31.",
+      "unit": "count"
+    },
+    {
+      "code": "OUTPAT_OPER_RM",
+      "section": "surgery",
+      "hcaiLabel": "Operating Rooms — Outpatient Only",
+      "label": "Outpatient-only ORs",
+      "summary": "Operating rooms used only for outpatients.",
+      "unit": "count"
+    },
+    {
+      "code": "INPAT_OUTPAT_OPER_RM",
+      "section": "surgery",
+      "hcaiLabel": "Operating Rooms — Inpatient and Outpatient",
+      "label": "Shared ORs",
+      "summary": "Operating rooms used for both.",
+      "unit": "count"
+    },
+    {
+      "code": "OPER_RM_TOT",
+      "section": "surgery",
+      "hcaiLabel": "Total Operating Rooms",
+      "label": "Operating rooms",
+      "summary": "All operating rooms in service on December 31.",
+      "unit": "count"
+    },
+    {
+      "code": "LIVE_BIRTHS_TOT",
+      "section": "births",
+      "hcaiLabel": "Live Births",
+      "label": "Live births",
+      "summary": "All live births in the hospital.",
+      "unit": "count"
+    },
+    {
+      "code": "LIVE_BIRTHS_LT_2500GM",
+      "section": "births",
+      "hcaiLabel": "Live Births Under 2,500 g",
+      "label": "Low-birth-weight births",
+      "summary": "Babies born weighing under 2,500 g (5.5 lb).",
+      "unit": "count"
+    },
+    {
+      "code": "LIVE_BIRTHS_LT_1500GM",
+      "section": "births",
+      "hcaiLabel": "Live Births Under 1,500 g",
+      "label": "Very-low-birth-weight births",
+      "summary": "Babies born weighing under 1,500 g (3.3 lb).",
+      "unit": "count"
+    },
+    {
+      "code": "LIVE_BIRTHS_IN_ALTERNATIVE_SETTING",
+      "section": "births",
+      "hcaiLabel": "Live Births in Alternate Setting",
+      "label": "Births in alternate settings",
+      "summary": "Births in LDR/LDRP rooms or an alternate birthing center.",
+      "unit": "count"
+    },
+    {
+      "code": "LIVE_BIRTHS_C_SECTION",
+      "section": "births",
+      "hcaiLabel": "Live Births — C-Section",
+      "label": "Cesarean births",
+      "summary": "Live births delivered by C-section.",
+      "unit": "count"
+    },
+    {
+      "code": "CARDIOVASCULAR_OPER_RM",
+      "section": "cardiac",
+      "hcaiLabel": "Cardiovascular Operating Rooms",
+      "label": "Cardiac ORs",
+      "summary": "Operating rooms used for cardiovascular surgery.",
+      "unit": "count"
+    },
+    {
+      "code": "CARDIOVASCULAR_SURG_OPER_PEDIATRIC_BYPASS_USED",
+      "section": "cardiac",
+      "hcaiLabel": "Cardiovascular Surgery — Pediatric, Bypass Used",
+      "label": "Pediatric heart surgery, on bypass",
+      "summary": "Pediatric operations using cardiopulmonary bypass.",
+      "unit": "count"
+    },
+    {
+      "code": "CARDIOVASCULAR_SURG_OPER_ADULT_BYPASS_USED",
+      "section": "cardiac",
+      "hcaiLabel": "Cardiovascular Surgery — Adult, Bypass Used",
+      "label": "Adult heart surgery, on bypass",
+      "summary": "Adult operations using cardiopulmonary bypass.",
+      "unit": "count"
+    },
+    {
+      "code": "CARDIOVASCULAR_SURG_OPER_BYPASS_USED_TOT",
+      "section": "cardiac",
+      "hcaiLabel": "Cardiovascular Surgery — Bypass Used, Total",
+      "label": "Heart surgery on bypass",
+      "summary": "All operations using cardiopulmonary bypass.",
+      "unit": "count"
+    },
+    {
+      "code": "CORONARY_ARTERY_BYPASS_GRAFT_SURG",
+      "section": "cardiac",
+      "hcaiLabel": "Coronary Artery Bypass Graft Surgery",
+      "label": "CABG surgeries",
+      "summary": "Coronary artery bypass graft operations.",
+      "unit": "count"
+    },
+    {
+      "code": "CARDIAC_CATHETERIZATION_LAB_RM",
+      "section": "cardiac",
+      "hcaiLabel": "Cardiac Catheterization Labs",
+      "label": "Cath labs",
+      "summary": "Cardiac catheterization lab rooms.",
+      "unit": "count"
+    },
+    {
+      "code": "CARD_CATH_PED_IP_DIAG_VST",
+      "section": "cardiac",
+      "hcaiLabel": "Cath Visits — Pediatric Inpatient Diagnostic",
+      "label": "Pediatric inpatient diagnostic cath visits",
+      "summary": "Pediatric inpatient diagnostic cath lab visits.",
+      "unit": "count"
+    },
+    {
+      "code": "CARD_CATH_PED_OP_DIAG_VST",
+      "section": "cardiac",
+      "hcaiLabel": "Cath Visits — Pediatric Outpatient Diagnostic",
+      "label": "Pediatric outpatient diagnostic cath visits",
+      "summary": "Pediatric outpatient diagnostic cath lab visits.",
+      "unit": "count"
+    },
+    {
+      "code": "CARDIAC_CATHETERIZATION_ADULT_INPAT_DIAGNOSTIC_VISITS",
+      "section": "cardiac",
+      "hcaiLabel": "Cath Visits — Adult Inpatient Diagnostic",
+      "label": "Adult inpatient diagnostic cath visits",
+      "summary": "Adult inpatient diagnostic cath lab visits.",
+      "unit": "count"
+    },
+    {
+      "code": "CARDIAC_CATHETERIZATION_ADULT_OUTPAT_DIAGNOSTIC_VISITS",
+      "section": "cardiac",
+      "hcaiLabel": "Cath Visits — Adult Outpatient Diagnostic",
+      "label": "Adult outpatient diagnostic cath visits",
+      "summary": "Adult outpatient diagnostic cath lab visits.",
+      "unit": "count"
+    },
+    {
+      "code": "CARDIAC_CATHETERIZATION_DIAGNOSTIC_VISITS_TOT",
+      "section": "cardiac",
+      "hcaiLabel": "Cath Visits — Diagnostic, Total",
+      "label": "Diagnostic cath visits",
+      "summary": "All diagnostic cath lab visits.",
+      "unit": "count"
+    },
+    {
+      "code": "DIAGNOSTIC_CARDIAC_CATH_PROC",
+      "section": "cardiac",
+      "hcaiLabel": "Diagnostic Cardiac Catheterization",
+      "label": "Diagnostic caths",
+      "summary": "Diagnostic cardiac catheterizations.",
+      "unit": "count"
+    },
+    {
+      "code": "MYOCARDIAL_BIOPSY",
+      "section": "cardiac",
+      "hcaiLabel": "Myocardial Biopsy",
+      "label": "Myocardial biopsies",
+      "summary": "Heart muscle biopsies.",
+      "unit": "count"
+    },
+    {
+      "code": "PERM_PACEMAKER_IMPLANT",
+      "section": "cardiac",
+      "hcaiLabel": "Permanent Pacemaker Implantation",
+      "label": "Pacemaker implants",
+      "summary": "Permanent pacemaker implantations.",
+      "unit": "count"
+    },
+    {
+      "code": "OTH_PERM_PACEMAKER_PROC",
+      "section": "cardiac",
+      "hcaiLabel": "Other Permanent Pacemaker Procedures",
+      "label": "Other pacemaker procedures",
+      "summary": "Pacemaker revisions and other procedures.",
+      "unit": "count"
+    },
+    {
+      "code": "IMPLANABLE_CARDIO_DEFIB_IMPLANTATION",
+      "section": "cardiac",
+      "hcaiLabel": "Implantable Cardioverter Defibrillator",
+      "label": "ICD implants",
+      "summary": "Implantable defibrillator implantations.",
+      "unit": "count"
+    },
+    {
+      "code": "OTH_PROCEDURES",
+      "section": "cardiac",
+      "hcaiLabel": "Other Cath Lab Procedures",
+      "label": "Other cath lab procedures",
+      "summary": "Other procedures in the cath lab.",
+      "unit": "count"
+    },
+    {
+      "code": "PCI_WITH_STENT",
+      "section": "cardiac",
+      "hcaiLabel": "PCI With Stent",
+      "label": "PCI with stent",
+      "summary": "Angioplasty with a stent.",
+      "unit": "count"
+    },
+    {
+      "code": "PCI_WO_STENT",
+      "section": "cardiac",
+      "hcaiLabel": "PCI Without Stent",
+      "label": "PCI without stent",
+      "summary": "Angioplasty without a stent.",
+      "unit": "count"
+    },
+    {
+      "code": "ATHERECTOMY",
+      "section": "cardiac",
+      "hcaiLabel": "Atherectomy",
+      "label": "Atherectomies",
+      "summary": "Removal of plaque from an artery by catheter.",
+      "unit": "count"
+    },
+    {
+      "code": "THROMBOLYTIC_AGENTS",
+      "section": "cardiac",
+      "hcaiLabel": "Intracoronary Thrombolytic Agents",
+      "label": "Thrombolytic infusions",
+      "summary": "Clot-dissolving drugs delivered by catheter.",
+      "unit": "count"
+    },
+    {
+      "code": "PTBV",
+      "section": "cardiac",
+      "hcaiLabel": "Percutaneous Transluminal Balloon Valvuloplasty",
+      "label": "Balloon valvuloplasties",
+      "summary": "Heart valve widening by balloon catheter.",
+      "unit": "count"
+    },
+    {
+      "code": "DIAGNOSTIC_ELECTROPHYSIOLOGY_EP",
+      "section": "cardiac",
+      "hcaiLabel": "Diagnostic Electrophysiology",
+      "label": "EP studies",
+      "summary": "Diagnostic electrophysiology studies.",
+      "unit": "count"
+    },
+    {
+      "code": "CATHETER_ABLATION",
+      "section": "cardiac",
+      "hcaiLabel": "Catheter Ablation",
+      "label": "Catheter ablations",
+      "summary": "Ablations for heart rhythm problems.",
+      "unit": "count"
+    },
+    {
+      "code": "PERIPHERAL_VASCULAR_ANGIOGRAPHY",
+      "section": "cardiac",
+      "hcaiLabel": "Peripheral Vascular Angiography",
+      "label": "Peripheral angiography",
+      "summary": "Imaging of arteries outside the heart.",
+      "unit": "count"
+    },
+    {
+      "code": "PERIPHERAL_VASCULAR_INTERVENTIONAL",
+      "section": "cardiac",
+      "hcaiLabel": "Peripheral Vascular Interventional",
+      "label": "Peripheral interventions",
+      "summary": "Catheter treatments of arteries outside the heart.",
+      "unit": "count"
+    },
+    {
+      "code": "CAROTID_STENTING",
+      "section": "cardiac",
+      "hcaiLabel": "Carotid Stenting",
+      "label": "Carotid stents",
+      "summary": "Stents in the carotid artery.",
+      "unit": "count"
+    },
+    {
+      "code": "INTRA_AORTIC_BALLOON_PUMP_INSERTION",
+      "section": "cardiac",
+      "hcaiLabel": "Intra-Aortic Balloon Pump Insertion",
+      "label": "Balloon pump insertions",
+      "summary": "Intra-aortic balloon pump insertions.",
+      "unit": "count"
+    },
+    {
+      "code": "CATHETER_BASED_VENTRICULAR_ASSIST_DEVICE_INSERTION",
+      "section": "cardiac",
+      "hcaiLabel": "Catheter-Based Ventricular Assist Device",
+      "label": "Catheter VAD insertions",
+      "summary": "Catheter-based heart pump insertions (e.g. Impella).",
+      "unit": "count"
+    },
+    {
+      "code": "ALL_OTHER_CATHETERIZATION_PROC",
+      "section": "cardiac",
+      "hcaiLabel": "All Other Catheterization Procedures",
+      "label": "Other cath procedures",
+      "summary": "Cath procedures not listed separately.",
+      "unit": "count"
+    },
+    {
+      "code": "CATHETERIZATION_PROC_TOT",
+      "section": "cardiac",
+      "hcaiLabel": "Catheterization Procedures — Total",
+      "label": "Cath lab procedures",
+      "summary": "All cardiac catheterization procedures.",
+      "unit": "count",
+      "drivers": [
+        "Cardiologist and cardiac surgeon recruitment; opening or closing a cath lab or heart program.",
+        "Procedures shifting to outpatient settings."
+      ]
+    },
+    {
+      "code": "INPATIENT_SURG_OPER_RM_MINS",
+      "section": "surgery",
+      "hcaiLabel": "Inpatient Operating Room Minutes",
+      "label": "Inpatient OR minutes",
+      "summary": "Anesthesia (or surgery) start to end for inpatient operations; excludes recovery.",
+      "unit": "minutes"
+    },
+    {
+      "code": "OUTPATIENT_SURG_OPER_RM_MINS",
+      "section": "surgery",
+      "hcaiLabel": "Outpatient Operating Room Minutes",
+      "label": "Outpatient OR minutes",
+      "summary": "Anesthesia (or surgery) start to end for outpatient operations.",
+      "unit": "minutes"
+    },
+    {
+      "code": "CARDIOVASCULAR_SURG_OPER_PEDIATRIC_BYPASS_NOT_USED",
+      "section": "cardiac",
+      "hcaiLabel": "Cardiovascular Surgery — Pediatric, Bypass Not Used",
+      "label": "Pediatric heart surgery, off bypass",
+      "summary": "Pediatric cardiovascular operations without bypass.",
+      "unit": "count"
+    },
+    {
+      "code": "CARDIOVASCULAR_SURG_OPER_ADULT_BYPASS_NOT_USED",
+      "section": "cardiac",
+      "hcaiLabel": "Cardiovascular Surgery — Adult, Bypass Not Used",
+      "label": "Adult heart surgery, off bypass",
+      "summary": "Adult cardiovascular operations without bypass.",
+      "unit": "count"
+    },
+    {
+      "code": "CARDIOVASCULAR_SURG_OPER_BYPASS_NOT_USED_TOT",
+      "section": "cardiac",
+      "hcaiLabel": "Cardiovascular Surgery — Bypass Not Used, Total",
+      "label": "Heart surgery off bypass",
+      "summary": "All cardiovascular operations without bypass.",
+      "unit": "count"
+    },
+    {
+      "code": "CARD_CATH_PED_IP_THER_VST",
+      "section": "cardiac",
+      "hcaiLabel": "Cath Visits — Pediatric Inpatient Therapeutic",
+      "label": "Pediatric inpatient therapeutic cath visits",
+      "summary": "Pediatric inpatient therapeutic cath lab visits.",
+      "unit": "count"
+    },
+    {
+      "code": "CARD_CATH_PED_OP_THER_VST",
+      "section": "cardiac",
+      "hcaiLabel": "Cath Visits — Pediatric Outpatient Therapeutic",
+      "label": "Pediatric outpatient therapeutic cath visits",
+      "summary": "Pediatric outpatient therapeutic cath lab visits.",
+      "unit": "count"
+    },
+    {
+      "code": "CARDIAC_CATHETERIZATION_ADULT_INPAT_THERAPEUTIC_VISITS",
+      "section": "cardiac",
+      "hcaiLabel": "Cath Visits — Adult Inpatient Therapeutic",
+      "label": "Adult inpatient therapeutic cath visits",
+      "summary": "Adult inpatient therapeutic cath lab visits.",
+      "unit": "count"
+    },
+    {
+      "code": "CARDIAC_CATHETERIZATION_ADULT_OUTPAT_THERAPEUTIC_VISITS",
+      "section": "cardiac",
+      "hcaiLabel": "Cath Visits — Adult Outpatient Therapeutic",
+      "label": "Adult outpatient therapeutic cath visits",
+      "summary": "Adult outpatient therapeutic cath lab visits.",
+      "unit": "count"
+    },
+    {
+      "code": "CARDIAC_CATHETERIZATION_THERAPEUTIC_VISITS_TOT",
+      "section": "cardiac",
+      "hcaiLabel": "Cath Visits — Therapeutic, Total",
+      "label": "Therapeutic cath visits",
+      "summary": "All therapeutic (interventional) cath lab visits.",
+      "unit": "count"
+    },
+    {
+      "code": "INPATIENT_AVG_PER_SURGERY",
+      "section": "surgery",
+      "hcaiLabel": "Average Minutes per Inpatient Surgery",
+      "label": "Minutes per inpatient surgery",
+      "summary": "Inpatient OR minutes ÷ inpatient surgeries.",
+      "unit": "minutes"
+    },
+    {
+      "code": "OUTPATIENT_AVG_PER_SURGERY",
+      "section": "surgery",
+      "hcaiLabel": "Average Minutes per Outpatient Surgery",
+      "label": "Minutes per outpatient surgery",
+      "summary": "Outpatient OR minutes ÷ outpatient surgeries.",
+      "unit": "minutes"
+    },
+    {
+      "code": "EQUIP_VAL_TOT",
+      "section": "capital",
+      "hcaiLabel": "Equipment Value (sum of items 1–10)",
+      "label": "Major equipment value",
+      "summary": "Total value of equipment over $500,000 acquired in the year (up to ten items reported).",
+      "unit": "usd"
+    },
+    {
+      "code": "PROJ_EXPENDITURES_TOT",
+      "section": "capital",
+      "hcaiLabel": "Projected Capital Expenditure (sum of projects 1–5)",
+      "label": "Major project spending",
+      "summary": "Projected total cost of capital projects over $1 million (up to five reported).",
+      "unit": "usd"
+    },
+    {
+      "code": "SHORT_DOYLE_SERVICES_OFFERED",
+      "section": "psych",
+      "hcaiLabel": "Short-Doyle Contract Services",
+      "label": "Short-Doyle contract",
+      "summary": "Whether the hospital provided psychiatric care under a county Short-Doyle contract.",
+      "unit": "text"
+    },
+    {
+      "code": "INPATIENT_HOSPICE_PROG_OFFERED",
+      "section": "programs",
+      "hcaiLabel": "Inpatient Hospice Program",
+      "label": "Inpatient hospice",
+      "summary": "Whether the hospital offered an inpatient hospice program.",
+      "unit": "text"
+    },
+    {
+      "code": "BED_CLASS_GEN_ACUTE_CARE_SERVICE",
+      "section": "programs",
+      "hcaiLabel": "Hospice Bed Classification — General Acute Care",
+      "label": "Hospice in acute beds",
+      "summary": "Hospice provided in general acute beds.",
+      "unit": "text"
+    },
+    {
+      "code": "BED_CLASS_SN_HOSPICE_SERVICE",
+      "section": "programs",
+      "hcaiLabel": "Hospice Bed Classification — Skilled Nursing",
+      "label": "Hospice in skilled nursing beds",
+      "summary": "Hospice provided in skilled nursing beds.",
+      "unit": "text"
+    },
+    {
+      "code": "BED_CLASS_IC_HOSPICE_SERVICE",
+      "section": "programs",
+      "hcaiLabel": "Hospice Bed Classification — Intermediate Care",
+      "label": "Hospice in intermediate care beds",
+      "summary": "Hospice provided in intermediate care beds.",
+      "unit": "text"
+    },
+    {
+      "code": "INPATIENT_PALLIATIVE_CARE_PROG_OFFERED",
+      "section": "programs",
+      "hcaiLabel": "Inpatient Palliative Care Program",
+      "label": "Inpatient palliative care",
+      "summary": "Whether the hospital runs an inpatient palliative care program.",
+      "unit": "text"
+    },
+    {
+      "code": "OUTPATIENT_PALLIATIVE_CARE_SERV_OFFERED",
+      "section": "programs",
+      "hcaiLabel": "Outpatient Palliative Care Services",
+      "label": "Outpatient palliative care",
+      "summary": "Whether the hospital offers outpatient palliative care.",
+      "unit": "text"
+    },
+    {
+      "code": "OFFER_AMBULATORY_SURG_PROG",
+      "section": "surgery",
+      "hcaiLabel": "Ambulatory Surgery Program",
+      "label": "Ambulatory surgery program",
+      "summary": "Whether the hospital runs an ambulatory surgery program.",
+      "unit": "text"
+    },
+    {
+      "code": "OFFER_ALTERNATE_BIRTH_PROG",
+      "section": "births",
+      "hcaiLabel": "Alternate Birthing Program",
+      "label": "Alternate birthing program",
+      "summary": "Whether the hospital offers an alternate birthing program.",
+      "unit": "text"
+    },
+    {
+      "code": "ALTERNATE_SETTING_LDR",
+      "section": "births",
+      "hcaiLabel": "Alternate Setting — LDR Rooms",
+      "label": "LDR rooms",
+      "summary": "Labor/delivery/recovery rooms.",
+      "unit": "count"
+    },
+    {
+      "code": "ALTERNATE_SETTING_LDRP",
+      "section": "births",
+      "hcaiLabel": "Alternate Setting — LDRP Rooms",
+      "label": "LDRP rooms",
+      "summary": "Labor/delivery/recovery/postpartum rooms.",
+      "unit": "count"
+    },
+    {
+      "code": "LIC_CARDIOLOGY_CARDIOVASCULAR_SURG_SERVICES",
+      "section": "cardiac",
+      "hcaiLabel": "Licensed Cardiovascular Surgery Services",
+      "label": "Licensed for cardiac surgery",
+      "summary": "Whether the hospital is licensed for cardiovascular surgery.",
+      "unit": "text"
+    },
+    {
+      "code": "FAC_ACQUIRE_EQUIP_OVER_500K",
+      "section": "capital",
+      "hcaiLabel": "Equipment Acquired Over $500,000",
+      "label": "Major equipment acquired",
+      "summary": "Whether the hospital acquired equipment costing over $500,000.",
+      "unit": "text"
+    },
+    {
+      "code": "PROJ_OVER_1M",
+      "section": "capital",
+      "hcaiLabel": "Capital Projects Over $1 Million",
+      "label": "Major capital projects",
+      "summary": "Whether the hospital had capital projects over $1 million.",
+      "unit": "text"
+    }
+  ],
+  "metrics": [
+    {
+      "id": "licensedBeds",
+      "category": "utilization",
+      "label": "Licensed beds",
+      "unit": "count",
+      "summary": "All beds on the hospital's license on December 31, including every campus on the license.",
+      "formula": "TOT_LIC_BEDS",
+      "inputs": [
+        "TOT_LIC_BEDS"
+      ],
+      "higherIsBetter": null,
+      "drivers": [
+        "License changes: units opened, closed, or converted from one bed type to another.",
+        "Beds placed in suspense (temporarily out of service, e.g. for seismic work) still count as licensed.",
+        "A campus consolidated onto another hospital's license moves its beds to that license."
+      ]
+    },
+    {
+      "id": "occupancy",
+      "category": "utilization",
+      "label": "Occupancy rate",
+      "unit": "pct",
+      "summary": "Share of licensed beds filled on an average day.",
+      "formula": "TOT_CEN_DAYS ÷ TOT_LIC_BED_DAYS",
+      "inputs": [
+        "TOT_CEN_DAYS",
+        "TOT_LIC_BED_DAYS"
+      ],
+      "higherIsBetter": null,
+      "caution": "Based on licensed beds, not staffed beds, so hospitals with units closed for staffing or construction look emptier than they feel.",
+      "drivers": [
+        "Patient days (admissions × length of stay).",
+        "Licensed bed changes — closing beds raises occupancy without adding patients.",
+        "Discharge delays for patients waiting on skilled nursing or psychiatric placement."
+      ]
+    },
+    {
+      "id": "inpatientDays",
+      "category": "utilization",
+      "label": "Inpatient days",
+      "unit": "count",
+      "summary": "Total patient (census) days across all bed types, excluding the normal newborn nursery.",
+      "formula": "TOT_CEN_DAYS",
+      "inputs": [
+        "TOT_CEN_DAYS"
+      ],
+      "higherIsBetter": null,
+      "drivers": [
+        "Admissions × length of stay: either one moving shifts days.",
+        "Discharge delays — waiting for a skilled nursing or psychiatric placement — add days without adding patients.",
+        "Units opening, closing, or converting."
+      ]
+    },
+    {
+      "id": "discharges",
+      "category": "utilization",
+      "label": "Discharges",
+      "unit": "count",
+      "summary": "Inpatient discharges across all bed types, including deaths and moves between types of care.",
+      "formula": "TOT_DISCHARGES",
+      "inputs": [
+        "TOT_DISCHARGES"
+      ],
+      "higherIsBetter": null,
+      "drivers": [
+        "Admission volume: service-line growth, physician recruitment or departures, a competitor opening or closing.",
+        "Moving a patient to a different type of care (e.g. acute to skilled nursing) counts as a discharge and a new admission.",
+        "Respiratory-virus seasons and the 2020–21 COVID surges."
+      ]
+    },
+    {
+      "id": "alos",
+      "category": "utilization",
+      "label": "Average length of stay (acute)",
+      "unit": "days",
+      "decimals": 1,
+      "summary": "Average days per stay in general acute beds (medical/surgical, ICU, pediatric, perinatal, NICU, rehab…).",
+      "formula": "GAC_SUBTOT_CEN_DAYS ÷ GAC_SUBTOT_DISCHARGES",
+      "inputs": [
+        "GAC_SUBTOT_CEN_DAYS",
+        "GAC_SUBTOT_DISCHARGES"
+      ],
+      "higherIsBetter": null,
+      "caution": "Not adjusted for case mix: trauma and tertiary centers keep sicker patients longer.",
+      "drivers": [
+        "Case mix: sicker or more complex patients stay longer.",
+        "Placement delays for patients who no longer need acute care.",
+        "Care management and discharge planning programs."
+      ]
+    },
+    {
+      "id": "edVisits",
+      "category": "utilization",
+      "label": "ED visits",
+      "unit": "count",
+      "summary": "Emergency department visits in the calendar year, treated-and-released plus admitted.",
+      "formula": "ER_TRAFFIC_TOT",
+      "inputs": [
+        "ER_TRAFFIC_TOT"
+      ],
+      "higherIsBetter": null,
+      "drivers": [
+        "Respiratory-virus seasons, the 2020 COVID drop, and nearby urgent-care or ED openings and closures.",
+        "Medi-Cal enrollment swings (the 2023–24 end of continuous coverage, the 2024 expansion to undocumented adults).",
+        "Coding changes: the 2023 CPT revision of ED visit levels (99281–99285) shifted visits between severity levels.",
+        "Inpatient bed availability: boarding admitted patients in the ED causes walkouts and diversion."
+      ]
+    },
+    {
+      "id": "edAdmitRate",
+      "category": "utilization",
+      "label": "ED admission rate",
+      "unit": "ratio",
+      "summary": "Share of ED visits that became an inpatient admission.",
+      "formula": "ADMITTED_FROM_EMER_DEPT_TOT ÷ ER_TRAFFIC_TOT",
+      "inputs": [
+        "ADMITTED_FROM_EMER_DEPT_TOT",
+        "ER_TRAFFIC_TOT"
+      ],
+      "higherIsBetter": null,
+      "drivers": [
+        "Patient acuity and the ED's role (trauma and tertiary centers admit more).",
+        "Observation-status policies: patients kept in observation aren't admitted.",
+        "Nearby urgent care absorbing minor visits raises the share that are admitted."
+      ]
+    },
+    {
+      "id": "edHighAcuityShare",
+      "category": "utilization",
+      "label": "High-acuity ED visits",
+      "unit": "ratio",
+      "summary": "Share of treated-and-released ED visits coded at the two highest levels (CPT 99284–99285).",
+      "formula": "(EMS_VISITS_SEVERE_TOT + EMS_VISITS_CRITICAL_TOT) ÷ EMER_DEPT_VISITS_NOT_RESULT_ADMISSIONS_TOT",
+      "inputs": [
+        "EMS_VISITS_SEVERE_TOT",
+        "EMS_VISITS_CRITICAL_TOT",
+        "EMER_DEPT_VISITS_NOT_RESULT_ADMISSIONS_TOT"
+      ],
+      "higherIsBetter": null,
+      "caution": "Coding practice drives this as much as patient severity, and the 2023 CPT revision of ED levels changed how visits are coded.",
+      "drivers": [
+        "Respiratory-virus seasons, the 2020 COVID drop, and nearby urgent-care or ED openings and closures.",
+        "Medi-Cal enrollment swings (the 2023–24 end of continuous coverage, the 2024 expansion to undocumented adults).",
+        "Coding changes: the 2023 CPT revision of ED visit levels (99281–99285) shifted visits between severity levels.",
+        "Inpatient bed availability: boarding admitted patients in the ED causes walkouts and diversion."
+      ]
+    },
+    {
+      "id": "edLwbsRate",
+      "category": "utilization",
+      "label": "Left without being seen",
+      "unit": "ratio",
+      "summary": "Patients who registered in the ED but left before treatment, as a share of ED visits.",
+      "formula": "EMER_REGISTRATIONS_PATS_LEAVE_WO_BEING_SEEN ÷ ER_TRAFFIC_TOT",
+      "inputs": [
+        "EMER_REGISTRATIONS_PATS_LEAVE_WO_BEING_SEEN",
+        "ER_TRAFFIC_TOT"
+      ],
+      "higherIsBetter": false,
+      "drivers": [
+        "ED crowding and long waits, often from boarding admitted patients who can't get an inpatient bed.",
+        "ED staffing levels and triage process changes (e.g. provider-in-triage)."
+      ]
+    },
+    {
+      "id": "edVisitsPerStation",
+      "category": "utilization",
+      "label": "ED visits per treatment station",
+      "unit": "count",
+      "summary": "Annual ED visits per treatment station — how hard each ED bay works.",
+      "formula": "ER_TRAFFIC_TOT ÷ EMER_MED_TREAT_STATIONS_ON_1231",
+      "inputs": [
+        "ER_TRAFFIC_TOT",
+        "EMER_MED_TREAT_STATIONS_ON_1231"
+      ],
+      "higherIsBetter": null,
+      "caution": "Stations are counted on December 31, so an ED expansion late in the year lowers this before the new space sees a full year of visits.",
+      "drivers": [
+        "Respiratory-virus seasons, the 2020 COVID drop, and nearby urgent-care or ED openings and closures.",
+        "Medi-Cal enrollment swings (the 2023–24 end of continuous coverage, the 2024 expansion to undocumented adults).",
+        "Coding changes: the 2023 CPT revision of ED visit levels (99281–99285) shifted visits between severity levels.",
+        "Inpatient bed availability: boarding admitted patients in the ED causes walkouts and diversion."
+      ]
+    },
+    {
+      "id": "diversionHours",
+      "category": "utilization",
+      "label": "Ambulance diversion hours",
+      "unit": "count",
+      "summary": "Hours the ED was closed to all ambulance traffic during the year.",
+      "formula": "EMER_DEPT_HR_DIVERSION_TOT (0 when the hospital reported no diversion)",
+      "inputs": [
+        "EMER_DEPT_HR_DIVERSION_TOT",
+        "EMER_DEPT_AMBULANCE_DIVERSION_HOURS"
+      ],
+      "higherIsBetter": false,
+      "drivers": [
+        "Inpatient capacity: no beds for admitted patients backs up the ED.",
+        "County EMS policies — several California counties restrict or ban diversion.",
+        "Respiratory-virus surges."
+      ]
+    },
+    {
+      "id": "ipSurgeries",
+      "category": "utilization",
+      "label": "Inpatient surgeries",
+      "unit": "count",
+      "summary": "Operations on admitted patients in the hospital's surgical suites.",
+      "formula": "INPATIENT_SURG_OPER",
+      "inputs": [
+        "INPATIENT_SURG_OPER"
+      ],
+      "higherIsBetter": null,
+      "drivers": [
+        "Surgeon recruitment and departures; new service lines (robotics, orthopedics, spine).",
+        "Cases moving to ambulatory surgery centers, often owned by the same system but reported separately.",
+        "Elective surgery shutdowns in 2020 and staffing-related cancellations."
+      ]
+    },
+    {
+      "id": "opSurgeries",
+      "category": "utilization",
+      "label": "Outpatient surgeries",
+      "unit": "count",
+      "summary": "Same-day operations in the hospital's surgical suites (not free-standing surgery centers).",
+      "formula": "OUTPATIENT_SURG_OPER",
+      "inputs": [
+        "OUTPATIENT_SURG_OPER"
+      ],
+      "higherIsBetter": null,
+      "drivers": [
+        "Surgeon recruitment and departures; new service lines (robotics, orthopedics, spine).",
+        "Cases moving to ambulatory surgery centers, often owned by the same system but reported separately.",
+        "Elective surgery shutdowns in 2020 and staffing-related cancellations."
+      ]
+    },
+    {
+      "id": "cathProcedures",
+      "category": "utilization",
+      "label": "Cardiac cath procedures",
+      "unit": "count",
+      "summary": "All cardiac catheterization procedures, diagnostic and interventional.",
+      "formula": "CATHETERIZATION_PROC_TOT",
+      "inputs": [
+        "CATHETERIZATION_PROC_TOT"
+      ],
+      "higherIsBetter": null,
+      "drivers": [
+        "Cardiologist and cardiac surgeon recruitment; opening or closing a cath lab or heart program.",
+        "Procedures shifting to outpatient settings."
+      ]
+    }
+  ],
+  "payerGroups": []
+}

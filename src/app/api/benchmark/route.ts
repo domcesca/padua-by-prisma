@@ -2,15 +2,23 @@ import { NextResponse, type NextRequest } from "next/server"
 
 import { computeBenchmark } from "@/lib/benchmark/compute"
 import { parseFilters } from "@/lib/benchmark/filters"
+import { metricsFor, parseView } from "@/lib/benchmark/view"
 
-// GET /api/benchmark?facility=106580996&county=Yuba,Sutter&ownership=nonprofit&bedsMin=100&bedsMax=199&teaching=any&all=1
+// GET /api/benchmark?facility=106580996&view=utilization&metrics=occupancy,edVisits
+//   &county=Yuba,Sutter&ownership=nonprofit&bedsMin=100&bedsMax=299&teaching=any&all=1
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams
   const facilityId = params.get("facility")
   if (!facilityId) {
     return NextResponse.json({ error: "Missing ?facility= (HCAI facility number)" }, { status: 400 })
   }
-  const result = await computeBenchmark(facilityId, parseFilters(params))
+  const view = parseView(params)
+  const result = await computeBenchmark({
+    facilityId,
+    filters: parseFilters(params),
+    category: view.category,
+    metricIds: metricsFor(view),
+  })
   if (!result) {
     return NextResponse.json({ error: `Unknown facility ${facilityId}` }, { status: 404 })
   }

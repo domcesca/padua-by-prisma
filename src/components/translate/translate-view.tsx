@@ -4,9 +4,13 @@ import { ChevronRight, FileUp, Loader2, Search, X } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useRef, useState } from "react"
 
+import Link from "next/link"
+
 import { FacilityPicker, type FacilityOption } from "@/components/benchmark/facility-picker"
 import { FilterPill } from "@/components/benchmark/filter-pill"
-import type { Dictionary, DictionaryField, DictionaryMetric, FieldYearMeta } from "@/lib/data/types"
+import { Segmented } from "@/components/shell/segmented"
+import { DATASET_SLUG, DATASETS, parseDatasetSlug } from "@/lib/data/datasets"
+import type { DatasetId, Dictionary, DictionaryField, DictionaryMetric, FieldYearMeta } from "@/lib/data/types"
 import { normalizeColumn, type Extract } from "@/lib/translate/columns"
 import { cn } from "@/lib/utils"
 import { ExtractInput } from "./extract-input"
@@ -22,14 +26,19 @@ type SortMode = "hcai" | "change"
 export type { FacilityFields }
 
 export function TranslateView({
+  dataset,
   dictionary,
+  otherSource,
   facilities,
   latestYear,
   initialFacilityId,
   initialFacilityData,
   initialFocus,
 }: {
+  dataset: DatasetId
   dictionary: Dictionary
+  /** The other dataset's field codes, to spot an extract uploaded under the wrong source. */
+  otherSource: { slug: string; codes: string[] }
   facilities: FacilityOption[]
   latestYear: number
   initialFacilityId: string | null
@@ -50,6 +59,12 @@ export function TranslateView({
   const [extract, setExtract] = useState<Extract | null>(null)
   const [extractRow, setExtractRow] = useState(0)
   const fetched = useRef<string | null>(null)
+  const source = DATASET_SLUG[dataset]
+  const hrefFor = (params: Record<string, string | null>) => {
+    const qs = new URLSearchParams({ source })
+    for (const [k, v] of Object.entries(params)) if (v) qs.set(k, v)
+    return `/translate?${qs}`
+  }
 
   const sections = useMemo(() => new Map(dictionary.sections.map((s) => [s.id, s])), [dictionary.sections])
   const fieldByCode = useMemo(() => new Map(dictionary.fields.map((f) => [f.code, f])), [dictionary.fields])
@@ -59,12 +74,12 @@ export function TranslateView({
     setFacilityId(id)
     setFacilityData(null)
     setYear(null)
-    router.replace(id ? `/translate?facility=${id}` : "/translate", { scroll: false })
+    router.replace(hrefFor({ facility: id }), { scroll: false })
     if (!id) return
     fetched.current = id
     setLoadingFacility(true)
     try {
-      const res = await fetch(`/api/facilities/${id}/fields`)
+      const res = await fetch(`/api/facilities/${id}/fields?source=${source}`)
       if (!res.ok) throw new Error()
       const data = (await res.json()) as FacilityFields
       if (fetched.current === id) setFacilityData(data)
@@ -92,6 +107,11 @@ export function TranslateView({
     return extract.headers.map((h, i) => ({ header: h, code: normalizeColumn(h), index: i }))
   }, [extract])
   const unknownColumns = extractColumns?.filter((c) => c.header && !fieldByCode.has(c.code)) ?? []
+  // An extract that matches the other dataset's fields better was probably uploaded under the wrong source.
+  const otherCodes = useMemo(() => new Set(otherSource.codes), [otherSource.codes])
+  const likelyOtherSource =
+    extractColumns != null &&
+    extractColumns.filter((c) => otherCodes.has(c.code)).length > extractColumns.length - unknownColumns.length + 5
   const extractFacilityId = useMemo(() => {
     if (!extract || !extractColumns) return null
     const col = extractColumns.find((c) => c.code === "FAC_NO")
@@ -169,9 +189,17 @@ export function TranslateView({
 
   const compareLabel = prevYear != null && activeYear != null ? `from ${prevYear} to ${activeYear}` : undefined
   const facilityName = facilities.find((f) => f.id === facilityId)?.name
+  const campuses = activeYear != null ? (facilityData?.meta[activeYear]?.campuses ?? []) : []
 
   return (
     <div className="space-y-6">
+      <Segmented
+        label="Which HCAI dataset"
+        value={source}
+        onChange={(slug) => router.push(`/translate?${new URLSearchParams({ source: slug, ...(facilityId ? { facility: facilityId } : {}) })}`, { scroll: false })}
+        options={(["hafd-selected", "hau"] as const).map((d) => ({ value: DATASET_SLUG[d], label: DATASETS[d].shortLabel }))}
+      />
+
       {/* Search + value source */}
       <div className="grid gap-3 md:grid-cols-2">
         <label className="flex h-11 min-w-0 items-center gap-2.5 rounded-xl bg-card px-3.5 shadow-card ring-1 ring-black/5 focus-within:ring-2 focus-within:ring-ring dark:ring-white/10">
@@ -181,7 +209,11 @@ export function TranslateView({
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search a field: NETRV_MCAL_MC, charity care, staffed beds…"
+            placeholder={
+              dataset === "hau"
+                ? "Search a field: ER_TRAFFIC_TOT, ICU days, diversion…"
+                : "Search a field: NETRV_MCAL_MC, charity care, staffed beds…"
+            }
             className="h-full min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground"
           />
           {query && (
@@ -288,10 +320,32 @@ export function TranslateView({
         />
       )}
 
+      {likelyOtherSource && (
+        <p className="rounded-xl bg-muted px-3.5 py-2.5 text-[13px] text-muted-foreground">
+          This file looks like {otherSource.slug === "utilization" ? "a utilization" : "a financial"} extract.{" "}
+          <Link href={`/translate?source=${otherSource.slug}`} className="font-medium text-primary hover:underline">
+            Switch to {DATASETS[parseDatasetSlug(otherSource.slug)].shortLabel.toLowerCase()}
+          </Link>{" "}
+          and upload it there.
+        </p>
+      )}
+
+      {facilityId && facilityData && !extract && years.length === 0 && (
+        <p className="rounded-xl bg-muted px-3.5 py-2.5 text-[13px] text-muted-foreground">
+          HCAI has no {dataset === "hau" ? "utilization" : "financial"} data for {facilityName} in these years.
+        </p>
+      )}
+
       {facilityData && !extract && activeYear != null && (
         <p className="text-[13px] text-muted-foreground">
           Showing {facilityName}&apos;s {activeYear} values
           {prevYear != null && <> and the change from {prevYear}</>}.{" "}
+          {campuses.length > 0 && (
+            <>
+              Includes the {new Intl.ListFormat("en-US").format(campuses)} campus{campuses.length === 1 ? "" : "es"} on the
+              same license.{" "}
+            </>
+          )}
           {bigMoves > 0 && (
             <>
               <span className="font-medium text-foreground">{bigMoves}</span> field{bigMoves === 1 ? "" : "s"} moved by 20% or more.

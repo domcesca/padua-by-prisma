@@ -4,66 +4,77 @@ import { ChevronRight, Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useRef, useState } from "react"
 
-import type { BenchmarkResult, TrendMetric } from "@/lib/benchmark/compute"
+import { Segmented } from "@/components/shell/segmented"
+import type { BenchmarkResult } from "@/lib/benchmark/compute"
 import { DEFAULT_FILTERS, filtersToParams, OWNERSHIP_LABEL, type PeerFilters } from "@/lib/benchmark/filters"
-import type { DictionaryMetric, PayerGroup } from "@/lib/data/types"
+import { metricsFor, viewToParams, type BenchmarkViewState } from "@/lib/benchmark/view"
+import { CATEGORIES, CATEGORY_BY_ID, DATASETS, type MetricDef } from "@/lib/data/datasets"
+import type { MetricCategory, PayerGroup } from "@/lib/data/types"
 import { cn } from "@/lib/utils"
 import { FacilityPicker, type FacilityOption } from "./facility-picker"
+import { FilterPill } from "./filter-pill"
 import { MetricCard } from "./metric-card"
 import { PayerMixCard } from "./payer-mix-card"
 import { PeerFilterBar } from "./peer-filters"
 import { TrendLegend } from "./trend-chart"
 
-const TREND_ORDER: TrendMetric[] = ["operatingMargin", "daysCashOnHand", "occupancy", "edVisits"]
+type State = { facilityId: string | null; filters: PeerFilters; view: BenchmarkViewState }
 
 export function BenchmarkView({
   facilities,
   counties,
-  metrics,
+  catalog,
   payerGroups,
   latestYear,
   initialFacilityId,
   initialFilters,
+  initialView,
   initialResult,
   suggestions,
 }: {
   facilities: FacilityOption[]
   counties: string[]
-  metrics: DictionaryMetric[]
+  /** Every benchmarkable metric, both categories (payer mix included). */
+  catalog: MetricDef[]
   payerGroups: { id: PayerGroup; label: string }[]
   latestYear: number
   initialFacilityId: string | null
   initialFilters: PeerFilters
+  initialView: BenchmarkViewState
   initialResult: BenchmarkResult | null
   suggestions: FacilityOption[]
 }) {
   const router = useRouter()
-  const [facilityId, setFacilityId] = useState(initialFacilityId)
-  const [filters, setFilters] = useState(initialFilters)
+  const [state, setState] = useState<State>({ facilityId: initialFacilityId, filters: initialFilters, view: initialView })
   const [result, setResult] = useState(initialResult)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const request = useRef<AbortController | null>(null)
 
-  const metaById = Object.fromEntries(metrics.map((m) => [m.id, m]))
+  const { facilityId, filters, view } = state
+  const metaById = Object.fromEntries(catalog.map((m) => [m.id, m]))
   const facility = facilityId ? (facilities.find((f) => f.id === facilityId) ?? null) : null
+  const categoryMetrics = catalog.filter((m) => m.category === view.category && m.unit !== "share")
+  const shownMetrics = metricsFor(view).filter((id) => metaById[id]?.category === view.category)
 
-  async function apply(nextFacility: string | null, nextFilters: PeerFilters) {
-    setFacilityId(nextFacility)
-    setFilters(nextFilters)
-    const params = filtersToParams(nextFilters)
-    if (nextFacility) params.set("facility", nextFacility)
+  async function apply(patch: Partial<State>) {
+    const next = { ...state, ...patch }
+    setState(next)
+    const params = viewToParams(next.view, filtersToParams(next.filters))
+    if (next.facilityId) params.set("facility", next.facilityId)
     const qs = params.toString()
     router.replace(qs ? `/benchmark?${qs}` : "/benchmark", { scroll: false })
-    if (!nextFacility) return
+    if (!next.facilityId) return
 
     request.current?.abort()
     const controller = new AbortController()
     request.current = controller
     setLoading(true)
     setError(null)
+    const apiParams = new URLSearchParams(params)
+    apiParams.set("metrics", metricsFor(next.view).join(","))
     try {
-      const res = await fetch(`/api/benchmark?${params}`, { signal: controller.signal })
+      const res = await fetch(`/api/benchmark?${apiParams}`, { signal: controller.signal })
       if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? res.statusText)
       setResult((await res.json()) as BenchmarkResult)
     } catch (e) {
@@ -73,7 +84,13 @@ export function BenchmarkView({
     }
   }
 
-  const shown = result && result.facility.id === facilityId ? result : null
+  const setCategory = (category: MetricCategory) => apply({ view: { category, metrics: null } })
+  const setMetrics = (metrics: string[]) =>
+    apply({ view: { ...view, metrics: metrics.length ? categoryMetrics.map((m) => m.id).filter((id) => metrics.includes(id)) : null } })
+
+  const shown = result && result.facility.id === facilityId && result.category === view.category ? result : null
+  const categoryInfo = CATEGORY_BY_ID[view.category]
+  const isDefaultMetrics = !view.metrics || view.metrics.join(",") === categoryInfo.defaultMetrics.join(",")
 
   return (
     <div className="space-y-6">
@@ -81,15 +98,24 @@ export function BenchmarkView({
         <FacilityPicker
           facilities={facilities}
           value={facilityId}
-          onChange={(id) => apply(id, filters)}
+          onChange={(id) => apply({ facilityId: id })}
           latestYear={latestYear}
         />
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <PeerFilterBar
-            filters={filters}
-            onChange={(f) => apply(facilityId, f)}
-            counties={counties}
-            facility={shown?.facility ?? null}
+        <div className="flex flex-wrap items-center gap-2">
+          <Segmented
+            label="What to compare"
+            value={view.category}
+            onChange={setCategory}
+            options={CATEGORIES.map((c) => ({ value: c.id, label: c.label }))}
+          />
+          <FilterPill
+            label="Metrics"
+            summary={isDefaultMetrics ? null : `${shownMetrics.length} metric${shownMetrics.length === 1 ? "" : "s"}`}
+            options={categoryMetrics.map((m) => ({ value: m.id, label: m.label }))}
+            selected={shownMetrics}
+            onChange={setMetrics}
+            multiple
+            quickActions={isDefaultMetrics ? undefined : [{ label: "Back to the standard set", onSelect: () => setMetrics([]) }]}
           />
           {loading && (
             <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground" role="status">
@@ -97,6 +123,12 @@ export function BenchmarkView({
             </span>
           )}
         </div>
+        <PeerFilterBar
+          filters={filters}
+          onChange={(f) => apply({ filters: f })}
+          counties={counties}
+          facility={shown?.facility ?? null}
+        />
       </div>
 
       {error && (
@@ -106,10 +138,14 @@ export function BenchmarkView({
       )}
 
       {!facilityId && (
-        <EmptyState suggestions={suggestions} onPick={(id) => apply(id, DEFAULT_FILTERS)} />
+        <EmptyState
+          category={view.category}
+          suggestions={suggestions}
+          onPick={(id) => apply({ facilityId: id, filters: DEFAULT_FILTERS })}
+        />
       )}
 
-      {facilityId && !shown && !error && <LoadingState />}
+      {facilityId && !shown && !error && <LoadingState count={shownMetrics.length} />}
 
       {shown && (
         <div className={cn("space-y-6 transition-opacity duration-200", loading && "opacity-60")}>
@@ -124,14 +160,20 @@ export function BenchmarkView({
             <>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <TrendLegend />
-                <p className="text-xs text-tertiary-foreground">Report years {shown.years[0]}–{shown.years.at(-1)}</p>
+                <p className="text-xs text-tertiary-foreground">
+                  {view.category === "utilization" ? DATASETS.hau.yearNote : DATASETS["hafd-selected"].yearNote}
+                </p>
               </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                {TREND_ORDER.map((m) => (
-                  <MetricCard key={m} meta={metaById[m]} points={shown.series[m]} />
-                ))}
-              </div>
-              {shown.payerMix && (
+              {shownMetrics.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Choose at least one metric.</p>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {shownMetrics.map((id) =>
+                    shown.series[id] ? <MetricCard key={id} meta={metaById[id]} points={shown.series[id]} /> : null
+                  )}
+                </div>
+              )}
+              {shown.payerMix && metaById.payerMix && (
                 <PayerMixCard mix={shown.payerMix} groups={payerGroups} meta={metaById.payerMix} />
               )}
               <PeerList peers={shown.peers} />
@@ -154,6 +196,8 @@ function FacilitySummary({ result, lastYear }: { result: BenchmarkResult; lastYe
     f.traumaLevel ? `Trauma level ${f.traumaLevel}` : null,
     f.owner && f.owner.toLowerCase() !== f.hcaiName.toLowerCase() ? `Operated by ${titleCase(f.owner)}` : null,
   ].filter(Boolean)
+  const noData =
+    result.category === "utilization" ? f.utilizationYears.length === 0 : f.financialYears.length === 0
 
   return (
     <div className="space-y-2">
@@ -164,8 +208,21 @@ function FacilitySummary({ result, lastYear }: { result: BenchmarkResult; lastYe
         {f.typeOfCare?.toLowerCase() === "general" ? "general acute" : f.typeOfCare?.toLowerCase()} hospital
         {result.peers.length === 1 ? "" : "s"}
         {!result.filters.includeNonComparable && " (Kaiser and other non-comparable hospitals excluded)"}.
-        {lastYear < result.years.at(-1)! && ` This hospital last reported in ${lastYear}.`}
+        {lastYear < latestOf(result) && ` This hospital last reported in ${lastYear}.`}
       </p>
+      {result.category === "utilization" && f.campuses.length > 0 && (
+        <p className="text-[13px] text-muted-foreground">
+          Includes {f.campuses.length === 1 ? "the" : "its"} {listFormat(f.campuses)} campus
+          {f.campuses.length === 1 ? "" : "es"}, which report{f.campuses.length === 1 ? "s" : ""} utilization separately
+          under the same license.
+        </p>
+      )}
+      {noData && (
+        <p className="rounded-xl bg-muted px-3.5 py-2.5 text-[13px] leading-relaxed text-muted-foreground">
+          HCAI has no {result.category === "utilization" ? "utilization" : "financial"} data for this hospital in these
+          years.
+        </p>
+      )}
       {f.hospitalType && f.hospitalType !== "Comparable" && (
         <p className="rounded-xl bg-muted px-3.5 py-2.5 text-[13px] leading-relaxed text-muted-foreground">
           HCAI classifies this hospital as <span className="font-medium text-foreground">{f.hospitalType}</span>, so its
@@ -176,6 +233,12 @@ function FacilitySummary({ result, lastYear }: { result: BenchmarkResult; lastYe
     </div>
   )
 }
+
+function latestOf(result: BenchmarkResult) {
+  return Math.max(...Object.values(result.series).map((s) => s.at(-1)?.year ?? 0))
+}
+
+const listFormat = (items: string[]) => new Intl.ListFormat("en-US", { style: "long", type: "conjunction" }).format(items)
 
 function PeerList({ peers }: { peers: BenchmarkResult["peers"] }) {
   const [open, setOpen] = useState(false)
@@ -208,13 +271,21 @@ function PeerList({ peers }: { peers: BenchmarkResult["peers"] }) {
   )
 }
 
-function EmptyState({ suggestions, onPick }: { suggestions: FacilityOption[]; onPick: (id: string) => void }) {
+function EmptyState({
+  category,
+  suggestions,
+  onPick,
+}: {
+  category: MetricCategory
+  suggestions: FacilityOption[]
+  onPick: (id: string) => void
+}) {
   return (
     <div className="rounded-2xl bg-card px-6 py-12 text-center shadow-card sm:px-12">
       <p className="text-lg font-semibold tracking-tight">Pick a hospital to see how it compares.</p>
       <p className="mx-auto mt-1.5 max-w-md text-sm leading-relaxed text-muted-foreground">
-        You&apos;ll see operating margin, cash, occupancy, ED volume, and payer mix against a peer group you can narrow by
-        county, size, ownership, and teaching status.
+        You&apos;ll see {CATEGORY_BY_ID[category].description.toLowerCase().replace(/\.$/, "")} against a peer group you can
+        narrow by county, size, ownership, and teaching status.
       </p>
       <div className="mt-6 flex flex-wrap justify-center gap-2">
         {suggestions.map((s) => (
@@ -232,7 +303,7 @@ function EmptyState({ suggestions, onPick }: { suggestions: FacilityOption[]; on
   )
 }
 
-function LoadingState() {
+function LoadingState({ count }: { count: number }) {
   return (
     <div className="space-y-6" aria-busy>
       <div className="space-y-2">
@@ -240,8 +311,8 @@ function LoadingState() {
         <div className="h-4 w-96 max-w-full animate-pulse rounded-lg bg-muted" />
       </div>
       <div className="grid gap-4 md:grid-cols-2">
-        {TREND_ORDER.map((m) => (
-          <div key={m} className="h-80 animate-pulse rounded-2xl bg-card shadow-card" />
+        {Array.from({ length: Math.max(2, count) }, (_, i) => (
+          <div key={i} className="h-80 animate-pulse rounded-2xl bg-card shadow-card" />
         ))}
       </div>
     </div>

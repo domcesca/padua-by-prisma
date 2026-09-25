@@ -183,7 +183,7 @@ export function DeadlinesView({
         <SummaryTile
           label="Next deadline"
           value={next ? formatDate(effectiveDue(next.d, next.p), { month: "short", day: "numeric" }) : "—"}
-          detail={next ? (next.d.kind === "quarterly" ? next.d.periodLabel.split(" · ")[0] + " quarterly" : "Annual disclosure") : undefined}
+          detail={next ? KIND_LABEL[next.d.kind](next.d) : undefined}
         />
       </div>
 
@@ -231,6 +231,13 @@ export function DeadlinesView({
       </section>
     </div>
   )
+}
+
+const KIND_LABEL: Record<Deadline["kind"], (d: Deadline) => string> = {
+  quarterly: (d) => `${d.periodLabel.split(" · ")[0]} quarterly`,
+  annual: () => "Annual disclosure",
+  offcycle: () => "Off-cycle annual disclosure",
+  utilization: (d) => `${d.periodEnd.getUTCFullYear()} utilization report`,
 }
 
 const STATUS: Record<DeadlineStatus, { label: string; icon: typeof Clock; className: string }> = {
@@ -284,18 +291,21 @@ function DeadlineRow({
         </div>
         <p className="text-[13px] text-muted-foreground">{d.periodLabel}</p>
         <p className="text-xs leading-relaxed text-tertiary-foreground">
-          {p?.extended
-            ? `Extended from ${formatDate(d.due)} (up to ${d.extensionDays} days).`
-            : `With all extensions: ${formatDate(d.extendedDue)} (up to ${d.extensionDays} days, requested in SIERA).`}
+          {d.extensionDays > 0 &&
+            (p?.extended
+              ? `Extended from ${formatDate(d.due)} (up to ${d.extensionDays} days).`
+              : `With all extensions: ${formatDate(d.extendedDue)} (up to ${d.extensionDays} days, requested in SIERA).`)}
           {d.note && ` ${d.note}`}
           {status === "past" &&
-            ` If this hasn’t been filed, HCAI can assess $${RULES.penaltyPerDay}/day after the (extended) due date. Mark it filed to clear this.`}
+            (d.kind === "utilization"
+              ? " If this hasn’t been filed, SIERA lists it as Delinquent. Mark it filed to clear this."
+              : ` If this hasn’t been filed, HCAI can assess $${RULES.penaltyPerDay}/day after the (extended) due date. Mark it filed to clear this.`)}
         </p>
       </div>
 
       <div className="flex items-center gap-4 sm:flex-col sm:items-end sm:gap-1.5">
         <Check label="Filed" checked={!!p?.filed} onChange={(filed) => onChange({ filed })} />
-        {status !== "filed" && (
+        {status !== "filed" && d.extensionDays > 0 && (
           <Check label="Extension granted" checked={!!p?.extended} onChange={(extended) => onChange({ extended })} />
         )}
       </div>

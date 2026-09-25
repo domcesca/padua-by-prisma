@@ -11,12 +11,15 @@
 //  - A report period also ends at closure, relocation, change of licensee, or
 //    license suspension. 22 CCR §97040(b).
 //  - Late filing penalty: $100 per day. Health & Safety Code §128770(a).
+//  - Annual Utilization Report of Hospitals: due February 15 for the prior
+//    calendar year, or the first working day after if that's a weekend or
+//    holiday. HCAI utilization reporting instructions (11/01/2024), item 5.
 //
 // All dates are calendar dates handled in UTC so they never shift with the
 // viewer's time zone. Dates are NOT moved for weekends or state holidays;
 // SIERA shows each facility's official due dates.
 
-export type ReportKind = "quarterly" | "annual" | "offcycle"
+export type ReportKind = "quarterly" | "annual" | "offcycle" | "utilization"
 
 export type Deadline = {
   id: string
@@ -35,6 +38,7 @@ export type Deadline = {
 export const RULES = {
   quarterly: { dueDays: 45, extensionDays: 30 },
   annual: { dueMonths: 4, firstExtensionDays: 60, extensionDays: 90 },
+  utilization: { dueMonth: 1, dueDay: 15 },
   penaltyPerDay: 100,
 } as const
 
@@ -63,6 +67,11 @@ export const SOURCES = [
     label: "HCAI — Distressed hospital financial monitoring (AB 112)",
     href: "https://hcai.ca.gov/document/isor-distressed-hospital-financial-monitoring/",
     detail: "Quarterly reports for periods ending March 31, 2025 and later add balance-sheet items (cash, investments, debt).",
+  },
+  {
+    label: "HCAI — Annual Utilization Report instructions",
+    href: "https://data.chhs.ca.gov/dataset/1902083c-f16a-434d-b8ac-f7a573a305df/resource/67e29d7f-a3b4-44ad-90b3-936959f99fff/download/2024_aur_hosp_instruct.pdf",
+    detail: "Annual Utilization Report due February 15 for the prior calendar year (next working day if that's a weekend or holiday); 14 days after HCAI's notice if the hospital closes.",
   },
   {
     label: "Health & Safety Code §128770 — Penalties",
@@ -102,6 +111,18 @@ export function formatDate(date: Date, opts: Intl.DateTimeFormatOptions = { mont
 }
 
 export const isoDate = (d: Date) => d.toISOString().slice(0, 10)
+
+/** Washington's Birthday (third Monday of February), a California state holiday. */
+function isPresidentsDay(d: Date) {
+  return d.getUTCMonth() === 1 && d.getUTCDay() === 1 && d.getUTCDate() >= 15 && d.getUTCDate() <= 21
+}
+
+/** Move a due date off weekends (and Presidents' Day, the only holiday near Feb 15). */
+function nextWorkingDay(date: Date) {
+  let d = date
+  while (d.getUTCDay() === 0 || d.getUTCDay() === 6 || isPresidentsDay(d)) d = addDays(d, 1)
+  return d
+}
 
 // -- schedule ------------------------------------------------------------------
 
@@ -163,6 +184,26 @@ export function buildSchedule({
       extendedDue: addDays(due, RULES.annual.extensionDays),
       extensionDays: RULES.annual.extensionDays,
       note: `First extension request adds ${RULES.annual.firstExtensionDays} days (to ${formatDate(addDays(due, RULES.annual.firstExtensionDays))}); a second adds 30 more.`,
+    })
+  }
+
+  // Annual Utilization Report: calendar year, due Feb 15 of the next year.
+  for (let y = from.getUTCFullYear() - 2; y <= to.getUTCFullYear(); y++) {
+    const due = nextWorkingDay(utcDate(y + 1, RULES.utilization.dueMonth, RULES.utilization.dueDay))
+    out.push({
+      id: `u-${y}`,
+      kind: "utilization",
+      title: "Annual Utilization Report",
+      periodLabel: `Calendar year ${y} · beds, patient days, ED visits, surgeries`,
+      periodStart: utcDate(y, 0, 1),
+      periodEnd: utcDate(y, 11, 31),
+      due,
+      extendedDue: due,
+      extensionDays: 0,
+      note:
+        due.getUTCDate() !== RULES.utilization.dueDay
+          ? "February 15 falls on a weekend or holiday, so it's due the next working day."
+          : undefined,
     })
   }
 

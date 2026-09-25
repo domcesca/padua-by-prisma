@@ -5,7 +5,9 @@ import type { FacilityOption } from "@/components/benchmark/facility-picker"
 import { PageHeader } from "@/components/shell/page-header"
 import { computeBenchmark } from "@/lib/benchmark/compute"
 import { parseFilters } from "@/lib/benchmark/filters"
-import { getDictionary, getFacilities, getManifest } from "@/lib/data/hafd"
+import { metricsFor, parseView } from "@/lib/benchmark/view"
+import { DATASETS } from "@/lib/data/datasets"
+import { getDictionary, getFacilities, getLatestYear, getManifest, getMetricCatalog, toFacilityOption } from "@/lib/data/store"
 
 export const metadata: Metadata = { title: "Benchmark" }
 
@@ -20,27 +22,21 @@ export default async function BenchmarkPage({ searchParams }: PageProps<"/benchm
   )
   const facilityId = params.get("facility")
   const filters = parseFilters(params)
+  const view = parseView(params)
 
-  const [facilities, dictionary, manifest, initialResult] = await Promise.all([
+  const [facilities, dictionary, catalog, latestYear, manifests, initialResult] = await Promise.all([
     getFacilities(),
-    getDictionary(),
-    getManifest(),
-    facilityId ? computeBenchmark(facilityId, filters) : Promise.resolve(null),
+    getDictionary("hafd-selected"),
+    getMetricCatalog(),
+    getLatestYear(),
+    Promise.all([getManifest("hafd-selected"), getManifest("hau")]),
+    facilityId
+      ? computeBenchmark({ facilityId, filters, category: view.category, metricIds: metricsFor(view) })
+      : Promise.resolve(null),
   ])
 
-  const options: FacilityOption[] = facilities.map((f) => ({
-    id: f.id,
-    name: f.name,
-    formerNames: f.formerNames,
-    county: f.county,
-    city: f.city,
-    licensedBeds: f.licensedBeds,
-    typeOfCare: f.typeOfCare,
-    hospitalType: f.hospitalType,
-    lastYear: f.years.at(-1) ?? 0,
-  }))
+  const options: FacilityOption[] = facilities.map(toFacilityOption)
   const counties = [...new Set(facilities.map((f) => f.county).filter((c): c is string => !!c))].sort()
-  const latestYear = manifest.years.at(-1)!
   const byId = new Map(options.map((o) => [o.id, o]))
   let suggestions = SUGGESTED_IDS.map((id) => byId.get(id)).filter((o): o is FacilityOption => !!o)
   if (suggestions.length < 3) {
@@ -54,38 +50,41 @@ export default async function BenchmarkPage({ searchParams }: PageProps<"/benchm
     <div className="space-y-8">
       <PageHeader
         title="Benchmark"
-        description="See how a California hospital compares with its peers on margin, cash, occupancy, ED volume, and payer mix."
+        description="See how a California hospital compares with similar hospitals on its finances and its volumes."
       />
       <BenchmarkView
         facilities={options}
         counties={counties}
-        metrics={dictionary.metrics}
+        catalog={catalog}
         payerGroups={dictionary.payerGroups.map(({ id, label }) => ({ id, label }))}
         latestYear={latestYear}
         initialFacilityId={initialResult ? facilityId : null}
         initialFilters={filters}
+        initialView={view}
         initialResult={initialResult}
         suggestions={suggestions}
       />
-      <DataNote years={manifest.years} generatedAt={manifest.generatedAt} source={manifest.sourcePage} />
+      <DataNote manifests={manifests} />
     </div>
   )
 }
 
-function DataNote({ years, generatedAt, source }: { years: number[]; generatedAt: string; source: string }) {
+function DataNote({ manifests }: { manifests: Awaited<ReturnType<typeof getManifest>>[] }) {
+  const generatedAt = manifests.map((m) => m.generatedAt).sort().at(-1)!
   return (
     <footer className="space-y-1 border-t border-border pt-6 text-xs leading-relaxed text-tertiary-foreground">
+      {manifests.map((m) => (
+        <p key={m.id}>
+          <a href={DATASETS[m.id].sourcePage} className="underline-offset-2 hover:underline" target="_blank" rel="noreferrer">
+            {DATASETS[m.id].label}
+          </a>
+          , {m.years[0]}–{m.years.at(-1)}. {DATASETS[m.id].yearNote}
+        </p>
+      ))}
       <p>
-        Source:{" "}
-        <a href={source} className="underline-offset-2 hover:underline" target="_blank" rel="noreferrer">
-          HCAI Hospital Annual Financial Data – Selected File
-        </a>
-        , report years {years[0]}–{years.at(-1)}. A report year covers reports whose period ended in that calendar year,
-        so a hospital with a June fiscal year end shows its July–June year.
-      </p>
-      <p>
-        Hospitals with multiple reports in a year (fiscal-year changes, ownership changes) are combined and annualized.
-        Recent years include reports HCAI hasn’t finished auditing. Data processed{" "}
+        Hospitals with partial-year or multiple reports are combined and annualized. Utilization for campuses that share a
+        license is combined into the licensed hospital, matching the financial report. Recent financial years include reports
+        HCAI hasn’t finished auditing. Data processed{" "}
         {new Date(generatedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}.
       </p>
     </footer>

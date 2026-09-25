@@ -46,7 +46,7 @@
       "url": "https://data.chhs.ca.gov/dataset/ea0c8ca9-023e-46a3-b95b-b9d4ab8ec195/resource/3969a3b0-ec23-4962-b09d-89840a326b44/download/hadr-2024.xlsx"
     }
   ],
-  "generatedAt": "2026-09-25T00:34:31Z",
+  "generatedAt": "2026-09-25T02:47:00Z",
   "notes": [
     "Years are report years: each year contains reports whose period ENDED in that calendar year.",
     "Hospitals that filed multiple reports in a year are combined; flows are annualized when coverage differs from a full year by more than 3%.",

@@ -13,6 +13,7 @@ import {
 } from "recharts"
 
 import type { SeriesPoint } from "@/lib/benchmark/compute"
+import type { DictionaryMetric } from "@/lib/data/types"
 import { formatMetric } from "@/lib/format"
 
 type Row = SeriesPoint & { band: [number, number] | null }
@@ -22,16 +23,22 @@ const HOSPITAL = "var(--chart-1)"
 const PEER = "var(--chart-2)"
 const BAND = "var(--chart-2)"
 
-export function TrendChart({ metric, points }: { metric: string; points: SeriesPoint[] }) {
+/** Volumes and rates read best from zero; margins and unit costs read best zoomed in. */
+function includesZero(metric: DictionaryMetric) {
+  if (metric.id === "operatingMargin") return false
+  return metric.unit === "count" || metric.unit === "pct" || metric.unit === "ratio"
+}
+
+export function TrendChart({ metric, points }: { metric: DictionaryMetric; points: SeriesPoint[] }) {
   const data: Row[] = points.map((p) => ({
     ...p,
     band: p.p25 != null && p.p75 != null ? [p.p25, p.p75] : null,
   }))
-  const showZero = metric === "operatingMargin"
   const ticks = niceTicks(
     points.flatMap((p) => [p.value, p.median, p.p25, p.p75]).filter((v): v is number => v != null),
-    { includeZero: metric !== "operatingMargin" }
+    { includeZero: includesZero(metric) }
   )
+  const showZero = ticks[0] < 0 && ticks.at(-1)! > 0
 
   return (
     <div className="h-48 w-full" aria-hidden>
@@ -106,7 +113,7 @@ function ChartTooltip({
 }: {
   active?: boolean
   payload?: readonly { payload?: unknown }[]
-  metric: string
+  metric: DictionaryMetric
 }) {
   if (!active || !payload?.length) return null
   const row = payload[0]?.payload as Row | undefined

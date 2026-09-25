@@ -9,12 +9,14 @@ import { cn } from "@/lib/utils"
 import { MetricInfo } from "./metric-info"
 import { TrendChart } from "./trend-chart"
 
-function takeaway(point: SeriesPoint | undefined, metric: string) {
+function takeaway(point: SeriesPoint | undefined, metric: DictionaryMetric) {
   if (!point || point.value == null) return null
   if (point.percentile == null || point.n === 0) return "No peers reported this year."
   const pct = Math.round(point.percentile * 100)
   const median = formatMetric(metric, point.median)
   if (pct >= 45 && pct <= 55) return `About the same as the peer median (${median}).`
+  if (pct >= 100) return `Highest of ${point.n} peers. Peer median ${median}.`
+  if (pct <= 0) return `Lowest of ${point.n} peers. Peer median ${median}.`
   return `Higher than ${pct}% of ${point.n} peers. Peer median ${median}.`
 }
 
@@ -41,7 +43,7 @@ export function MetricCard({ meta, points }: { meta: DictionaryMetric; points: S
 
       <div className="mt-1.5 flex items-baseline gap-2">
         <p className="num text-[28px] leading-tight font-semibold tracking-tight">
-          {formatMetric(meta.id, latest?.value)}
+          {formatMetric(meta, latest?.value)}
         </p>
         {latest && (
           <p className="text-xs text-tertiary-foreground">
@@ -51,19 +53,19 @@ export function MetricCard({ meta, points }: { meta: DictionaryMetric; points: S
         )}
       </div>
       <p className="mt-0.5 min-h-5 text-[13px] text-muted-foreground">
-        {takeaway(latest, meta.id) ?? "No data reported."}
+        {takeaway(latest, meta) ?? "No data reported."}
       </p>
 
       <div className="mt-4 flex-1">
         {view === "chart" ? (
-          <TrendChart metric={meta.id} points={points} />
+          <TrendChart metric={meta} points={points} />
         ) : (
-          <MetricTable metric={meta.id} points={points} />
+          <MetricTable metric={meta} points={points} />
         )}
         {/* Screen readers always get the table, whichever view is showing. */}
         {view === "chart" && (
           <div className="sr-only">
-            <MetricTable metric={meta.id} points={points} />
+            <MetricTable metric={meta} points={points} />
           </div>
         )}
       </div>
@@ -102,7 +104,7 @@ function ViewToggle({
   )
 }
 
-function MetricTable({ metric, points }: { metric: string; points: SeriesPoint[] }) {
+function MetricTable({ metric, points }: { metric: DictionaryMetric; points: SeriesPoint[] }) {
   return (
     <div className="h-48 overflow-auto">
       <table className="num w-full text-left text-xs">

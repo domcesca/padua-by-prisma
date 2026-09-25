@@ -1,0 +1,62 @@
+{
+  "id": "hau",
+  "title": "Hospital Annual Utilization Report",
+  "sourcePage": "https://data.chhs.ca.gov/dataset/hospital-annual-utilization-report",
+  "package": {
+    "title": "Hospital Annual Utilization Report & Pivot Tables",
+    "metadata_modified": "2026-05-29T22:13:58.948985"
+  },
+  "years": [
+    2019,
+    2020,
+    2021,
+    2022,
+    2023,
+    2024
+  ],
+  "sources": [
+    {
+      "year": 2019,
+      "name": "2019 Hospital Annual Utilization (November 2020)",
+      "url": "https://data.chhs.ca.gov/dataset/1902083c-f16a-434d-b8ac-f7a573a305df/resource/69b3e5b9-6e48-4598-af9e-72cdf4d34134/download/hosp19_util_data_final.xlsx",
+      "preliminary": false
+    },
+    {
+      "year": 2020,
+      "name": "2020 Hospital Annual Utilization (Revised 06/15/2023)",
+      "url": "https://data.chhs.ca.gov/dataset/1902083c-f16a-434d-b8ac-f7a573a305df/resource/9916ce3d-9158-4b0e-9109-4f7bde9b40eb/download/hosp20_util_data_final-revised-06.15.2023.xlsx",
+      "preliminary": false
+    },
+    {
+      "year": 2021,
+      "name": "2021 Hospital Annual Utilization (Revised 06/15/2023)",
+      "url": "https://data.chhs.ca.gov/dataset/1902083c-f16a-434d-b8ac-f7a573a305df/resource/e2ef5e5a-1dbc-4b67-894f-5bad34b79798/download/hosp21_util_data_final-revised-06.15.2023.xlsx",
+      "preliminary": false
+    },
+    {
+      "year": 2022,
+      "name": "2022 Hospital Annual Utilization (Revised 11/28/2023)",
+      "url": "https://data.chhs.ca.gov/dataset/1902083c-f16a-434d-b8ac-f7a573a305df/resource/2b63a9e4-f695-4ea1-b229-5dff70f04ae8/download/hosp22_util_data_final_revised_11.28.2023.xlsx",
+      "preliminary": false
+    },
+    {
+      "year": 2023,
+      "name": "2023 Hospital Annual Utilization (November 2024)",
+      "url": "https://data.chhs.ca.gov/dataset/1902083c-f16a-434d-b8ac-f7a573a305df/resource/d7b1bd2c-fd8c-4ebe-b1ac-1de197c01e5e/download/hosp23_util_data_final.xlsx",
+      "preliminary": false
+    },
+    {
+      "year": 2024,
+      "name": "2024 Hospital Annual Utilization (October 2025)",
+      "url": "https://data.chhs.ca.gov/dataset/1902083c-f16a-434d-b8ac-f7a573a305df/resource/e4f70066-c0ca-40f9-8f54-0ea033f900d9/download/hosp24_util_data_final.xlsx",
+      "preliminary": false
+    }
+  ],
+  "generatedAt": "2026-09-25T02:56:29Z",
+  "notes": [
+    "Years are calendar years (January–December).",
+    "Campuses reporting under another facility's license (HCAI 'Consolidated Facility' or 'Distinct Part') are combined into the parent facility on that license, matching how financial data is reported.",
+    "Facilities with more than one report in a year (change of licensee) are combined; counts are annualized when the operating period is more than 3% short of a full year.",
+    "Occupancy, average length of stay, and minutes per surgery are recomputed from the combined totals."
+  ]
+}

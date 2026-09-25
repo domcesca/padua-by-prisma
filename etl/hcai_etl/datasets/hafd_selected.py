@@ -21,6 +21,7 @@ import re
 import pandas as pd
 
 from ..core import Dataset, Resource, ckan_package, clean_value, normalize_column, utc_now_iso, write_json
+from ..facility import display_name, ownership_group, title_case
 from ..dictionary import hafd_selected as dictionary
 
 DEFAULT_FIRST_YEAR = 2019
@@ -75,16 +76,6 @@ PAYER_GROUPS = {
     "indigent": ["CNTY", "OTH_IND"],
     "other": ["OTH"],
 }
-
-OWNERSHIP_LABELS = {
-    "Non-Profit": "nonprofit",
-    "Investor": "investor",
-    "District": "district",
-    "City/County": "government",
-    "Government": "government",
-    "State": "state",
-}
-
 
 class HafdSelected(Dataset):
     id = "hafd-selected"
@@ -261,7 +252,7 @@ class HafdSelected(Dataset):
                     "county": clean_value(latest.get("COUNTY")),
                     "city": title_case(clean_value(latest.get("CITY"))),
                     "owner": clean_value(latest.get("OWNER")),
-                    "ownership": OWNERSHIP_LABELS.get(str(latest.get("TYPE_CNTRL")), "other"),
+                    "ownership": ownership_group(latest.get("TYPE_CNTRL")),
                     "typeOfCare": clean_value(latest.get("TYPE_CARE")),
                     "hospitalType": clean_value(latest.get("TYPE_HOSP")),
                     "teaching": teach_rural == "teaching",
@@ -316,6 +307,18 @@ def derive_metrics(rec: dict) -> dict:
 
     occupancy = _num(rec, "OCC_LIC")
 
+    # Adjusted discharges scale inpatient discharges up by the outpatient share
+    # of gross charges, so per-unit cost compares hospitals with different
+    # inpatient/outpatient mixes.
+    discharges = _num(rec, "DIS_TOT")
+    gross_total, gross_ip = _num(rec, "GR_PT_REV"), _num(rec, "GR_IP_TOT")
+    adj_discharges = (
+        discharges * gross_total / gross_ip
+        if discharges and gross_total and gross_ip and gross_ip > 0
+        else None
+    )
+    opex = _num(rec, "TOT_OP_EXP")
+
     def mix(prefixes: list[str]) -> dict | None:
         parts = {}
         for group, suffixes in PAYER_GROUPS.items():
@@ -334,49 +337,16 @@ def derive_metrics(rec: dict) -> dict:
         "discharges": clean_value(_num(rec, "DIS_TOT")),
         "licensedBeds": clean_value(_num(rec, "BED_LIC")),
         "alos": clean_value(_num(rec, "ALOS_EXLTC")),
+        "outpatientVisits": clean_value(_num(rec, "VIS_TOT")),
+        "expensePerAdjDischarge": round(opex / adj_discharges) if (opex and adj_discharges) else None,
+        "revenuePerAdjDischarge": round(op_rev / adj_discharges) if (op_rev and adj_discharges) else None,
         "payerMixRevenue": mix(["GR_IP_", "GR_OP_"]),
         "payerMixDays": mix(["DAY_"]),
         "days": int(rec["DAYS_COVERED"]),
         "annualized": bool(rec["ANNUALIZED"]),
         "status": clean_value(rec.get("DATA_IND")),
     }
-    for key in ("edVisits", "netPatientRevenue", "totalOperatingExpense", "discharges"):
+    for key in ("edVisits", "netPatientRevenue", "totalOperatingExpense", "discharges", "outpatientVisits"):
         if isinstance(out[key], float):
             out[key] = round(out[key])
     return out
-
-
-def title_case(value):
-    if not isinstance(value, str):
-        return value
-    return " ".join(w.capitalize() for w in value.split())
-
-
-# Tokens kept upper-case when prettifying ALL-CAPS HCAI facility names.
-ACRONYMS = {
-    "UC", "UCLA", "UCSF", "UCI", "USC", "LAC", "MLK", "VA", "CHOC", "CPMC", "LLC", "II", "III",
-    "EHS", "DBA", "SF", "SJ", "HCA", "PHF", "UCSD", "UCD", "OC", "CMC", "LP", "NICU", "RCH", "AHMC", "BHC", "PIH", "SRM", "CA",
-}
-SMALL_WORDS = {"of", "and", "the", "at", "in", "for", "on"}
-
-
-def _pretty_token(token: str) -> str:
-    core = re.sub(r"[^A-Za-z]", "", token)
-    if core.upper() in ACRONYMS or (
-        len(core) > 1 and "." not in token and not re.search(r"[AEIOUY]", core.upper())
-    ):
-        return token.upper()
-    return token[:1].upper() + token[1:].lower() if token else token
-
-
-def display_name(value: str) -> str:
-    """'KAISER FOUNDATION HOSPITAL - SAN JOSE' -> 'Kaiser Foundation Hospital - San Jose'."""
-    out = []
-    for i, word in enumerate(value.split()):
-        if i > 0 and word.lower() in SMALL_WORDS:
-            out.append(word.lower())
-            continue
-        # Treat "LAC/HARBOR" and "UCI HEALTH-LAKEWOOD" parts independently.
-        parts = re.split(r"([-/])", word)
-        out.append("".join(p if p in "-/" else _pretty_token(p) for p in parts))
-    return " ".join(out)

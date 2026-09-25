@@ -2,30 +2,18 @@ import type { Metadata } from "next"
 
 import { DeadlinesView, type DeadlineFacility } from "@/components/deadlines/deadlines-view"
 import { PageHeader } from "@/components/shell/page-header"
-import { getFacilities, getManifest } from "@/lib/data/hafd"
+import { getFacilities, getLatestYear, lastReportedYear, toFacilityOption } from "@/lib/data/store"
 import { SOURCES } from "@/lib/deadlines/rules"
 
 export const metadata: Metadata = { title: "Deadlines" }
 
 export default async function DeadlinesPage({ searchParams }: PageProps<"/deadlines">) {
   const sp = await searchParams
-  const [facilities, manifest] = await Promise.all([getFacilities(), getManifest()])
-  const latestYear = manifest.years.at(-1)!
+  const [facilities, latestYear] = await Promise.all([getFacilities(), getLatestYear()])
   // Only hospitals still reporting need a calendar.
   const options: DeadlineFacility[] = facilities
-    .filter((f) => (f.years.at(-1) ?? 0) >= latestYear - 1)
-    .map((f) => ({
-      id: f.id,
-      name: f.name,
-      formerNames: f.formerNames,
-      county: f.county,
-      city: f.city,
-      licensedBeds: f.licensedBeds,
-      typeOfCare: f.typeOfCare,
-      hospitalType: f.hospitalType,
-      lastYear: f.years.at(-1) ?? 0,
-      fiscalYearEnd: f.fiscalYearEnd,
-    }))
+    .filter((f) => lastReportedYear(f) >= latestYear - 1)
+    .map((f) => ({ ...toFacilityOption(f), fiscalYearEnd: f.fiscalYearEnd }))
   const facilityParam = typeof sp.facility === "string" ? sp.facility : null
 
   return (

@@ -1,4 +1,4 @@
-import type { FieldUnit } from "@/lib/data/types"
+import type { FieldUnit, MetricUnit } from "@/lib/data/types"
 
 const int = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 })
 const oneDecimal = new Intl.NumberFormat("en-US", { maximumFractionDigits: 1, minimumFractionDigits: 1 })
@@ -23,20 +23,28 @@ export function formatNumberCompact(n: number) {
   return Math.abs(n) >= 10_000 ? compact.format(n) : int.format(n)
 }
 
-/** Format a benchmark metric value. `short` is for axis ticks. */
-export function formatMetric(metric: string, value: number | null | undefined, short = false): string {
+/** Enough of a metric definition to format its values. */
+export type MetricFormat = { unit: MetricUnit; decimals?: number }
+
+/** Format a benchmark metric value by its unit. `short` is for axis ticks and tight labels. */
+export function formatMetric(metric: MetricFormat, value: number | null | undefined, short = false): string {
   if (value == null || !Number.isFinite(value)) return "—"
-  switch (metric) {
-    case "operatingMargin":
+  switch (metric.unit) {
+    case "ratio":
+    case "share":
+      // Fractions shown as percents; ticks drop the decimal when it's .0.
       return formatPercent(value, short && Number.isInteger(Math.round(value * 1000) / 10) ? 0 : 1)
-    case "occupancy":
+    case "pct":
       return `${short ? int.format(value) : oneDecimal.format(value)}%`
-    case "daysCashOnHand":
-      return short ? int.format(value) : `${int.format(value)} days`
-    case "edVisits":
-      return short ? formatNumberCompact(value) : int.format(value)
+    case "days": {
+      const digits = metric.decimals ?? 0
+      const n = value.toLocaleString("en-US", { minimumFractionDigits: short ? 0 : digits, maximumFractionDigits: digits })
+      return short ? n : `${n} days`
+    }
+    case "usd":
+      return formatUsd(value, { compact: short || Math.abs(value) >= 1_000_000 })
     default:
-      return int.format(value)
+      return short ? formatNumberCompact(value) : int.format(value)
   }
 }
 

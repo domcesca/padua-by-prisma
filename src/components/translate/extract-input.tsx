@@ -3,7 +3,7 @@
 import { FileUp, X } from "lucide-react"
 import { useRef, useState } from "react"
 
-import { parseDelimited, readExtractFile, type Extract } from "@/lib/translate/columns"
+import { dataRowsOnly, parseDelimited, readExtractFile, type Extract } from "@/lib/translate/columns"
 import { cn } from "@/lib/utils"
 
 /** Drop zone + paste box for a raw HCAI extract. Parsing happens in the browser; nothing is uploaded. */
@@ -26,7 +26,7 @@ export function ExtractInput({ onLoad, onCancel }: { onLoad: (extract: Extract) 
   }
 
   function handlePaste() {
-    const extract = parseDelimited(text)
+    const extract = dataRowsOnly(parseDelimited(text))
     if (!extract.headers.length) {
       setError("Paste at least a header row of column names.")
       return

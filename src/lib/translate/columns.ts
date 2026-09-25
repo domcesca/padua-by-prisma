@@ -1,7 +1,15 @@
-// Mirror of etl/hcai_etl/core.py:normalize_column + COLUMN_ALIASES, so a raw
-// HCAI extract uploaded in the browser maps to the same field codes the ETL uses.
+// Mirror of etl/hcai_etl/core.py:normalize_column + each dataset's COLUMN_ALIASES,
+// so a raw HCAI extract uploaded in the browser maps to the same field codes the ETL uses.
 
 const ALIASES: Record<string, string> = {
+  // Annual Utilization (older extracts)
+  CENS_TRACT: "CENSUS_KEY",
+  OSHPD_PROJ_NO_01: "HCAI_PROJ_NO_01",
+  OSHPD_PROJ_NO_02: "HCAI_PROJ_NO_02",
+  OSHPD_PROJ_NO_03: "HCAI_PROJ_NO_03",
+  OSHPD_PROJ_NO_04: "HCAI_PROJ_NO_04",
+  OSHPD_PROJ_NO_05: "HCAI_PROJ_NO_05",
+  // Annual Financial Data
   NAT_0BIRTHS: "NAT_BIRTHS",
   "NAT_ BIRTHS": "NAT_BIRTHS",
   ACCTS_0REC: "ACCTS_REC",
@@ -79,21 +87,32 @@ function coerce(v: string): string | number | null {
   return Number.isFinite(n) && /^[-$\d.,\s]+$/.test(t) ? n : t
 }
 
+/**
+ * Keep only rows that are actual facility records. HCAI's utilization workbook
+ * puts four metadata rows (description, Page, Column, Line) under the header.
+ */
+export function dataRowsOnly(extract: Extract): Extract {
+  const facCol = extract.headers.findIndex((h) => normalizeColumn(h) === "FAC_NO")
+  if (facCol < 0) return extract
+  return { ...extract, rows: extract.rows.filter((r) => /^\d{9}(\.0)?$/.test(String(r[facCol] ?? "").trim())) }
+}
+
 export async function readExtractFile(file: File): Promise<Extract> {
   if (/\.xlsx$/i.test(file.name)) {
     const { readSheet } = await import("read-excel-file/browser")
-    const data = await readSheet(file)
+    // HCAI's utilization workbook opens on a "Tips" sheet; its data is on "Page 1-6".
+    const data = await readSheet(file, "Page 1-6").catch(() => readSheet(file))
     const [headers = [], ...body] = data
-    return {
+    return dataRowsOnly({
       fileName: file.name,
       headers: headers.map((h) => (h == null ? "" : String(h).trim())),
       rows: body.map((r) =>
         r.map((v) => (v == null ? null : typeof v === "number" ? v : v instanceof Date ? v.toISOString().slice(0, 10) : String(v)))
       ),
-    }
+    })
   }
   if (/\.xls$/i.test(file.name)) {
     throw new Error("Older .xls files aren’t supported. Open it in Excel and save as .xlsx or .csv.")
   }
-  return parseDelimited(await file.text(), file.name)
+  return dataRowsOnly(parseDelimited(await file.text(), file.name))
 }
