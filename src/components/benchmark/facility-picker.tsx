@@ -24,12 +24,14 @@ export function FacilityPicker({
   value,
   onChange,
   latestYear,
+  placeholder = "Search hospitals by name, city, or county",
   className,
 }: {
   facilities: FacilityOption[]
   value: string | null
   onChange: (id: string) => void
   latestYear: number
+  placeholder?: string
   className?: string
 }) {
   const [open, setOpen] = useState(false)
@@ -47,7 +49,7 @@ export function FacilityPicker({
       >
         <Search className="size-4 shrink-0 text-tertiary-foreground" />
         <span className={cn("flex-1 truncate text-[15px]", !selected && "text-muted-foreground")}>
-          {selected ? selected.name : "Search hospitals by name, city, or county"}
+          {selected ? selected.name : placeholder}
         </span>
         <ChevronsUpDown className="size-4 shrink-0 text-tertiary-foreground" />
       </PopoverTrigger>

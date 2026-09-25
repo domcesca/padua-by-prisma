@@ -88,6 +88,13 @@
   --chart-3: #c7c7cc;
   --chart-4: #1d1d1f;
   --chart-5: #e5e5ea;
+  /* Categorical series for comparing hospitals (validated: CVD ΔE ≥ 9.1, normal ≥ 19.6).
+     2–5 sit below 3:1 on light surfaces, so charts always ship a legend and table view. */
+  --series-1: #0071e3;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --series-5: #e87ba4;
   --radius: 0.75rem;
   --card-shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 4px 16px rgb(0 0 0 / 0.04);
   --sidebar: rgb(251 251 253 / 0.8);
@@ -128,6 +135,11 @@
   --chart-3: #48484a;
   --chart-4: #f5f5f7;
   --chart-5: #3a3a3c;
+  --series-1: #0a84ff;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --series-5: #d55181;
   --card-shadow: 0 0 0 1px rgb(255 255 255 / 0.06);
   --sidebar: rgb(22 22 23 / 0.8);
   --sidebar-foreground: #f5f5f7;

@@ -1,7 +1,6 @@
 "use client"
 
 import { ChevronRight, Loader2 } from "lucide-react"
-import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 
 import { Segmented } from "@/components/shell/segmented"
@@ -48,7 +47,6 @@ export function BenchmarkView({
   initialResult: BenchmarkResult | null
   suggestions: FacilityOption[]
 }) {
-  const router = useRouter()
   const [state, setState] = useState<State>({ facilityId: initialFacilityId, filters: initialFilters, view: initialView })
   const [result, setResult] = useState(initialResult)
   const [loading, setLoading] = useState(false)
@@ -72,7 +70,9 @@ export function BenchmarkView({
     const params = viewToParams(next.view, filtersToParams(next.filters))
     if (next.facilityId) params.set("facility", next.facilityId)
     const qs = params.toString()
-    router.replace(qs ? `/benchmark?${qs}` : "/benchmark", { scroll: false })
+    // Native replaceState keeps the URL shareable without re-rendering the page on the server;
+    // the data comes from /api/benchmark below.
+    window.history.replaceState(null, "", qs ? `/benchmark?${qs}` : "/benchmark")
     if (!next.facilityId) return
 
     request.current?.abort()

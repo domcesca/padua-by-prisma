@@ -1,7 +1,6 @@
 "use client"
 
 import { AlertCircle, CalendarDays, CheckCircle2, Clock } from "lucide-react"
-import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react"
 
 import { FacilityPicker, type FacilityOption } from "@/components/benchmark/facility-picker"
@@ -95,7 +94,6 @@ export function DeadlinesView({
   initialFacilityId: string | null
   latestYear: number
 }) {
-  const router = useRouter()
   const mounted = useMounted()
   const [facilityId, setFacilityId] = useState(initialFacilityId)
   const facility = facilities.find((f) => f.id === facilityId)
@@ -136,7 +134,7 @@ export function DeadlinesView({
 
   function pickFacility(id: string | null) {
     setFacilityId(id)
-    router.replace(id ? `/deadlines?facility=${id}` : "/deadlines", { scroll: false })
+    window.history.replaceState(null, "", id ? `/deadlines?facility=${id}` : "/deadlines")
   }
 
   return (

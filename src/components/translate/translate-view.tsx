@@ -78,7 +78,7 @@ export function TranslateView({
     setFacilityId(id)
     setFacilityData(null)
     setYear(null)
-    router.replace(hrefFor({ facility: id }), { scroll: false })
+    window.history.replaceState(null, "", hrefFor({ facility: id }))
     if (!id) return
     fetched.current = id
     setLoadingFacility(true)
