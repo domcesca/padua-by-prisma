@@ -1,7 +1,7 @@
 "use client"
 
-import { Check, Link2, Printer, TriangleAlert } from "lucide-react"
-import { useEffect, useState } from "react"
+import { Check, ChevronDown, Link2, Printer, TriangleAlert } from "lucide-react"
+import { useEffect, useMemo, useState, type CSSProperties } from "react"
 
 import { FacilityPicker, type FacilityOption } from "@/components/benchmark/facility-picker"
 import { PaduaMark } from "@/components/shell/padua-mark"
@@ -19,13 +19,17 @@ import {
   type ScenarioId,
   type ScenarioRates,
 } from "@/lib/propose/engine"
+import { suggestModule } from "@/lib/propose/intake"
 import type { ProposalModule } from "@/lib/propose/module"
+import { matchingPreset, PRESETS, type SectionId } from "@/lib/propose/output"
 import { parseProposalSpec, proposalSpecToParams, type ProposalSpec } from "@/lib/propose/spec"
 import { rememberSelection, useSelection } from "@/lib/selection"
 import { cn } from "@/lib/utils"
 import { CumulativeChart, SCENARIO_COLOR } from "./cumulative-chart"
+import { ModuleIntake } from "./module-intake"
 import { MODULE_IDS, MODULES } from "./modules"
 import { NumberField } from "./number-field"
+import { PrintoutPanel } from "./printout-panel"
 
 // Module data is shared across hospitals' reference tables but carries hospital context, so it's
 // cached per module + hospital for the session.
@@ -45,7 +49,13 @@ function loadModuleData(module: ProposalModule, facilityId: string | null) {
 }
 
 export function ProposeView({ facilities, latestYear, search }: { facilities: FacilityOption[]; latestYear: number; search: string }) {
-  const [draft, setSpec] = useState<ProposalSpec>(() => parseProposalSpec(new URLSearchParams(search), MODULE_IDS))
+  const [draft, setSpec] = useState<ProposalSpec>(() => {
+    const params = new URLSearchParams(search)
+    const parsed = parseProposalSpec(params, MODULE_IDS)
+    // A link with a description but no module yet: start on the suggested one.
+    const suggested = params.has("module") ? null : suggestModule(parsed.description)
+    return suggested ? { ...parsed, module: suggested.module } : parsed
+  })
   // Every module keeps its inputs, so switching modules and back loses nothing.
   const [states, setStates] = useState<Record<string, unknown>>(() => {
     const params = new URLSearchParams(search)
@@ -54,6 +64,9 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
   const [data, setData] = useState<{ key: string; value?: unknown; failed?: boolean } | null>(null)
   const [focus, setFocus] = useState<ScenarioId>("expected")
   const [copied, setCopied] = useState(false)
+  // The module picker's open state, once toggled by hand; until then it follows the suggestion.
+  const [pickerOpen, setPickerOpen] = useState<boolean | null>(null)
+  const [printoutOpen, setPrintoutOpen] = useState(false)
   const selection = useSelection()
 
   // No hospital in the link: start from the one chosen on another tab.
@@ -91,6 +104,14 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
   }, [mod, spec.facilityId])
 
   const update = (patch: Partial<ProposalSpec>) => setSpec({ ...spec, ...patch })
+  const suggestion = useMemo(() => suggestModule(spec.description), [spec.description])
+  // A confident suggestion folds the picker; no suggestion (or nothing typed) leaves it open, as before.
+  const moduleListOpen = pickerOpen ?? !suggestion
+  function describe(text: string) {
+    const next = suggestModule(text)
+    update({ description: text, ...(next && !spec.manualModule ? { module: next.module } : {}) })
+  }
+  const pickModule = (id: string) => update({ module: id, manualModule: id !== suggestion?.module })
   const setCost = (key: keyof CostInputs, value: number) => setSpec({ ...spec, costs: { ...spec.costs, [key]: value } })
 
   const benefit = mod.benefit(state, moduleData, { life: spec.costs.life })
@@ -100,6 +121,15 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
   const ready = !benefit.incomplete && hasCost
   const title = spec.name.trim() || "Untitled proposal"
   const Editor = mod.Editor
+  const preset = matchingPreset(spec.output)
+  // Print order and visibility per section (the screen shows everything, in its usual layout).
+  const printSlot = (id: SectionId): { className: string; style: CSSProperties } => {
+    const i = spec.output.sections.findIndex((s) => s.id === id)
+    const on = spec.output.sections[i]?.on ?? false
+    return { className: cn("print:order-(--print-order)", !on && "print:hidden"), style: { "--print-order": i + 1 } as CSSProperties }
+  }
+  const assumptions = printSlot("assumptions")
+  const keyAssumptions = spec.output.assumptions === "key"
 
   async function copyLink() {
     try {
@@ -150,37 +180,17 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
             />
           </div>
         </div>
-        <div>
-          <p id="module-label" className="mb-1 text-[13px] font-medium">
-            How the benefit is estimated
-          </p>
-          <div role="radiogroup" aria-labelledby="module-label" className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-            {MODULES.map((m) => {
-              const on = m.id === mod.id
-              const Icon = m.icon
-              return (
-                <button
-                  key={m.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={on}
-                  onClick={() => update({ module: m.id })}
-                  className={cn(
-                    "glass flex items-start gap-3 rounded-xl px-3.5 py-3 text-left transition-shadow duration-200",
-                    "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
-                    on ? "ring-accent glow-soft" : "hover:glow-soft"
-                  )}
-                >
-                  <Icon className={cn("mt-0.5 size-4 shrink-0", on ? "text-primary" : "text-tertiary-foreground")} />
-                  <span className="min-w-0">
-                    <span className="block text-[14px] font-medium">{m.label}</span>
-                    <span className="block text-[12px] leading-snug text-muted-foreground">{m.summary}</span>
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-        </div>
+        <ModuleIntake
+          modules={MODULES}
+          current={mod}
+          description={spec.description}
+          suggestion={suggestion}
+          manual={spec.manualModule}
+          open={moduleListOpen}
+          onDescription={describe}
+          onPick={pickModule}
+          onToggle={() => setPickerOpen(!moduleListOpen)}
+        />
       </section>
 
       <div className="grid gap-4 lg:grid-cols-5 print:hidden">
@@ -240,9 +250,25 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
           </div>
           <div className="flex flex-wrap items-center gap-2 print:hidden">
             <ActionButton onClick={copyLink} icon={copied ? Check : Link2} label={copied ? "Copied" : "Copy link"} />
+            <button
+              type="button"
+              onClick={() => setPrintoutOpen(!printoutOpen)}
+              aria-expanded={printoutOpen}
+              aria-controls="printout-panel"
+              className="glass-subtle inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] transition-colors hover:bg-white/80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none dark:hover:bg-white/10"
+            >
+              Printout: {preset ? PRESETS[preset].label : "Customized"}
+              <ChevronDown className={cn("size-3.5 transition-transform", printoutOpen && "rotate-180")} aria-hidden />
+            </button>
             <ActionButton onClick={() => window.print()} icon={Printer} label="Print or save PDF" />
           </div>
         </header>
+
+        {printoutOpen && (
+          <div id="printout-panel" className="print:hidden">
+            <PrintoutPanel value={spec.output} onChange={(output) => update({ output })} />
+          </div>
+        )}
 
         {!ready && (
           <p role="status" className="flex items-start gap-2 rounded-xl bg-black/4 px-4 py-3 text-[13px] dark:bg-white/6 print:hidden">
@@ -254,8 +280,9 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
           </p>
         )}
 
+        <div className="space-y-4 print:flex print:flex-col print:gap-4 print:space-y-0">
         {benefit.caution && (
-          <p className="flex items-start gap-2 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-[13px] leading-relaxed print:break-inside-avoid">
+          <p className="flex items-start gap-2 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-[13px] leading-relaxed print:order-first print:break-inside-avoid">
             <TriangleAlert className="mt-0.5 size-3.5 shrink-0 text-warning" aria-hidden />
             <span>{benefit.caution}</span>
           </p>
@@ -283,13 +310,17 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
           )}
         </div>
 
-        <div className="grid gap-3 md:grid-cols-3 print:grid-cols-3">
+        <div {...printSlot("scenarios")} className={cn("grid gap-3 md:grid-cols-3 print:grid-cols-3", printSlot("scenarios").className)}>
           {projections.map((p) => (
             <ScenarioCard key={p.scenario} p={p} life={spec.costs.life} blank={!benefit.annual && !hasCost} focused={p.scenario === focus} onFocus={() => setFocus(p.scenario)} />
           ))}
         </div>
 
-        <section aria-label="Cumulative net benefit over time" className="glass min-w-0 rounded-2xl p-5 print:break-inside-avoid">
+        <section
+          aria-label="Cumulative net benefit over time"
+          style={printSlot("chart").style}
+          className={cn("glass min-w-0 rounded-2xl p-5 print:break-inside-avoid", printSlot("chart").className)}
+        >
           <header className="mb-3 flex flex-wrap items-start justify-between gap-3">
             <div className="space-y-1">
               <h3 className="text-[15px] font-semibold tracking-tight">Cumulative net benefit</h3>
@@ -317,8 +348,12 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
           <CumulativeChart projections={projections} focus={focus} />
         </section>
 
-        <div className="grid gap-4 lg:grid-cols-5">
-          <section aria-labelledby="table-title" className="glass min-w-0 rounded-2xl p-5 lg:col-span-3 print:break-inside-avoid">
+        <div className="grid gap-4 lg:grid-cols-5 print:contents">
+          <section
+            aria-labelledby="table-title"
+            style={printSlot("table").style}
+            className={cn("glass min-w-0 rounded-2xl p-5 lg:col-span-3 print:break-inside-avoid", printSlot("table").className)}
+          >
             <h3 id="table-title" className="text-[15px] font-semibold tracking-tight">
               Year by year · {focused.label.toLowerCase()}
             </h3>
@@ -327,7 +362,11 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
             </p>
             <YearTable p={focused} />
           </section>
-          <section aria-labelledby="inputs-title" className="glass min-w-0 rounded-2xl p-5 lg:col-span-2 print:break-inside-avoid">
+          <section
+            aria-labelledby="inputs-title"
+            style={assumptions.style}
+            className={cn("glass min-w-0 rounded-2xl p-5 lg:col-span-2 print:break-inside-avoid", assumptions.className, keyAssumptions && "print:hidden")}
+          >
             <h3 id="inputs-title" className="mb-3 text-[15px] font-semibold tracking-tight">
               What went in
             </h3>
@@ -335,7 +374,14 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
           </section>
         </div>
 
-        <div className="space-y-1.5 text-xs leading-relaxed text-tertiary-foreground">
+        {/* The board summary's short assumptions box: printout only (the screen always has the full list). */}
+        {keyAssumptions && (
+          <section style={assumptions.style} className={cn("hidden print:block print:break-inside-avoid", assumptions.className)} aria-label="Key assumptions">
+            <KeyAssumptions costs={spec.costs} rates={spec.rates} annual={benefit.annual} moduleLabel={mod.label} />
+          </section>
+        )}
+
+        <div className="space-y-1.5 text-xs leading-relaxed text-tertiary-foreground print:order-last">
           {benefit.notes.map((n) => (
             <p key={n}>{n}</p>
           ))}
@@ -349,6 +395,7 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
             Nothing is saved on a server: this proposal lives in the page’s link. Copy the link to come back to it or share it,
             or print it to PDF.
           </p>
+        </div>
         </div>
       </section>
     </div>
@@ -497,6 +544,30 @@ function Inputs({
           {row("Scenario rates", SCENARIOS.map((s) => `${rates[s.id]}%`).join(" / "), "Conservative / Expected / Optimistic, of the estimate")}
         </dl>
       </div>
+    </div>
+  )
+}
+
+/** The board summary's assumptions: the few numbers a reader needs, with the full list left to the finance version. */
+function KeyAssumptions({ costs, rates, annual, moduleLabel }: { costs: CostInputs; rates: ScenarioRates; annual: number; moduleLabel: string }) {
+  const items: [string, string][] = [
+    ["Benefit a year (estimate)", `${formatUsd(annual)} · ${moduleLabel.toLowerCase()}`],
+    ["Up-front cost", formatUsd(costs.capital + costs.implementation)],
+    ["Running cost a year", formatUsd(costs.maintenance)],
+    ["Useful life · discount rate", `${costs.life} ${costs.life === 1 ? "year" : "years"} · ${costs.discountRate}%`],
+    ["Scenario rates", SCENARIOS.map((s) => `${rates[s.id]}%`).join(" / ")],
+  ]
+  return (
+    <div className="rounded-2xl border border-border p-4">
+      <h3 className="mb-2 text-[15px] font-semibold tracking-tight">Key assumptions</h3>
+      <dl className="num grid grid-cols-2 gap-x-6 gap-y-1.5 text-[13px]">
+        {items.map(([label, value]) => (
+          <div key={label} className="flex items-baseline justify-between gap-3 border-b border-border/60 py-1">
+            <dt className="text-muted-foreground">{label}</dt>
+            <dd className="font-medium">{value}</dd>
+          </div>
+        ))}
+      </dl>
     </div>
   )
 }

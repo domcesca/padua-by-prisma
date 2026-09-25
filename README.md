@@ -252,6 +252,21 @@ engine and page don't change. A module's `benefit` also gets the useful life, fo
 Inputs are tagged **Public data** (with the source and year) or **Your assumption** in the editors, and the results'
 notes repeat which is which.
 
+**Intake.** "Describe what you're proposing" (optional) suggests a module (`src/lib/propose/intake.ts`) from the same
+`search-terms.ts` entries as the code pickers: DRG entries vote for inpatient, APC entries for outpatient, and intent
+entries (`modules: [...]`, e.g. "FTEs", "boarding", "readmissions", "CLABSI") for the module they name, counting double.
+It suggests only when the winner scores at least 1 and leads the runner-up 1.5 to 1; otherwise (or with nothing typed)
+the module picker stays open, as before. A suggestion folds the picker to the chosen module with "Choose another way"
+one click away; picking by hand (`pick=manual`) stops later edits to the description from switching modules. In the
+link as `desc=`.
+
+**Printout.** A "Printout" panel next to Print sets what the printed/PDF proposal includes (`src/lib/propose/output.ts`):
+presets **Board summary** (scenario comparison, chart, a short key-assumptions box) and **Finance committee** (today's
+full printout: adds the year-by-year table and the full "What went in" list), then per-section on/off, Key vs Full
+assumptions, and up/down order. The screen always shows everything; only print changes. The caution, notes, and method
+text always print. In the link as `out=board|finance|<sections in order>`; links from before this (a proposal with no
+`out`) open as Finance, so what they printed doesn't change; new proposals start on Board.
+
 No persistence by design (no accounts): the whole proposal, including every module's inputs, is in the URL, so
 reloading keeps it and the link can be shared. "Print or save PDF" uses the browser; print styles
 (`@media print` in `globals.css`) force the light palette, flatten the glass, and hide the app chrome and inputs.
