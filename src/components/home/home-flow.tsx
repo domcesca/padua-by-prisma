@@ -255,7 +255,7 @@ export function HomeFlow({
             return (
               <div
                 key={c.id}
-                aria-disabled
+                aria-disabled={c.partial ? undefined : true}
                 className="flex min-h-40 flex-col items-start gap-3 rounded-[1.375rem] border border-dashed border-black/10 p-5 text-left dark:border-white/10"
               >
                 <span className="flex size-10 items-center justify-center rounded-xl bg-muted/60 text-tertiary-foreground">
@@ -265,8 +265,17 @@ export function HomeFlow({
                   <span className="block text-[17px] font-semibold tracking-tight text-muted-foreground">{c.label}</span>
                   <span className="mt-0.5 block text-[13px] leading-relaxed text-tertiary-foreground">{c.description}</span>
                 </span>
+                {c.partial && (
+                  <Link
+                    href={`/benchmark?${new URLSearchParams({ view: c.partial.view, specialty: c.partial.specialty, ...(facilityId ? { facility: facilityId } : {}) })}`}
+                    onClick={remember}
+                    className="text-[13px] font-medium text-primary underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                  >
+                    Available now: {c.partial.label} →
+                  </Link>
+                )}
                 <span className="mt-auto rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                  Coming later
+                  {c.partial ? "All payers: coming later" : "Coming later"}
                 </span>
               </div>
             )

@@ -292,6 +292,25 @@ downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and
   Outdated = newest report more than 2 years behind the newest data (13 hospitals, some of them campuses now reported
   under a parent).
 
+### V6.11 (Specialty-level benchmarking: Medicare cases by MDC)
+- Benchmark → Utilization gains a "Medicare specialty" picker: all MDCs vs peers, or one MDC ranked across peers with
+  the hospital's DRGs, plus up to 4 hospitals side by side. Other Benchmark views unchanged: 60/60 identical API
+  responses (Benchmark and Propose) vs main, and page text differs only by the new picker.
+- Aggregates the existing CMS inpatient baseline; the MDC for each DRG is CMS's Table 5. Found in the data: 13 DRGs in
+  the 2024 cases were retired after FY 2024–2026, so the current Table 5 alone would have dropped 5,821 cases (mostly
+  spinal fusion). `cms-inpatient` now reads Table 5 for FY 2024–2027 (FY 2024 isn't linked from CMS's IPPS page any
+  more; found at CMS's usual file name). MDCs agree across all four versions for every DRG in the data. Retired DRGs
+  are priced at their last published weight (flagged per DRG and in the notes).
+- Suppression: an MDC with no DRG at 11+ shows "fewer than 11 in each DRG", not "fewer than 11", because several
+  suppressed DRGs can add up to more than 10. Counts are floors, and the notes say so.
+- Home page: the "Case mix" tile is now "Case mix by specialty", still marked "All payers: coming later", with a
+  link to the Medicare specialty view ("Available now: Medicare only").
+- Service-line bundling (queued as its own version, not built): mapping decided. Maternity & Newborn = Perinatal +
+  NICU, with the well-baby nursery (report line 35) as its own row outside the totals; Adult Critical Care = ICU +
+  Coronary Care + Acute Respiratory; Burn standalone; Pediatrics standalone; Behavioral Health = Acute Psychiatric +
+  Chemical Dependency Recovery; Long-Term Care = SNF + ICF + ICF/DD; Medical/Surgical and Rehabilitation standalone.
+  Every bed category is in exactly one line, so lines add up to total licensed beds.
+
 ## 3. Key decisions and why
 
 ### Peer groups: a proxy, not a PSA/SSA

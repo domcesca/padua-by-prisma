@@ -308,6 +308,9 @@ export const getIppsDrgs = () => loadReference<IppsDrg[]>("cms-ipps", "drgs.json
 export const getIppsManifest = () => loadReference<IppsManifest>("cms-ipps", "manifest.json")
 /** Medicare fee-for-service cases per hospital, year, and MS-DRG (11+ cases only). */
 export const getInpatientCases = () => loadReference<Record<string, Record<string, Record<string, number>>>>("cms-inpatient", "cases.json")
+/** Each MS-DRG in the Medicare case data: its MDC (body system) and, for DRGs CMS has since retired, its last weight. */
+export type InpatientDrg = { mdc: string | null; title: string; retiredAfter?: number; lastWeight?: number }
+export const getInpatientDrgs = () => loadReference<Record<string, InpatientDrg>>("cms-inpatient", "drgs.json")
 export const getInpatientCasesManifest = () => loadReference<InpatientCasesManifest>("cms-inpatient", "manifest.json")
 
 /** HRRP and HAC Reduction Program standing plus estimated Medicare payments, per HCAI hospital (cms-penalties). */

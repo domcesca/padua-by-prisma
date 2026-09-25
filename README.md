@@ -181,6 +181,32 @@ used (they cover traditional Medicare only, by calendar year, and need a CCN cro
   fiscal-year and include long-term care units. Cards say so.
 - Medicare Advantage share (MA discharges ÷ all Medicare discharges) is available under the Medicare view and in Build.
 
+## Specialty benchmarking (V6.11)
+
+Benchmark → Utilization → **Medicare specialty** compares hospitals by clinical specialty, which HCAI's bed data
+(organized by acuity, not specialty) can't do. It rolls the per-hospital, per-MS-DRG Medicare baseline that Propose's
+Inpatient reimbursement already uses (`cms-inpatient`) up to CMS's MDCs (Major Diagnostic Categories). No new data
+source; `src/lib/specialty/compute.ts` aggregates on request, and `/api/specialty` serves it.
+- **Views.** All specialties: a table of MDCs with the hospital's cases, estimated payment, or share of cases, the peer
+  median, and where it ranks. One specialty: every peer ranked on it, plus the hospital's DRGs in it. Up to 4 hospitals
+  can be added side by side (`&with=`). URL: `?view=utilization&specialty=all|05|PRE|none&with=…`.
+- **Labels** (`src/lib/specialty/mdc.ts`, edit to relabel): CMS's official MDC name (short form) with a plain-language
+  specialty, "Circulatory System (Cardiac & Vascular)", and a note wherever an MDC spans specialties people think of
+  separately (circulatory = cardiology + cardiac and vascular surgery; musculoskeletal = ortho, spine, and
+  rheumatology-adjacent; infectious = mostly sepsis from every service; myeloproliferative ≠ all cancer).
+- **Scope, shown on screen:** Original Medicare fee-for-service discharges at IPPS hospitals only. It excludes Medicare
+  Advantage and every other payer; critical access, psychiatric, rehab, long-term care, and children's hospitals; and
+  psych or rehab units paid outside IPPS.
+- **Suppression.** CMS drops hospital-DRG rows under 11 cases, so an MDC's count sums its DRGs with 11+ (a floor). An
+  MDC with none shows "fewer than 11 in each DRG" (this can still total more than 10 cases). Peer medians use peers
+  with a count.
+- **Estimated payment:** cases × FY 2027 DRG weight × the national operating standardized amount, the same as Propose.
+  It's a national average, so hospitals compare on volume and case mix.
+- **DRG → MDC across versions.** 2024 cases were grouped under the FY 2024 and FY 2025 MS-DRGs, and 13 of their DRGs
+  (1.3% of cases; spinal fusion 453–460 is most of it, about 14% of Musculoskeletal) aren't in the FY 2027 table. The
+  `cms-inpatient` ETL now reads Table 5 for FY 2024–2027, checks that every DRG's MDC is the same in all of them (it is),
+  and writes `drgs.json`. Retired DRGs are priced at their last published weight.
+
 ## Closed and outdated hospitals (V6.10)
 
 Wherever a hospital is picked or summarized, a flag says when its numbers shouldn't be read as current
