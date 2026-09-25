@@ -239,6 +239,17 @@ downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and
   Decoded" below in muted text (not the accent). Phone header: "Padua by Prisma" on one line, no tagline (no room).
   `APP_TAGLINE` is the new tagline; the home page eyebrow keeps its descriptive line as `APP_SUMMARY`.
 
+### V6.7 (Propose: smart intake and printout customization; presentation and input flow only)
+- **Intake:** free-text description → suggested module, reusing `search-terms.ts` (new intent entries with `modules`).
+  Confidence rule: score ≥ 1 and ≥ 1.5× the runner-up; else no suggestion and the picker stays open. Intent entries
+  count double over clinical words ("readmission … heart failure" → avoided penalties). Ambiguous descriptions ("robotic
+  surgery": inpatient and outpatient both) deliberately get no suggestion. Manual picks stick (`pick=manual`); older
+  links with a module but no description count as manual.
+- **Printout (owner's call):** the existing export had every section, so **Finance committee = today's printout** and
+  **Board summary = condensed** (no year-by-year table; a short key-assumptions box instead of the full list). Legacy
+  links open as Finance; new proposals start on Board. Sections toggle and reorder for print only (CSS `order` in a
+  print-only flex column); disclosures can't be turned off.
+
 ## 3. Key decisions and why
 
 ### Peer groups: a proxy, not a PSA/SSA

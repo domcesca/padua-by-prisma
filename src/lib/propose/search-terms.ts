@@ -11,6 +11,9 @@
 // neighbor from another service line. Codes that aren't in the current tables are ignored and logged on the server
 // (see module-data.ts), so a renumbering shows up there. Nothing else needs to change.
 //
+// The same entries drive the proposal intake (intake.ts): a description that hits DRG terms suggests inpatient
+// reimbursement, APC terms outpatient, and `modules` entries the module they name.
+//
 // This is a starting set, not a grouper: the DRG or APC a case lands in depends on its coding. Outpatient especially:
 // APCs are levels ("Level 1–4 Imaging without Contrast"), and which level a given scan or procedure falls in is set by
 // its CPT code, which this app doesn't carry (CPT is licensed by the AMA). So outpatient terms point at the family of
@@ -29,9 +32,30 @@ export type SearchTerm = {
   apcs?: string[]
   /** APCs the terms also touch; found but ranked lower. */
   relatedApcs?: string[]
+  /**
+   * Propose modules the terms point to directly, for the "describe what you're proposing" intake. DRG entries already
+   * point to inpatient reimbursement and APC entries to outpatient; use this for intents no code captures
+   * ("adding FTEs", "reduce readmissions").
+   */
+  modules?: string[]
 }
 
 export const SEARCH_TERMS: SearchTerm[] = [
+  // -- Proposal intents (intake only; no codes) ---------------------------------------------------------------------------
+  { category: "Intent", terms: ["inpatient", "admissions", "admitted patients", "inpatient volume", "transfers in", "service line", "bed capacity"], modules: ["reimbursement"] },
+  { category: "Intent", terms: ["outpatient", "outpatient volume", "clinic volume", "procedure volume", "scan volume", "ambulatory"], modules: ["outpatient"] },
+  { category: "Intent", terms: ["fte", "ftes", "staffing", "headcount", "hire", "hiring", "nurses", "overtime", "agency staff", "travel nurses", "contract labor"], modules: ["savings"] },
+  { category: "Intent", terms: ["length of stay", "los", "boarding", "throughput", "bed days", "patient days", "discharge planning", "patient flow", "capacity management"], modules: ["savings"] },
+  { category: "Intent", terms: ["supply", "supplies", "supply chain", "standardization", "standardize", "inventory", "vendor consolidation"], modules: ["savings"] },
+  { category: "Intent", terms: ["workflow", "automation", "automate", "efficiency", "productivity", "cost savings", "reduce costs", "save money", "save time", "time savings", "nurse time", "documentation", "documentation burden"], modules: ["savings"] },
+  { category: "Intent", terms: ["readmission", "readmissions", "hrrp", "care transitions", "transitional care", "post-discharge follow-up"], modules: ["penalty"] },
+  {
+    category: "Intent",
+    terms: ["hospital-acquired", "hac", "infection prevention", "infection control", "clabsi", "cauti", "surgical site infection", "c. diff", "c diff", "mrsa", "penalty", "penalties"],
+    modules: ["penalty"],
+  },
+  { category: "Intent", terms: ["grant", "philanthropy", "donation", "sponsorship", "lease income", "parking revenue", "retail"], modules: ["custom"] },
+
   // -- Neuro -----------------------------------------------------------------------------------------------------------
   {
     category: "Neuro",
