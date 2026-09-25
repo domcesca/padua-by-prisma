@@ -39,7 +39,7 @@ export function FacilityPicker({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         className={cn(
-          "flex h-11 w-full items-center gap-2.5 rounded-xl bg-card px-3.5 text-left shadow-card ring-1 ring-black/5 transition-shadow duration-150 dark:ring-white/10",
+          "flex h-11 w-full min-w-0 items-center gap-2.5 rounded-xl bg-card px-3.5 text-left shadow-card ring-1 ring-black/5 transition-shadow duration-150 dark:ring-white/10",
           "hover:ring-black/10 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none dark:hover:ring-white/20",
           className
         )}

@@ -174,7 +174,7 @@ export function TranslateView({
     <div className="space-y-6">
       {/* Search + value source */}
       <div className="grid gap-3 md:grid-cols-2">
-        <label className="flex h-11 items-center gap-2.5 rounded-xl bg-card px-3.5 shadow-card ring-1 ring-black/5 focus-within:ring-2 focus-within:ring-ring dark:ring-white/10">
+        <label className="flex h-11 min-w-0 items-center gap-2.5 rounded-xl bg-card px-3.5 shadow-card ring-1 ring-black/5 focus-within:ring-2 focus-within:ring-ring dark:ring-white/10">
           <Search className="size-4 shrink-0 text-tertiary-foreground" aria-hidden />
           <span className="sr-only">Search fields</span>
           <input
@@ -182,7 +182,7 @@ export function TranslateView({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search a field: NETRV_MCAL_MC, charity care, staffed beds…"
-            className="h-full flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground"
+            className="h-full min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground"
           />
           {query && (
             <button type="button" onClick={() => setQuery("")} aria-label="Clear search" className="text-tertiary-foreground hover:text-foreground">
@@ -191,7 +191,7 @@ export function TranslateView({
           )}
         </label>
         {!extract && (
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 items-center gap-2">
             <FacilityPicker
               facilities={facilities}
               value={facilityId}
