@@ -33,7 +33,7 @@ export default async function BenchmarkPage({ searchParams }: PageProps<"/benchm
     getLatestYear(),
     Promise.all(DATASET_IDS.map(getManifest)),
     facilityId
-      ? computeBenchmark({ facilityId, filters, category: view.category, metricIds: metricsFor(view), since: view.since, payer: view.payer, unit: view.unit })
+      ? computeBenchmark({ facilityId, filters, category: view.category, metricIds: metricsFor(view), since: view.since, payer: view.payer, unit: view.unit, line: view.line })
       : Promise.resolve(null),
     facilityId && view.specialty
       ? computeSpecialties({ facilityId, filters, compareIds: view.compare, mdc: view.specialty !== "all" ? view.specialty : null })

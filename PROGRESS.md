@@ -292,6 +292,19 @@ downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and
   Outdated = newest report more than 2 years behind the newest data (13 hospitals, some of them campuses now reported
   under a parent).
 
+### V6.12 (Service lines)
+- Benchmark → Utilization's unit picker ("Unit or service line") adds "All service lines, side by side" and the four
+  combined lines; single classifications are still there. Config in `src/lib/service-lines/lines.ts`; computed on
+  request from `hau/fields.json` (no ETL change). Details in the README.
+- Verified: all 2,645 hospital-years reconcile to HCAI's hospital totals; 9,859 classification rows match the unit
+  view exactly (after mirroring Python's rounding); 104/104 existing Benchmark, Specialty, and Propose API responses
+  are identical to main apart from the new fields.
+- Found in the data: (1) ~475 classification-years with beds but blank days or discharges, counted as none in a
+  combined line (as HCAI's totals do) and flagged; (2) 107 hospital-years where a classification has activity but no
+  Dec 31 beds (closed mid-year), included so lines add up; (3) children's hospitals report PICU beds as Intensive
+  Care, so the line was renamed from "Adult Critical Care" to "Critical Care (ICU, CCU, Respiratory)"
+  (id `criticalCare`) on review. Blanks counted as none (flagged) and mid-year closures kept: confirmed on review.
+
 ### V6.11 (Specialty-level benchmarking: Medicare cases by MDC)
 - Benchmark → Utilization gains a "Medicare specialty" picker: all MDCs vs peers, or one MDC ranked across peers with
   the hospital's DRGs, plus up to 4 hospitals side by side. Other Benchmark views unchanged: 60/60 identical API
@@ -305,8 +318,8 @@ downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and
   suppressed DRGs can add up to more than 10. Counts are floors, and the notes say so.
 - Home page: the "Case mix" tile is now "Case mix by specialty", still marked "All payers: coming later", with a
   link to the Medicare specialty view ("Available now: Medicare only").
-- Service-line bundling (queued as its own version, not built): mapping decided. Maternity & Newborn = Perinatal +
-  NICU, with the well-baby nursery (report line 35) as its own row outside the totals; Adult Critical Care = ICU +
+- Service-line bundling (built in V6.12): mapping decided. Maternity & Newborn = Perinatal +
+  NICU, with the well-baby nursery (report line 35) as its own row outside the totals; Critical Care (was "Adult Critical Care") = ICU +
   Coronary Care + Acute Respiratory; Burn standalone; Pediatrics standalone; Behavioral Health = Acute Psychiatric +
   Chemical Dependency Recovery; Long-Term Care = SNF + ICF + ICF/DD; Medical/Surgical and Rehabilitation standalone.
   Every bed category is in exactly one line, so lines add up to total licensed beds.

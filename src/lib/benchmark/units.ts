@@ -89,3 +89,59 @@ export function unitMetricDef(base: MetricDef, unit: UnitInfo): MetricDef {
   else delete def.caution
   return def
 }
+
+/** The hospital-wide metric redefined for a service line: its classifications' fields summed, then the same formula. */
+export function lineMetricDef(base: MetricDef, line: { label: string }, units: UnitInfo[]): MetricDef {
+  const names = units.map((u) => u.label).join(", ")
+  const all = (field: (u: UnitInfo) => string) => units.map(field)
+  const add = (fields: string[]) => (fields.length > 1 ? `(${fields.join(" + ")})` : fields[0])
+  const days = all((u) => `${u.censusPrefix}_CEN_DAYS`)
+  const bedDays = all((u) => `${u.prefix}_LIC_BED_DAYS`)
+  const discharges = all((u) => `${u.prefix}_DISCHARGES`)
+  const transfers = units.filter((u) => u.countsTransfers).map((u) => `${u.prefix}_INTRA_TRANSFERS`)
+  const critical = units.some((u) => u.countsTransfers && u.criticalCare)
+  const skilled = units.some((u) => u.countsTransfers && !u.criticalCare)
+  const kind = critical && skilled ? "critical care or skilled nursing" : critical ? "critical care" : "skilled nursing"
+  const of = `(${line.label}: ${names})`
+  const specific: Record<string, Pick<MetricDef, "summary" | "formula" | "inputs"> & { caution?: string }> = {
+    occupancy: {
+      summary: `Share of the service line's licensed beds filled on an average day: its patient days ÷ its licensed bed days ${of}.`,
+      formula: `${add(days)} ÷ ${add(bedDays)}`,
+      inputs: [...days, ...bedDays],
+      caution: base.caution,
+    },
+    adc: {
+      summary: `Patients in the service line's units on an average day: their patient days ÷ days in the year ${of}.`,
+      formula: `${add(days)} ÷ days in the reporting period`,
+      inputs: days,
+    },
+    alos: {
+      summary: `Average days per stay in the service line's units ${of}.`,
+      formula: `${add(days)} ÷ ${add([...discharges, ...transfers])}`,
+      inputs: [...days, ...discharges, ...transfers],
+      caution: transfers.length
+        ? `Per HCAI's instructions a ${kind} stay ends at a discharge or a transfer out to a general acute bed, so this is time in the unit, not the whole hospital stay.`
+        : "Not adjusted for case mix.",
+    },
+    discharges: {
+      summary: `Patients discharged from the service line's units, including deaths and moves to another type of care ${of}.`,
+      formula: add(discharges),
+      inputs: discharges,
+    },
+    inpatientDays: {
+      summary: `Inpatient days in the service line's units during the year ${of}.`,
+      formula: add(days),
+      inputs: days,
+    },
+    licensedBeds: {
+      summary: `Beds licensed in the service line's classifications on December 31 ${of}.`,
+      formula: add(all((u) => `${u.prefix}_LIC_BEDS`)),
+      inputs: all((u) => `${u.prefix}_LIC_BEDS`),
+    },
+  }
+  const { caution, ...rest } = specific[base.id]
+  const def: MetricDef = { ...base, ...rest, label: UNIT_METRIC_LABELS[base.id] ?? base.label }
+  if (caution) def.caution = caution
+  else delete def.caution
+  return def
+}

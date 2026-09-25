@@ -13,7 +13,9 @@ import { getCommunityContext, getFacilities, getFacilityUnits, getManifest, getM
 import type { CommunityContext, DatasetId, Facility, FacilityUnit, MetricCategory, MetricsFile, PayerGroup, PayerMix, PointDetail } from "@/lib/data/types"
 import type { PeerFilters } from "./filters"
 import { milesBetween, resolvePeerGroup } from "./peers"
-import { getUnitInfo, unitMetricDef, unitSource, type UnitSource } from "./units"
+import { computeServiceLines, getFacilityLines, lineSource, type FacilityLine, type ServiceLineRollup } from "@/lib/service-lines/compute"
+import { isCombined, SERVICE_LINE_BY_ID } from "@/lib/service-lines/lines"
+import { getUnitInfo, lineMetricDef, unitMetricDef, unitSource, type UnitSource } from "./units"
 
 export type SeriesPoint = {
   year: number
@@ -60,6 +62,12 @@ export type BenchmarkResult = {
   units: FacilityUnit[]
   /** The unit shown, when narrowed to one: its unit-specific metric definitions and how many peers have it. */
   unit: (FacilityUnit & { peersWithUnit: { year: number; count: number }; definitions: Record<string, MetricDef> }) | null
+  /** Service lines of more than one classification this hospital has had (the picker's options). */
+  lines: FacilityLine[]
+  /** The service line shown, when narrowed to one: as for a unit. */
+  line: (FacilityLine & { peersWithUnit: { year: number; count: number }; definitions: Record<string, MetricDef> }) | null
+  /** Every service line with its classifications, when a service line is asked for ("all" or one). */
+  serviceLines: ServiceLineRollup | null
   /** Latest acute length of stay, average daily census, and case mix index, whatever the topic. */
   snapshot: { alos: Snapshot; adc: Snapshot; caseMixIndex: Snapshot }
   /** The hospital's county: Census demographics and Medi-Cal enrollment. Context, not a benchmark. */
@@ -151,6 +159,7 @@ export async function computeBenchmark({
   since = null,
   payer = "all",
   unit: unitId = null,
+  line: lineId = null,
 }: {
   facilityId: string
   filters: PeerFilters
@@ -163,6 +172,8 @@ export async function computeBenchmark({
   since?: number | null
   /** Bed classification to narrow utilization to (all payers only); null = whole hospital. */
   unit?: string | null
+  /** Service line: "all" for the side-by-side table, or one line to narrow utilization to (all payers only). */
+  line?: string | null
 }): Promise<BenchmarkResult | null> {
   const [facilities, catalog] = await Promise.all([getFacilities(), getMetricCatalog()])
   const facility = facilities.find((f) => f.id === facilityId)
@@ -172,20 +183,24 @@ export async function computeBenchmark({
   const peers = group.peers
   const peerIds = peers.map((p) => p.id)
 
-  const units = await getFacilityUnits(facility.id)
+  const [units, allLines] = await Promise.all([getFacilityUnits(facility.id), supportsUnits(category) ? getFacilityLines(facility.id) : []])
+  const lines = allLines.filter((l) => isCombined(SERVICE_LINE_BY_ID.get(l.id)!))
+  // Line view: a line of several classifications this hospital has; a one-classification line is that unit's view.
+  const line = supportsUnits(category) ? (lines.find((l) => l.id === lineId) ?? null) : null
   // Unit view: utilization only, all payers only, and only a unit this hospital has.
-  const unit = supportsUnits(category) && units.some((u) => u.id === unitId) ? await getUnitInfo(unitId) : null
+  const unit = !line && supportsUnits(category) && units.some((u) => u.id === unitId) ? await getUnitInfo(unitId) : null
+  const lineUnits = line ? (await Promise.all(line.units.map((id) => getUnitInfo(id)))).filter((u) => !!u) : []
   // The Medicare lens applies to financial and utilization metrics only.
-  const lens = category === "quality" || unit ? "all" : payer
+  const lens = category === "quality" || unit || lineId ? "all" : payer
   let metrics: MetricDef[]
   let source: UnitSource | undefined
-  if (unit) {
+  if (unit || line) {
     const chosen = (metricIds ?? []).filter((id) => UNIT_METRICS.includes(id))
     metrics = (chosen.length ? chosen : UNIT_DEFAULT_METRICS)
       .map((id) => catalog.find((m) => m.id === id && m.dataset === "hau"))
       .filter((m): m is MetricDef => !!m)
-      .map((m) => unitMetricDef(m, unit))
-    source = await unitSource(unit.id)
+      .map((m) => (line ? lineMetricDef(m, line, lineUnits) : unitMetricDef(m, unit!)))
+    source = line ? await lineSource(line.id) : await unitSource(unit!.id)
   } else {
     metrics = applyPayerView(metricIds?.length ? metricIds : CATEGORY_BY_ID[category].defaultMetrics, lens, catalog)
       .map((id) => catalog.find((m) => m.id === id))
@@ -215,6 +230,11 @@ export async function computeBenchmark({
           definitions: Object.fromEntries(metrics.map((m) => [m.id, m])),
         }
       : null,
+    lines,
+    line: line
+      ? { ...line, peersWithUnit: peersWithUnit(source!, peerIds), definitions: Object.fromEntries(metrics.map((m) => [m.id, m])) }
+      : null,
+    serviceLines: supportsUnits(category) && (line || lineId === "all") ? await computeServiceLines({ facilityId: facility.id, filters }) : null,
     notes: category === "quality" ? await qualityNotes(facility.id) : [],
     community: await getCommunityContext(facility.county),
     snapshot: {
