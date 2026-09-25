@@ -4,6 +4,8 @@ import { ChevronRight, Loader2 } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 
 import { FacilityFlagNote } from "@/components/shell/facility-flag-note"
+import { LiveStatus } from "@/components/shell/live-status"
+import { MobileControls } from "@/components/shell/mobile-controls"
 import { PickerPill } from "@/components/shell/grouped-picker"
 import { Segmented } from "@/components/shell/segmented"
 import type { BenchmarkResult } from "@/lib/benchmark/compute"
@@ -203,15 +205,24 @@ export function BenchmarkView({
   // A unit that's part of a combined service line the hospital has.
   const parentLine = shown?.unit ? lines.find((l) => l.id === lineOfUnit(shown.unit!.id)?.id) : undefined
 
-  return (
-    <div className="space-y-6">
-      <div className="relative space-y-3">
-        <FacilityPicker
-          facilities={facilities}
-          value={facilityId}
-          onChange={(id) => apply({ facilityId: id })}
-          latestYear={latestYear}
-        />
+  const topicName = view.specialty
+    ? "Medicare specialty"
+    : view.line
+      ? "service line"
+      : view.unit
+        ? `${unitInfo?.label ?? "unit"}`
+        : CATEGORY_BY_ID[view.category].label.toLowerCase()
+  const loadingMessage = `Loading ${facility?.name ?? "the hospital"}’s ${topicName} data and its peer group…`
+  const announcement = loading || (facilityId && !shown)
+    ? loadingMessage
+    : shown
+      ? specialtyView || linesView
+        ? `Showing ${facility?.name ?? "the hospital"}’s ${topicName} table against ${shown.peers.length} peers.`
+        : `Showing ${shown.metrics.length} metric${shown.metrics.length === 1 ? "" : "s"} for ${shown.facility.name} against ${shown.peers.length} peers.`
+      : error ?? ""
+
+  const controls = (
+    <>
         <div className="flex flex-wrap items-center gap-2">
           <Segmented
             label="What to compare"
@@ -269,7 +280,7 @@ export function BenchmarkView({
                 ...units.map((u) => ({
                   value: `unit:${u.id}`,
                   label: u.label,
-                  group: "Bed classifications",
+                  group: "Units",
                   hint: u.lastYear < (result?.facility.utilizationYears.at(-1) ?? u.lastYear) ? `through ${u.lastYear}` : u.beds != null ? `${u.beds} beds` : undefined,
                 })),
               ]}
@@ -313,7 +324,7 @@ export function BenchmarkView({
           />
           )}
           {loading && (
-            <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground" role="status">
+            <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground" aria-hidden>
               <Loader2 className="size-3.5 animate-spin" /> Updating
             </span>
           )}
@@ -325,6 +336,52 @@ export function BenchmarkView({
           counties={counties}
           facility={shown?.facility ?? null}
         />
+    </>
+  )
+  const periodYears = shown
+    ? shown.category === "quality"
+      ? qualityYears(shown)
+      : shown.category === "utilization"
+        ? shown.facility.utilizationYears
+        : shown.facility.financialYears
+    : []
+  const periodText = specialtyView
+    ? "Medicare, calendar year"
+    : primaryDataset && periodYears.length
+      ? `${DATASETS[primaryDataset].periodType}s ${yearRange(periodYears)}`
+      : periodYears.length
+        ? `Through ${periodYears.at(-1)}`
+        : null
+  const activeControls = [
+    view.unit || view.line,
+    view.specialty,
+    view.payer !== "all",
+    !specialtyView && !linesView && !isDefaultMetrics,
+    view.since != null,
+    filters.mode !== DEFAULT_FILTERS.mode,
+  ].filter(Boolean).length + [...filtersToParams(filters).keys()].filter((k) => k !== "peers").length
+
+  return (
+    <div className="space-y-6">
+      <LiveStatus message={announcement} />
+      <MobileControls
+        hospital={facility?.name ?? null}
+        topic={[CATEGORY_BY_ID[view.category].label, specialtyView ? "Medicare specialty" : lineInfo?.label ?? (linesView ? "Service lines" : unitInfo?.label)]
+          .filter(Boolean)
+          .join(" · ")}
+        period={periodText}
+        active={activeControls}
+      >
+        {controls}
+      </MobileControls>
+      <div className="relative space-y-3">
+        <FacilityPicker
+          facilities={facilities}
+          value={facilityId}
+          onChange={(id) => apply({ facilityId: id })}
+          latestYear={latestYear}
+        />
+        <div className="hidden space-y-3 md:block">{controls}</div>
         {/* Out of the flow, halfway into the gap below, so it never eats the space between the filters and the results. */}
         {loading && <div className="loading-bar fade-up absolute inset-x-0 -bottom-3.5" aria-hidden />}
       </div>
@@ -343,7 +400,7 @@ export function BenchmarkView({
         />
       )}
 
-      {facilityId && !shown && !error && <LoadingState count={shownMetrics.length} />}
+      {facilityId && !shown && !error && <LoadingState count={shownMetrics.length} message={loadingMessage} />}
 
       {shown && (
         <div className={cn("space-y-6 transition-opacity duration-200", loading && "opacity-60")}>
@@ -364,7 +421,7 @@ export function BenchmarkView({
                 {shown.peers.length > 0 && <PeerList peers={shown.peers} />}
               </>
             ) : (
-              !error && <LoadingState count={2} />
+              !error && <LoadingState count={2} message={loadingMessage} />
             )
           ) : linesView ? (
             shown.serviceLines && (
@@ -406,7 +463,7 @@ export function BenchmarkView({
                     : shown.unit
                       ? `${DATASETS.hau.yearNote} ${shown.unit.label} beds only; peers without this unit are left out of the median.`
                       : shown.line
-                        ? `${DATASETS.hau.yearNote} ${shown.line.label} classifications combined; peers with none of them are left out of the median.`
+                        ? `${DATASETS.hau.yearNote} ${shown.line.label} units combined; peers with none of them are left out of the median.`
                       : view.payer === "all"
                         ? DATASETS[primaryDataset!].yearNote
                         : `${payerInfo.label}: ${payerInfo.description} Measures HCAI doesn’t split by payer stay all-payer and are marked.`}
@@ -427,13 +484,13 @@ export function BenchmarkView({
                         meta={meta}
                         points={shown.series[id]}
                         companion={companion ? { meta: metaById[companion], points: shown.series[companion] } : undefined}
+                        source={shown.sources[meta.dataset]}
                         tags={[
                           shown.unit ? shown.unit.label : shown.line ? shown.line.label : null,
                           quality ? (meta.group ?? null) : null,
                           quality ? DATASETS[meta.dataset].shortLabel : null,
                           meta.estimate ? "Estimate" : null,
                           !quality && view.payer !== "all" && !meta.lens ? "All payers" : null,
-                          primaryDataset && meta.dataset !== primaryDataset ? DATASETS[meta.dataset].yearTag : null,
                         ].filter((t): t is string => t != null)}
                       />
                     )
@@ -441,7 +498,7 @@ export function BenchmarkView({
                 </div>
               )}
               {shown.payerMix && metaById.payerMix && (
-                <PayerMixCard mix={shown.payerMix} groups={payerGroups} meta={metaById.payerMix} />
+                <PayerMixCard mix={shown.payerMix} groups={payerGroups} meta={metaById.payerMix} source={shown.sources["hafd-selected"]} />
               )}
               <PeerList peers={shown.peers} />
             </>
@@ -476,7 +533,7 @@ function FacilitySummary({ result, lastYear, flag }: { result: BenchmarkResult; 
   return (
     <div className="grid gap-4 lg:grid-cols-3">
       <section aria-label="Hospital" className="widget fade-up flex flex-col gap-2 p-5 lg:col-span-2">
-        <p className="text-[11px] font-medium tracking-wide text-tertiary-foreground uppercase">Hospital</p>
+        <p className="text-xs font-medium tracking-wide text-tertiary-foreground uppercase">Hospital</p>
         <h2 className="text-2xl leading-tight font-semibold tracking-tight">{f.name}</h2>
         <p className="text-sm text-muted-foreground">{facts.join(" · ")}</p>
         {flag && <FacilityFlagNote flag={flag} />}
@@ -500,7 +557,7 @@ function FacilitySummary({ result, lastYear, flag }: { result: BenchmarkResult; 
           <p className="rounded-xl bg-black/4 px-3.5 py-2.5 text-[13px] leading-relaxed text-muted-foreground dark:bg-white/6">
             Showing the <span className="font-medium text-foreground">{result.line.label}</span> service line
             {result.line.beds != null && `: ${result.line.beds.toLocaleString("en-US")} licensed beds in ${result.line.lastYear}`}. The
-            charts cover its bed classifications combined; the figures on this card are for the whole hospital.
+            charts cover its units combined; the figures on this card are for the whole hospital.
           </p>
         )}
         {!flag && result.category !== "quality" && lastYear < latestOf(result) && (
@@ -557,7 +614,7 @@ function FacilitySummary({ result, lastYear, flag }: { result: BenchmarkResult; 
         </dl>
       </section>
       <section aria-label="Peer group" className="widget fade-up flex flex-col gap-1 p-5">
-        <p className="text-[11px] font-medium tracking-wide text-tertiary-foreground uppercase">Compared with</p>
+        <p className="text-xs font-medium tracking-wide text-tertiary-foreground uppercase">Compared with</p>
         <p className="num text-[40px] leading-none font-semibold tracking-tight">{result.peers.length}</p>
         <p className="text-[13px] font-medium">
           {similar ? "similar hospitals" : result.filters.mode === "statewide" ? "hospitals statewide" : `hospital${result.peers.length === 1 ? "" : "s"} you chose`}
@@ -603,9 +660,9 @@ function unitAlias(unit: { label: string; description: string }) {
 function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <div className="min-w-0">
-      <dt className="truncate text-[11px] text-tertiary-foreground">{label}</dt>
+      <dt className="truncate text-xs text-tertiary-foreground">{label}</dt>
       <dd className="num truncate text-[15px] font-semibold tracking-tight">{value}</dd>
-      {sub && <dd className="truncate text-[11px] text-tertiary-foreground">{sub}</dd>}
+      {sub && <dd className="truncate text-xs text-tertiary-foreground">{sub}</dd>}
     </div>
   )
 }
@@ -696,9 +753,13 @@ function EmptyState({
   )
 }
 
-function LoadingState({ count }: { count: number }) {
+function LoadingState({ count, message }: { count: number; message: string }) {
   return (
     <div className="space-y-6" aria-busy>
+      <p className="flex items-center gap-2 text-[13px] text-muted-foreground">
+        <Loader2 className="size-3.5 animate-spin" aria-hidden />
+        {message}
+      </p>
       <div className="space-y-2">
         <div className="h-7 w-72 animate-pulse rounded-lg bg-muted" />
         <div className="h-4 w-96 max-w-full animate-pulse rounded-lg bg-muted" />

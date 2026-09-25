@@ -8,7 +8,7 @@ import { formatMetric } from "@/lib/format"
 import { niceTicks } from "@/lib/ticks"
 import { cn } from "@/lib/utils"
 
-const axisTick = { fontSize: 11, fill: "var(--muted-foreground)" }
+const axisTick = { fontSize: 12, fill: "var(--muted-foreground)" }
 
 type DotProps = { cx?: number; cy?: number; payload?: CorrelatePoint }
 
@@ -48,7 +48,7 @@ export function ScatterPlot({
 
   return (
     <figure aria-hidden className="m-0">
-      <p className="mb-1 text-[11px] text-tertiary-foreground">↑ {y.label}</p>
+      <p className="mb-1 text-xs text-tertiary-foreground">↑ {y.label}</p>
       <div className="h-80 w-full sm:h-96">
         <ResponsiveContainer width="100%" height="100%">
           <ScatterChart margin={{ top: 8, right: 12, bottom: 4, left: 0 }}>
@@ -112,7 +112,7 @@ export function ScatterPlot({
           </ScatterChart>
         </ResponsiveContainer>
       </div>
-      <p className="mt-1 text-right text-[11px] text-tertiary-foreground">{x.label} →</p>
+      <p className="mt-1 text-right text-xs text-tertiary-foreground">{x.label} →</p>
     </figure>
   )
 }

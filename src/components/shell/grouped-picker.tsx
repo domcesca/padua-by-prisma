@@ -116,7 +116,7 @@ export function GroupedPicker({ noun, options, selected, onChange, multiple = fa
       >
         <span className="min-w-0 flex-1">
           <span className="line-clamp-2">{o.label}</span>
-          {tag && <span className="block truncate text-[11px] text-muted-foreground">Matches “{tag}”</span>}
+          {tag && <span className="block truncate text-xs text-muted-foreground">Matches “{tag}”</span>}
         </span>
         {o.hint && <span className="shrink-0 text-xs text-muted-foreground">{o.hint}</span>}
       </CommandItem>
@@ -138,7 +138,7 @@ export function GroupedPicker({ noun, options, selected, onChange, multiple = fa
         <Chevron className="size-3.5! text-tertiary-foreground" />
         <span className="min-w-0 flex-1 truncate">{label}</span>
         {chosenCount > 0 && (
-          <span className="rounded-full bg-primary/12 px-1.5 text-[11px] font-medium text-primary">
+          <span className="rounded-full bg-primary/12 px-1.5 text-xs font-medium text-primary">
             {count == null ? chosenCount : `${chosenCount} chosen`}
           </span>
         )}

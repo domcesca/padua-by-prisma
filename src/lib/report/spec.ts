@@ -1,3 +1,4 @@
+import type { SourceStatus } from "@/lib/data/freshness"
 // A report is a small, fully declarative config: which metrics, which chart,
 // how to group. The Build page edits one through controls; the server
 // validates and runs it (./run.ts). Anything that can produce a ReportSpec —
@@ -102,6 +103,10 @@ export type ReportPanel = {
   /** The single year shown, for snapshot groupings. */
   year: number | null
   note: string | null
+  /** The focus hospital's latest year with a value (up to the snapshot year), for the status line. */
+  through: number | null
+  /** The newest year the source has for any hospital. */
+  latestYear: number | null
 }
 
 export type ReportResult = {
@@ -110,4 +115,6 @@ export type ReportResult = {
   subtitle: string
   panels: ReportPanel[]
   peerGroup: { description: string; count: number } | null
+  /** Per source shown: publication and processing dates and the focus hospital's record match (status lines). */
+  sources: Record<string, SourceStatus>
 }

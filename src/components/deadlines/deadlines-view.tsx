@@ -246,7 +246,7 @@ const STATUS: Record<DeadlineStatus, { label: string; icon: typeof Clock; classN
   past: { label: "Due date passed", icon: AlertCircle, className: "text-warning" },
   soon: { label: "Due soon", icon: Clock, className: "text-warning" },
   upcoming: { label: "Upcoming", icon: CalendarDays, className: "text-muted-foreground" },
-  filed: { label: "Filed", icon: CheckCircle2, className: "text-positive" },
+  filed: { label: "Filed", icon: CheckCircle2, className: "text-favorable" },
 }
 
 function DeadlineRow({
@@ -270,11 +270,11 @@ function DeadlineRow({
   return (
     <li className={cn("grid gap-4 px-4 py-4 sm:grid-cols-[4.5rem_1fr_auto] sm:items-center sm:px-5", status === "filed" && "opacity-60")}>
       <div className="flex items-baseline gap-2 sm:block sm:text-center">
-        <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
           {formatDate(due, { month: "short" })}
         </p>
         <p className="num text-2xl leading-none font-semibold tracking-tight">{formatDate(due, { day: "numeric" })}</p>
-        <p className="num text-[11px] text-tertiary-foreground">{due.getUTCFullYear()}</p>
+        <p className="num text-xs text-tertiary-foreground">{due.getUTCFullYear()}</p>
       </div>
 
       <div className="min-w-0 space-y-1">

@@ -303,7 +303,7 @@ function PanelTooltip({
 
 // -- helpers ------------------------------------------------------------------
 
-const axisTick = { fontSize: 11, fill: "var(--muted-foreground)" }
+const axisTick = { fontSize: 12, fill: "var(--muted-foreground)" }
 
 function includeZero(metric: MetricDef) {
   if (metric.id === "operatingMargin") return false

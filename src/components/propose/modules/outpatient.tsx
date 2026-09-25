@@ -265,7 +265,7 @@ function Editor({ state, onChange, data, context }: ModuleEditorProps<State, Out
                           ? "CMS publishes per-hospital counts only for comprehensive (procedure) APCs, so there’s no baseline for this one."
                           : data.baseline
                             ? `${baselineYear}: ${r.baseline != null ? `${formatInt(r.baseline)} Medicare services here` : "fewer than 11 Medicare services here"}${
-                                data.peers ? (peer ? ` · similar hospitals: median ${formatInt(peer.median)} (${peer.reporting} of ${data.peers.count} had 11+)` : ` · none of ${data.peers.count} similar hospitals had 11+`) : ""
+                                data.peers ? (peer ? ` · peer median ${formatInt(peer.median)} (${peer.reporting} of ${data.peers.count} peers had 11+)` : ` · none of ${data.peers.count} peers had 11+`) : ""
                               }`
                             : "CMS publishes no Medicare outpatient services for this hospital."}
                       </p>
@@ -317,7 +317,7 @@ function Editor({ state, onChange, data, context }: ModuleEditorProps<State, Out
                   )}
                   <div className="mb-1 ml-auto text-right">
                     <p className="num text-[14px] font-medium">{formatUsd(r.facility + r.professional)}</p>
-                    <p className="num text-[11px] text-muted-foreground">
+                    <p className="num text-xs text-muted-foreground">
                       {servicesText(r.added)} ×{" "}
                       {state.scope === "both" ? `(${formatUsd(r.rate)} + ${formatUsd(r.pro)})` : formatUsd(state.scope === "facility" ? r.rate : r.pro)}
                     </p>

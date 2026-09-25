@@ -1,6 +1,6 @@
 "use client"
 
-import { Check, ChevronDown, Link2, Printer, TriangleAlert } from "lucide-react"
+import { Check, ChevronDown, Link2, Loader2, Printer, TriangleAlert } from "lucide-react"
 import { useEffect, useMemo, useState, type CSSProperties } from "react"
 
 import { FacilityPicker, type FacilityOption } from "@/components/benchmark/facility-picker"
@@ -133,6 +133,9 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
   const focused = projections.find((p) => p.scenario === focus)!
   const hasCost = spec.costs.capital + spec.costs.implementation + spec.costs.maintenance > 0
   const ready = !benefit.incomplete && hasCost
+  // Nothing entered yet: say what the results will hold instead of a page of zeros.
+  const nothingEntered = !benefit.annual && !hasCost
+  const dataLoading = mod.hasData && data?.key !== dataKey
   // Advanced read-outs: the same model re-run, so only once there's something to re-run.
   const breakEvenResult = showBreakEven && ready ? breakEven(model) : null
   const sensitivityResult = showSensitivity && ready ? sensitivity(model) : null
@@ -219,6 +222,12 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
           <h2 id="benefit-title" className="mb-3 text-[15px] font-semibold tracking-tight">
             Benefit: {mod.label.toLowerCase()}
           </h2>
+          {dataLoading && (
+            <p role="status" className="mb-3 flex items-center gap-2 text-[13px] text-muted-foreground">
+              <Loader2 className="size-3.5 animate-spin" aria-hidden /> Loading {facility?.name ?? "the hospital"}&apos;s public data for this
+              estimate…
+            </p>
+          )}
           {dataError ? (
             <p role="alert" className="text-sm text-muted-foreground">
               Couldn’t load this module’s data. Reload the page to try again.
@@ -299,7 +308,7 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
           </div>
         )}
 
-        {!ready && (
+        {!ready && !nothingEntered && (
           <p role="status" className="flex items-start gap-2 rounded-xl bg-black/4 px-4 py-3 text-[13px] dark:bg-white/6 print:hidden">
             <TriangleAlert className="mt-0.5 size-3.5 shrink-0 text-warning" aria-hidden />
             <span>
@@ -309,6 +318,9 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
           </p>
         )}
 
+        {nothingEntered ? (
+          <EmptyResults moduleLabel={mod.label} />
+        ) : (
         <div className="space-y-4 print:flex print:flex-col print:gap-4 print:space-y-0">
         {benefit.caution && (
           <p className="flex items-start gap-2 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-[13px] leading-relaxed print:order-first print:break-inside-avoid">
@@ -494,7 +506,31 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
           </p>
         </div>
         </div>
+        )}
       </section>
+    </div>
+  )
+}
+
+/** Before any benefit or cost is entered: what the results will show, not a page of zeros. */
+function EmptyResults({ moduleLabel }: { moduleLabel: string }) {
+  return (
+    <div role="status" className="glass rounded-2xl p-5 print:hidden">
+      <p className="text-[15px] font-semibold tracking-tight">Results appear as you fill in the benefit and costs</p>
+      <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-muted-foreground">
+        Start with the {moduleLabel.toLowerCase()} estimate above, then enter at least one cost. You&apos;ll get three
+        scenarios (conservative, expected, optimistic) with payback, ROI, and NPV; a cumulative net benefit chart; and a
+        year-by-year table.
+      </p>
+      <div className="mt-4 grid gap-3 md:grid-cols-3" aria-hidden>
+        {["Conservative", "Expected", "Optimistic"].map((label) => (
+          <div key={label} className="rounded-xl border border-dashed border-border px-4 py-3">
+            <p className="text-[13px] font-medium text-muted-foreground">{label}</p>
+            <div className="mt-2 h-6 w-24 rounded-md bg-muted" />
+            <div className="mt-2 h-3 w-36 rounded bg-muted" />
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
@@ -556,7 +592,7 @@ function BreakEvenLine({
   return (
     <div className="glass flex flex-wrap items-center justify-between gap-x-6 gap-y-1 rounded-2xl px-5 py-3 print:break-inside-avoid">
       <div>
-        <p className="text-[11px] font-medium tracking-wide text-tertiary-foreground uppercase">Break-even volume · expected scenario</p>
+        <p className="text-xs font-medium tracking-wide text-tertiary-foreground uppercase">Break-even volume · expected scenario</p>
         <p className="text-xs text-muted-foreground">
           The least volume that pays back {within}, with costs and prices as entered{expectedRate !== 100 ? ` and the benefit at ${expectedRate}% of the estimate` : ""}.
         </p>
@@ -610,7 +646,7 @@ function ScenarioCard({
       )}
     >
       <span className="flex items-center justify-between gap-2">
-        <span className="inline-flex items-center gap-1.5 text-[11px] font-medium tracking-wide text-tertiary-foreground uppercase">
+        <span className="inline-flex items-center gap-1.5 text-xs font-medium tracking-wide text-tertiary-foreground uppercase">
           <span className="size-2 rounded-full" style={{ background: SCENARIO_COLOR[p.scenario] }} aria-hidden />
           {p.label} · {formatRate(p.multiplier)}
         </span>
@@ -634,8 +670,8 @@ function ScenarioCard({
 function Stat({ label, value, tone }: { label: string; value: string; tone?: number | null }) {
   return (
     <span className="min-w-0">
-      <dt className="truncate text-[11px] text-muted-foreground">{label}</dt>
-      <dd className={cn("font-medium", tone != null && tone < 0 && "text-destructive")}>{value}</dd>
+      <dt className="truncate text-xs text-muted-foreground">{label}</dt>
+      <dd className={cn("font-medium", tone != null && tone < 0 && "text-unfavorable")}>{value}</dd>
     </span>
   )
 }
@@ -646,7 +682,7 @@ function YearTable({ p }: { p: Projection }) {
     <div className="-mx-2 overflow-x-auto">
       <table className="num w-full min-w-[30rem] text-[13px]">
         <thead>
-          <tr className="border-b border-border text-[11px] text-muted-foreground">
+          <tr className="border-b border-border text-xs text-muted-foreground">
             <th scope="col" className="px-2 py-1.5 text-left font-medium">Year</th>
             <th scope="col" className={cn(cell, "font-medium")}>Benefit</th>
             <th scope="col" className={cn(cell, "font-medium")}>Costs</th>
@@ -663,8 +699,8 @@ function YearTable({ p }: { p: Projection }) {
               </th>
               <td className={cell}>{formatUsd(r.benefit)}</td>
               <td className={cell}>{formatUsd(-r.cost)}</td>
-              <td className={cn(cell, r.net < 0 && "text-destructive")}>{formatUsd(r.net)}</td>
-              <td className={cn(cell, "font-medium", r.cumulative < 0 && "text-destructive")}>{formatUsd(r.cumulative)}</td>
+              <td className={cn(cell, r.net < 0 && "text-unfavorable")}>{formatUsd(r.net)}</td>
+              <td className={cn(cell, "font-medium", r.cumulative < 0 && "text-unfavorable")}>{formatUsd(r.cumulative)}</td>
               <td className={cn(cell, "text-muted-foreground")}>{formatUsd(r.present)}</td>
             </tr>
           ))}
@@ -701,7 +737,7 @@ function Inputs({
     <div className="flex items-baseline justify-between gap-3 py-1">
       <dt className="min-w-0">
         <span className="block text-[13px] leading-snug">{label}</span>
-        {detail && <span className="num block text-[11px] text-muted-foreground">{detail}</span>}
+        {detail && <span className="num block text-xs text-muted-foreground">{detail}</span>}
       </dt>
       <dd className="num shrink-0 text-[13px] font-medium">{value}</dd>
     </div>
@@ -709,14 +745,14 @@ function Inputs({
   return (
     <div className="space-y-3">
       <div>
-        <p className="text-[11px] font-medium tracking-wide text-tertiary-foreground uppercase">Benefit a year (estimate, before scenario rates)</p>
+        <p className="text-xs font-medium tracking-wide text-tertiary-foreground uppercase">Benefit a year (estimate, before scenario rates)</p>
         <dl className="divide-y divide-border/60">
           {lines.length ? lines.map((l) => <div key={l.label}>{row(l.label, formatUsd(l.amount), l.detail)}</div>) : row("None entered yet", "—")}
           {lines.length > 1 && row("Total", formatUsd(annual))}
         </dl>
       </div>
       <div>
-        <p className="text-[11px] font-medium tracking-wide text-tertiary-foreground uppercase">Costs</p>
+        <p className="text-xs font-medium tracking-wide text-tertiary-foreground uppercase">Costs</p>
         <dl className="divide-y divide-border/60">
           {row("Capital outlay", formatUsd(costs.capital), "Up front")}
           {row("Implementation", formatUsd(costs.implementation), "Up front")}
@@ -728,7 +764,7 @@ function Inputs({
       </div>
       {advanced.length > 0 && (
         <div>
-          <p className="text-[11px] font-medium tracking-wide text-tertiary-foreground uppercase">Advanced settings</p>
+          <p className="text-xs font-medium tracking-wide text-tertiary-foreground uppercase">Advanced settings</p>
           <dl className="divide-y divide-border/60">{advanced.map(([label, value]) => <div key={label}>{row(label, value)}</div>)}</dl>
         </div>
       )}

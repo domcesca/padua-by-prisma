@@ -29,7 +29,7 @@ export function FacilityFlagBadge({ flag, className }: { flag: FacilityFlag; cla
     <span
       title={flag.title}
       className={cn(
-        "inline-flex shrink-0 items-center rounded-full px-1.5 py-px text-[11px] leading-4 font-medium",
+        "inline-flex shrink-0 items-center rounded-full px-1.5 py-px text-xs leading-4 font-medium",
         flag.kind === "closed" ? "bg-warning/15 text-foreground" : "bg-black/6 text-muted-foreground dark:bg-white/10",
         className
       )}

@@ -23,12 +23,12 @@ export function MetricInfo({ metric }: { metric: DictionaryMetric & { dataset?: 
           <p className="text-sm font-medium">{metric.label}</p>
           <p className="text-sm leading-relaxed text-muted-foreground">{metric.summary}</p>
         </div>
-        <p className="rounded-lg bg-muted px-2.5 py-2 font-mono text-[11px] leading-relaxed text-muted-foreground">
+        <p className="rounded-lg bg-muted px-2.5 py-2 font-mono text-xs leading-relaxed text-muted-foreground">
           {metric.formula}
         </p>
         {metric.caution && (
           <div className="rounded-lg bg-black/4 px-2.5 py-2 dark:bg-white/6">
-            <p className="text-[11px] font-medium text-foreground">
+            <p className="text-xs font-medium text-foreground">
               {metric.estimate ? "Estimate — read before comparing" : "Read before comparing"}
             </p>
             <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{metric.caution}</p>
@@ -42,7 +42,7 @@ export function MetricInfo({ metric }: { metric: DictionaryMetric & { dataset?: 
           <>
             {metric.drivers.length > 0 && (
               <div className="space-y-1">
-                <p className="text-[11px] font-medium text-foreground">Why it moves</p>
+                <p className="text-xs font-medium text-foreground">Why it moves</p>
                 <ul className="list-disc space-y-0.5 pl-4 text-xs leading-relaxed text-muted-foreground">
                   {metric.drivers.map((d) => (
                     <li key={d}>{d}</li>

@@ -45,7 +45,7 @@ export default async function DeadlinesPage({ searchParams }: PageProps<"/deadli
         </ul>
         <p className="text-xs leading-relaxed text-tertiary-foreground">
           Dates are computed from these rules and aren&apos;t adjusted for weekends or state holidays. SIERA shows your
-          facility&apos;s official due dates and any approved extensions or reporting modifications — check it before
+          hospital&apos;s official due dates and any approved extensions or reporting modifications — check it before
           relying on a date. This calendar covers HCAI financial reports only, not patient-level data (MIRCal) or other
           state and federal filings.
         </p>

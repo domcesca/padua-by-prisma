@@ -274,7 +274,7 @@ export function HomeFlow({
                     Available now: {c.partial.label} →
                   </Link>
                 )}
-                <span className="mt-auto rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                <span className="mt-auto rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
                   {c.partial ? "All payers: coming later" : "Coming later"}
                 </span>
               </div>
@@ -300,7 +300,7 @@ export function HomeFlow({
         ) : previewLoading && !preview ? (
           <p className="text-[13px] text-muted-foreground">Loading units…</p>
         ) : units.length === 0 ? (
-          <p className="text-[13px] text-muted-foreground">HCAI has no bed classifications on file for this hospital.</p>
+          <p className="text-[13px] text-muted-foreground">HCAI has no unit data on file for this hospital.</p>
         ) : (
           <div className="space-y-2">
             <div role="radiogroup" aria-label="Unit" className="flex flex-wrap gap-1.5">
@@ -358,7 +358,7 @@ export function HomeFlow({
           </div>
         ) : (
           <div className="glass fade-up grid gap-6 rounded-2xl p-5 md:grid-cols-[auto_1fr]">
-            <p className="text-[13px] font-medium md:pt-1.5">Compare with</p>
+            <p className="text-[13px] font-medium md:pt-1.5">Peer group</p>
             <div className="space-y-1.5">
               <Segmented
                 label="Peer group"

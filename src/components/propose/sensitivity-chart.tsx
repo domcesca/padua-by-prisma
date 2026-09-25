@@ -65,7 +65,7 @@ export function SensitivityChart({ result }: { result: Sensitivity }) {
         aria-hidden
       >
         <span className="max-sm:hidden" />
-        <p className="text-center text-[11px] text-muted-foreground">
+        <p className="text-center text-xs text-muted-foreground">
           Center line: {outcome === "roi" ? "ROI" : "NPV"} as entered,{" "}
           {formatOutcome(base, outcome)}
         </p>
@@ -136,7 +136,7 @@ function Row({
       <p className="min-w-0 text-[13px] leading-tight">
         {bar.label}
         {bar.lowText && (
-          <span className="num block text-[11px] text-muted-foreground">
+          <span className="num block text-xs text-muted-foreground">
             {bar.lowText} vs {bar.highText}
           </span>
         )}
@@ -196,7 +196,7 @@ function Row({
             <span
               key={e.key}
               className={cn(
-                "num absolute top-1/2 -translate-y-1/2 text-[11px] whitespace-nowrap",
+                "num absolute top-1/2 -translate-y-1/2 text-xs whitespace-nowrap",
                 inside ? "font-medium text-white" : "text-muted-foreground",
                 left !== inside ? "-translate-x-full" : "",
               )}

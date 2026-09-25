@@ -92,7 +92,7 @@ function DataNote({ manifests }: { manifests: Awaited<ReturnType<typeof getManif
       <p>
         Hospitals with partial-year or multiple reports are combined and annualized. Utilization for campuses that share a
         license is combined into the licensed hospital, matching the financial report. CMS and CDPH identify hospitals by
-        their own IDs; those are matched to HCAI facilities with CDPH’s licensed facility crosswalk. Recent financial years include reports
+        their own IDs; those are matched to HCAI hospitals with CDPH’s licensed facility crosswalk. Recent financial years include reports
         HCAI hasn’t finished auditing. Data processed{" "}
         {new Date(generatedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}.
       </p>

@@ -30,7 +30,7 @@ export function CumulativeChart({ projections, focus }: { projections: Projectio
             dataKey="year"
             tickLine={false}
             axisLine={{ stroke: "var(--border)" }}
-            tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+            tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
             tickFormatter={(y: number) => (y === 0 ? "Start" : `Yr ${y}`)}
             tickMargin={8}
             interval="preserveStartEnd"
@@ -41,7 +41,7 @@ export function CumulativeChart({ projections, focus }: { projections: Projectio
             axisLine={false}
             ticks={ticks}
             domain={[ticks[0], ticks.at(-1)!]}
-            tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+            tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
             tickFormatter={(v: number) => formatUsd(v, { compact: true })}
           />
           <ReferenceLine y={0} stroke="var(--muted-foreground)" strokeDasharray="4 3" />

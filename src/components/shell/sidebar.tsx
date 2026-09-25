@@ -56,13 +56,13 @@ export function Sidebar() {
                   <Icon
                     className={cn(
                       "size-4 shrink-0",
-                      active ? "text-primary" : "text-tertiary-foreground group-hover:text-muted-foreground"
+                      active ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
                     )}
                     strokeWidth={2}
                   />
                   <span className="flex-1">{label}</span>
                   {soon && (
-                    <span className="rounded-full bg-black/5 px-1.5 py-px text-[10px] font-medium tracking-wide text-muted-foreground uppercase dark:bg-white/10">
+                    <span className="rounded-full bg-black/5 px-1.5 py-px text-[11px] font-medium tracking-wide text-muted-foreground uppercase dark:bg-white/10">
                       Soon
                     </span>
                   )}
@@ -74,7 +74,7 @@ export function Sidebar() {
       </nav>
 
       <div className="flex items-center justify-between gap-2 border-t border-sidebar-border px-5 py-4">
-        <p className="text-[11px] leading-tight text-tertiary-foreground">
+        <p className="text-xs leading-tight text-tertiary-foreground">
           Source: HCAI via
           <br />
           CalHHS Open Data

@@ -3,6 +3,7 @@ import "server-only"
 import type { PeerFilters } from "@/lib/benchmark/filters"
 import { resolvePeerGroup } from "@/lib/benchmark/peers"
 import { getFacilities, getInpatientCases, getInpatientCasesManifest, getInpatientDrgs, getIppsDrgs, getIppsManifest } from "@/lib/data/store"
+import { getSourceStatus, type SourceStatus } from "@/lib/data/freshness"
 import type { Facility } from "@/lib/data/types"
 import { quantile } from "@/lib/benchmark/compute"
 import { MAX_COMPARE, MDCS, mdcKey } from "./mdc"
@@ -75,6 +76,8 @@ export type SpecialtyResult = {
   topDrgs: TopDrg[]
   /** The hospital's cases in DRGs CMS has retired since, priced at their last published weight. */
   retired: { cases: number; payment: number; lastFiscalYear: number } | null
+  /** Publication and processing dates, and this hospital's record match, for the status line. */
+  source: SourceStatus
 }
 
 type Pricing = Map<string, { mdc: string; weight: number; title: string; retired: boolean }>
@@ -227,5 +230,6 @@ export async function computeSpecialties({
     compare,
     topDrgs,
     retired,
+    source: await getSourceStatus("cms-inpatient", facility.id),
   }
 }

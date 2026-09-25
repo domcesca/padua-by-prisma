@@ -2,8 +2,14 @@
 
 import { useState } from "react"
 
+import { StandingBadge } from "@/components/shell/standing"
+import { StatusLine } from "@/components/shell/status-line"
+import type { SourceStatus } from "@/lib/data/freshness"
+import { auditLabel } from "@/lib/status"
+
 import type { PayerMixComparison } from "@/lib/benchmark/compute"
 import type { DictionaryMetric, PayerGroup } from "@/lib/data/types"
+import { CONTEXT_REASONS } from "@/lib/favorability/directions"
 import { formatPercent } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { MetricInfo } from "./metric-info"
@@ -17,10 +23,12 @@ export function PayerMixCard({
   mix,
   groups,
   meta,
+  source,
 }: {
   mix: PayerMixComparison
   groups: { id: PayerGroup; label: string }[]
   meta: DictionaryMetric
+  source?: SourceStatus
 }) {
   const [basis, setBasis] = useState<"revenue" | "days">("revenue")
   const current = mix[basis]
@@ -46,7 +54,8 @@ export function PayerMixCard({
             </h2>
             <MetricInfo metric={meta} />
           </div>
-          <p className="mt-1.5 text-[17px] font-semibold tracking-tight">
+          <StandingBadge standing="depends" className="mt-1.5" title={CONTEXT_REASONS.payerMix} />
+          <p className="mt-1 text-[17px] font-semibold tracking-tight">
             {biggest && Math.abs(biggest.diff) >= 0.02
               ? `${biggest.label} is ${formatPercent(Math.abs(biggest.diff), 0).replace("%", " points")} ${biggest.diff > 0 ? "higher" : "lower"} than peers.`
               : "Payer mix is close to the peer average."}
@@ -117,6 +126,14 @@ export function PayerMixCard({
           ? "Share of gross charges (inpatient + outpatient). Charges are list prices, so this shows where volume comes from, not where cash comes from."
           : "Share of inpatient days. Outpatient volume isn't included."}
       </p>
+      <StatusLine
+        className="mt-3 border-t border-border pt-2.5"
+        through={String(mix.year)}
+        periodType="Report year (hospital fiscal year)"
+        published={source?.published[mix.year] ? `Published ${source.published[mix.year]}` : null}
+        processed={source ? `Processed ${source.processed}` : null}
+        audit={auditLabel(mix.status)}
+      />
     </section>
   )
 }

@@ -67,7 +67,7 @@ export function FieldRow({
           expanded && "bg-muted/40"
         )}
       >
-        <code className="order-last col-span-2 font-mono text-[11px] text-tertiary-foreground sm:order-none sm:col-span-1 sm:pt-0.5">
+        <code className="order-last col-span-2 font-mono text-xs text-tertiary-foreground sm:order-none sm:col-span-1 sm:pt-0.5">
           {field.code}
         </code>
         <span className="min-w-0">

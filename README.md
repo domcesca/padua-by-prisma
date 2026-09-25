@@ -181,6 +181,38 @@ used (they cover traditional Medicare only, by calendar year, and need a CCN cro
   fiscal-year and include long-term care units. Cards say so.
 - Medicare Advantage share (MA discharges ÷ all Medicare discharges) is available under the Medicare view and in Build.
 
+## Shared vocabulary (V6.13)
+
+A consistency pass across every tool; no data or calculation changed (136/136 API responses identical to V6.12 apart
+from the new status metadata).
+- **Favorability** (`src/lib/favorability/`): every peer comparison leads with **Favorable**, **Unfavorable**,
+  **Similar to peers**, or **Direction depends on strategy**, then the rank and peer median as evidence. Rule:
+  outside the 25th–75th percentile band (the band the charts shade) on the favorable/unfavorable side; inside it,
+  similar; fewer than 3 peers, "Too few peers to judge". Which way is favorable is one config,
+  `src/lib/favorability/directions.ts` (higher / lower / context for every metric); `npm run check:directions` checks
+  it against the ETL dictionaries' `higherIsBetter`. Volumes, length of stay, occupancy, case mix index, and payer mix
+  are context: never judged.
+- **Direction words**: metric cards say how the value moved since the previous period, "↗ Improving", "↘ Worsening",
+  or "Up"/"Down" for context metrics, "→ Unchanged". Favorable and unfavorable use the same two tokens everywhere
+  (`--color-favorable`, `--color-unfavorable`) and never carry meaning by color alone.
+- **Status line** (`src/components/shell/status-line.tsx`, `src/lib/status.ts`, `src/lib/data/freshness.ts`): one line
+  on every metric card, Build chart, Correlate axis, Translate year, and the payer mix, specialty, and service-line
+  panels: data through · period type · published (from the source file's release date) · processed · audit status
+  (HCAI financials) · quality flags from one vocabulary: stale, provisional, partial period, matched record,
+  unavailable.
+- **Terms** (`src/lib/vocabulary.ts`, listed first in the help glossary): hospital (not facility), peer group / peers,
+  unit (a hospital's beds in one HCAI bed classification), service line, report year, calendar year, federal fiscal
+  year, measurement period. The peer-group control is labeled "Peer group" in every tool; Build's extra hospitals are
+  "Hospitals side by side".
+- **Contrast**: secondary and tertiary text meet WCAG AA (4.5:1) in light and dark; 11px captions and metadata are now
+  12px; inactive navigation is darker.
+- **Loading and empty states**: skeletons say what's loading ("Loading Cedars-Sinai Medical Center's utilization
+  data…"); Propose shows what the results will hold instead of zeros until a benefit or cost is entered.
+- **Small screens**: Benchmark's and Correlate's control strips fold into a pinned summary bar (hospital, topic, data
+  period, "Filters" with a count) and a bottom sheet with the full controls.
+- **Keyboard and screen readers**: every focusable control shows a solid focus ring; loading states and result counts
+  are announced (`LiveStatus`); pickers and popovers return focus to their trigger (checked in the browser).
+
 ## Service lines (V6.12)
 
 Benchmark → Utilization → **Unit or service line** groups HCAI's 14 bed classifications into service lines, alongside

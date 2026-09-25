@@ -9,6 +9,7 @@ import {
   type MetricDef,
   type PayerView,
 } from "@/lib/data/datasets"
+import { getSourceStatus, type SourceStatus } from "@/lib/data/freshness"
 import { getCommunityContext, getFacilities, getFacilityUnits, getManifest, getMetricCatalog, getMetrics, getPublishedYears } from "@/lib/data/store"
 import type { CommunityContext, DatasetId, Facility, FacilityUnit, MetricCategory, MetricsFile, PayerGroup, PayerMix, PointDetail } from "@/lib/data/types"
 import type { PeerFilters } from "./filters"
@@ -37,6 +38,8 @@ export type SeriesPoint = {
 
 export type PayerMixComparison = {
   year: number
+  /** HCAI's audit status on the hospital's report that year. */
+  status: string | null
   revenue: { facility: PayerMix | null; peers: PayerMix | null; n: number }
   days: { facility: PayerMix | null; peers: PayerMix | null; n: number }
 }
@@ -75,6 +78,8 @@ export type BenchmarkResult = {
   /** Caveats about this hospital's data in this category (e.g. reported together with another hospital). */
   notes: string[]
   payerMix: PayerMixComparison | null
+  /** Per source shown: publication and processing dates, provisional years, and this hospital's record match (status lines). */
+  sources: Partial<Record<DatasetId, SourceStatus>>
 }
 
 const PAYER_GROUPS: PayerGroup[] = ["medicare", "medical", "commercial", "indigent", "other"]
@@ -252,6 +257,13 @@ export async function computeBenchmark({
       .sort((a, b) => a.name.localeCompare(b.name)),
     series,
     payerMix: category === "financial" ? await payerMix(facility.id, peerIds) : null,
+    sources: Object.fromEntries(
+      await Promise.all(
+        [...new Set([...metrics, ...companions].map((m) => m.dataset).concat(category === "financial" ? ["hafd-selected"] : []))].map(
+          async (d) => [d, await getSourceStatus(d, facility.id)] as const
+        )
+      )
+    ),
   }
 }
 
@@ -290,5 +302,5 @@ async function payerMix(facilityId: string, peerIds: string[]): Promise<PayerMix
     const peerMixes = peerIds.map((id) => file[id]?.[year]?.[key] as PayerMix | null | undefined).filter((m): m is PayerMix => !!m)
     return { facility: (own[year]?.[key] as PayerMix | null) ?? null, peers: averageMix(peerMixes), n: peerMixes.length }
   }
-  return { year, revenue: pick("payerMixRevenue"), days: pick("payerMixDays") }
+  return { year, status: own[year]?.status ?? null, revenue: pick("payerMixRevenue"), days: pick("payerMixDays") }
 }

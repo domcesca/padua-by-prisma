@@ -114,7 +114,7 @@ export function CommunityPanel({ context }: { context: CommunityContext }) {
 
           {acs && (
             <div className="space-y-2">
-              <p className="text-[11px] font-medium tracking-wide text-tertiary-foreground uppercase">Health coverage</p>
+              <p className="text-xs font-medium tracking-wide text-tertiary-foreground uppercase">Health coverage</p>
               <div className="space-y-1.5">
                 <CoverageBar label="Private insurance" value={acs.pctPrivate} />
                 <CoverageBar label="Medicare" value={acs.pctMedicare} />
@@ -160,9 +160,9 @@ export function CommunityPanel({ context }: { context: CommunityContext }) {
 function Tile({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <div className="min-w-0 rounded-xl bg-black/4 px-3.5 py-3 dark:bg-white/6">
-      <dt className="text-[11px] leading-snug text-tertiary-foreground">{label}</dt>
+      <dt className="text-xs leading-snug text-tertiary-foreground">{label}</dt>
       <dd className="num mt-0.5 text-[17px] font-semibold tracking-tight">{value}</dd>
-      {sub && <dd className="mt-0.5 text-[11px] leading-snug text-muted-foreground">{sub}</dd>}
+      {sub && <dd className="mt-0.5 text-xs leading-snug text-muted-foreground">{sub}</dd>}
     </div>
   )
 }

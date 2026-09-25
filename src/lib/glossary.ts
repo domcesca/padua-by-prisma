@@ -2,15 +2,16 @@ import "server-only"
 
 import { CATEGORY_BY_ID, DATASETS, isHcaiDataset, translateHref } from "@/lib/data/datasets"
 import { DATASET_IDS, getDictionary } from "@/lib/data/store"
+import { TERMS } from "@/lib/vocabulary"
 
-// The help panel's glossary: every metric and report field, straight from the same dictionaries
-// Translate and the metric catalog read (data/processed/<dataset>/dictionary.json), so the
-// definitions can't drift apart. Nothing here is written by hand.
+// The help panel's glossary: Padua's shared vocabulary (lib/vocabulary.ts) first, then every metric and report field,
+// straight from the same dictionaries Translate and the metric catalog read (data/processed/<dataset>/dictionary.json),
+// so the definitions can't drift apart.
 
 export type GlossaryEntry = {
   /** Unique across datasets: the same metric id can be defined by two sources (e.g. occupancy). */
   key: string
-  kind: "metric" | "field"
+  kind: "term" | "metric" | "field"
   term: string
   /** HCAI column code, for fields. */
   code?: string
@@ -61,7 +62,8 @@ export function getGlossary(): Promise<GlossaryEntry[]> {
         })
       }
     }
-    return [...metrics, ...fields]
+    const terms: GlossaryEntry[] = TERMS.map((t) => ({ key: `term:${t.term}`, kind: "term", term: t.term, definition: t.definition, context: "Padua vocabulary" }))
+    return [...terms, ...metrics, ...fields]
   })()
   cached.catch(() => (cached = null))
   return cached
