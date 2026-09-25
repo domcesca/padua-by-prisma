@@ -303,7 +303,13 @@ downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and
   are priced at their last published weight (flagged per DRG and in the notes).
 - Suppression: an MDC with no DRG at 11+ shows "fewer than 11 in each DRG", not "fewer than 11", because several
   suppressed DRGs can add up to more than 10. Counts are floors, and the notes say so.
-- The service-line bundling proposal (V6.11 draft) is still waiting on a decision; nothing was built for it.
+- Home page: the "Case mix" tile is now "Case mix by specialty", still marked "All payers: coming later", with a
+  link to the Medicare specialty view ("Available now: Medicare only").
+- Service-line bundling (queued as its own version, not built): mapping decided. Maternity & Newborn = Perinatal +
+  NICU, with the well-baby nursery (report line 35) as its own row outside the totals; Adult Critical Care = ICU +
+  Coronary Care + Acute Respiratory; Burn standalone; Pediatrics standalone; Behavioral Health = Acute Psychiatric +
+  Chemical Dependency Recovery; Long-Term Care = SNF + ICF + ICF/DD; Medical/Surgical and Rehabilitation standalone.
+  Every bed category is in exactly one line, so lines add up to total licensed beds.
 
 ## 3. Key decisions and why
 

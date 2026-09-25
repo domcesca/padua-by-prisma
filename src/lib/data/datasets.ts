@@ -100,9 +100,22 @@ export const CATEGORIES: CategoryInfo[] = [
 ]
 
 /** Categories planned for later phases; shown as "coming soon" on the home page. */
-export const FUTURE_CATEGORIES = [
-  { id: "caseMix", label: "Case mix", description: "The conditions and procedures hospitals treat. (Case mix index is under Utilization.)" },
-] as const
+export type FutureCategory = {
+  id: "caseMix"
+  label: string
+  description: string
+  /** A part that's already available: a Benchmark view to link to. */
+  partial?: { label: string; view: string; specialty: string }
+}
+
+export const FUTURE_CATEGORIES: FutureCategory[] = [
+  {
+    id: "caseMix",
+    label: "Case mix by specialty",
+    description: "The conditions and procedures hospitals treat, for every payer. (Case mix index is under Utilization.)",
+    partial: { label: "Medicare only: by specialty (MDC)", view: "utilization", specialty: "all" },
+  },
+]
 
 export const CATEGORY_BY_ID = Object.fromEntries(CATEGORIES.map((c) => [c.id, c])) as Record<MetricCategory, CategoryInfo>
 
