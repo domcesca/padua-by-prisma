@@ -7,7 +7,7 @@ plain-language field guide, and a reporting calendar.
 | Tab | What it does |
 | --- | --- |
 | **Home** | The front door. Pick a topic (Financials or Utilization; Quality and Case mix are reserved for later), pick a hospital, optionally refine the peer group, metrics, and years, and land in Benchmark pre-loaded. The chosen hospital follows you to every tab. |
-| **Benchmark** | A hospital against its peer group on financial metrics (operating margin, days cash on hand, cost and revenue per adjusted discharge, payer mix) or utilization metrics (occupancy, ALOS, ED visits and flow, surgeries, cath volume). Default peers are **similar hospitals** (see below); switch to all of California or set filters yourself. Every view is a shareable URL. |
+| **Benchmark** | A hospital against its peer group on financial metrics (operating margin, days cash on hand, cost and revenue per adjusted discharge, payer mix) or utilization metrics (occupancy, ALOS, ED visits and flow, surgeries, cath volume). Default peers are **similar hospitals** (see below); switch to all of California or set filters yourself. A **Payer view** toggle (All payers / Medicare) narrows the metrics to Medicare where HCAI reports a Medicare split. Every view is a shareable URL. |
 | **Build** | A guided chart and table builder: up to four metrics from the catalog, line / bar / table, grouped by year, by hospital, or against the peer group. Legend, table view, CSV download, and a copyable link on every result. |
 | **Translate** | Every field in either dataset in plain language, with why it moves. Pick a hospital to see year-over-year changes, or paste/upload a raw HCAI extract (.xlsx/.csv, including the utilization workbook) to translate its columns. Parsing happens in the browser. |
 | **Deadlines** | Quarterly and annual financial report due dates for a hospital's fiscal year, the Annual Utilization Report (Feb 15), extension limits, off-cycle report periods, and filed/extended tracking (saved in the browser). |
@@ -85,6 +85,23 @@ dictionary module (with `category` on each metric), register it in `datasets/__i
 `DATASET_IDS` in `src/lib/data/store.ts` and `DATASETS` in `src/lib/data/datasets.ts`. Its metrics then appear in
 Benchmark, Build, and Translate. Planned: Quarterly Financial & Utilization, Annual Disclosure complete set, Case Mix
 Index.
+
+## Medicare lens (Benchmark's Payer view)
+
+Built from the Medicare columns HCAI already publishes in the financial report (`*_MCAR_TR` traditional Medicare,
+`*_MCAR_MC` Medicare Advantage), so years and definitions match the all-payer view. The CMS public-use files are not
+used (they cover traditional Medicare only, by calendar year, and need a CCN crosswalk).
+
+- Each Medicare metric in `etl/hcai_etl/dictionary/hafd_selected.py` (`MEDICARE_METRICS`) has `lens: "medicare"` and
+  `allPayer: <metric id>`, the metric it replaces. `applyPayerView` in `src/lib/data/datasets.ts` does the swap.
+  Metrics with no Medicare split (days cash on hand, ED visits, occupancy, surgeries, …) stay all-payer and get an
+  "All payers" tag on the card.
+- **Medicare margin and cost per adjusted discharge are estimates.** HCAI doesn't report expense by payer, so patient
+  care cost (operating expense less other operating revenue) is allocated by Medicare's share of gross charges, the
+  AHA payment-to-cost convention. They won't match the Medicare cost report (CMS-2552).
+- Medicare volumes (discharges, days, length of stay, outpatient visits) come from the financial report, so they're
+  fiscal-year and include long-term care units. Cards say so.
+- Medicare Advantage share (MA discharges ÷ all Medicare discharges) is available under the Medicare view and in Build.
 
 ## Similar hospitals (the default peer group)
 

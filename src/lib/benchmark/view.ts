@@ -1,8 +1,8 @@
-import { CATEGORY_BY_ID, parseCategory } from "@/lib/data/datasets"
+import { CATEGORY_BY_ID, parseCategory, parsePayerView, type PayerView } from "@/lib/data/datasets"
 import type { MetricCategory } from "@/lib/data/types"
 
 // Which metrics Benchmark shows, shared by the page, the API route, and the URL:
-//   ?view=utilization&metrics=occupancy,edVisits&since=2021
+//   ?view=utilization&metrics=occupancy,edVisits&since=2021&payer=medicare
 
 export type BenchmarkViewState = {
   category: MetricCategory
@@ -10,6 +10,8 @@ export type BenchmarkViewState = {
   metrics: string[] | null
   /** First year to show; null = every year loaded. */
   since: number | null
+  /** Payer lens; metrics with a payer-specific version switch to it. */
+  payer: PayerView
 }
 
 type ParamSource = { get(name: string): string | null }
@@ -24,6 +26,7 @@ export function parseView(params: ParamSource): BenchmarkViewState {
     category: parseCategory(params.get("view")),
     metrics: metrics.length ? metrics : null,
     since: Number.isFinite(since) && since > 1990 ? since : null,
+    payer: parsePayerView(params.get("payer")),
   }
 }
 
@@ -36,7 +39,10 @@ export function viewToParams(view: BenchmarkViewState, params = new URLSearchPar
   else params.delete("metrics")
   if (view.since != null) params.set("since", String(view.since))
   else params.delete("since")
+  if (view.payer !== "all") params.set("payer", view.payer)
+  else params.delete("payer")
   return params
 }
 
+/** The chosen metric ids (all-payer ids, plus any lens-only extras); see applyPayerView for what's shown. */
 export const metricsFor = (view: BenchmarkViewState) => view.metrics ?? CATEGORY_BY_ID[view.category].defaultMetrics

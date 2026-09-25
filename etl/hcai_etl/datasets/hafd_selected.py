@@ -349,4 +349,48 @@ def derive_metrics(rec: dict) -> dict:
     for key in ("edVisits", "netPatientRevenue", "totalOperatingExpense", "discharges", "outpatientVisits"):
         if isinstance(out[key], float):
             out[key] = round(out[key])
+    out.update(derive_medicare_metrics(rec))
     return out
+
+
+def derive_medicare_metrics(rec: dict) -> dict:
+    """Medicare lens (traditional + Medicare Advantage) — mirrors dictionary.MEDICARE_METRICS.
+
+    Takes a facility-year of already-collapsed field values, so it can also be
+    re-run from fields.json without the source workbooks.
+    """
+
+    def total(prefix: str) -> float | None:
+        parts = [_num(rec, f"{prefix}MCAR_{s}") for s in ("TR", "MC")]
+        return None if all(v is None for v in parts) else sum(v or 0 for v in parts)
+
+    net_rev, discharges, days, visits = total("NETRV_"), total("DIS_"), total("DAY_"), total("VIS_")
+    gross_ip, gross_op = total("GR_IP_"), total("GR_OP_")
+    gross = (gross_ip or 0) + (gross_op or 0)
+    gross_all, opex = _num(rec, "GR_PT_REV"), _num(rec, "TOT_OP_EXP")
+    # Patient care cost: operating expense less other operating revenue (cafeteria,
+    # grants, rent), allocated to Medicare by its share of gross charges — the
+    # AHA payment-to-cost convention.
+    care_cost = opex - (_num(rec, "OTH_OP_REV") or 0) if opex else None
+    cost = (
+        care_cost * gross / gross_all
+        if (care_cost and care_cost > 0 and gross > 0 and gross_all and gross_all > 0)
+        else None
+    )
+    adj_discharges = discharges * gross / gross_ip if (discharges and gross_ip and gross_ip > 0) else None
+    ma = _num(rec, "DIS_MCAR_MC")
+
+    def whole(v):
+        return round(v) if v is not None else None
+
+    return {
+        "medicareMargin": round((net_rev - cost) / net_rev, 4) if (cost is not None and net_rev and net_rev > 0) else None,
+        "medicareRevenuePerAdjDischarge": whole(net_rev / adj_discharges) if (net_rev and adj_discharges) else None,
+        "medicareCostPerAdjDischarge": whole(cost / adj_discharges) if (cost and adj_discharges) else None,
+        "medicareNetRevenue": whole(net_rev),
+        "medicareAdvantageShare": round((ma or 0) / discharges, 4) if discharges and discharges > 0 else None,
+        "medicareDischarges": whole(discharges),
+        "medicareInpatientDays": whole(days),
+        "medicareAlos": round(days / discharges, 2) if (days and discharges and discharges > 0) else None,
+        "medicareOutpatientVisits": whole(visits),
+    }

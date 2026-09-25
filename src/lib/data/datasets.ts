@@ -1,4 +1,4 @@
-import type { DatasetId, DictionaryMetric, MetricCategory } from "./types"
+import type { DatasetId, DictionaryMetric, MetricCategory, PayerLens } from "./types"
 
 // Client-safe descriptions of the loaded datasets and metric categories.
 // Server code reads the data itself through ./store.ts.
@@ -77,3 +77,48 @@ export type MetricDef = DictionaryMetric & { category: MetricCategory; dataset: 
 
 /** Metrics plotted as a single number over time (payer mix is a composition). */
 export const isTrendMetric = (m: DictionaryMetric) => m.unit !== "share"
+
+// -- payer view (Benchmark's Medicare lens) --------------------------------------
+
+/** "all" = every payer (the default); otherwise a payer lens metrics can be narrowed to. */
+export type PayerView = "all" | PayerLens
+
+export const PAYER_VIEWS: { value: PayerView; label: string; description: string }[] = [
+  { value: "all", label: "All payers", description: "Every payer combined." },
+  {
+    value: "medicare",
+    label: "Medicare",
+    description:
+      "Traditional Medicare plus Medicare Advantage, from the Medicare columns of the hospital's HCAI financial report (fiscal years).",
+  },
+]
+
+export function parsePayerView(value: string | null | undefined): PayerView {
+  return value === "medicare" ? "medicare" : "all"
+}
+
+/** Metrics offered in pickers for a category: all-payer metrics plus, under a lens, that lens's extras. */
+export function pickableMetrics(catalog: MetricDef[], category: MetricCategory, payer: PayerView) {
+  return catalog.filter(
+    (m) => m.category === category && m.unit !== "share" && (!m.lens || (m.lens === payer && !m.allPayer))
+  )
+}
+
+/**
+ * The metric actually shown for each chosen id under a payer view: an all-payer
+ * metric becomes its lens version when one exists and otherwise stays as is
+ * (the UI marks it "All payers"). Lens-only metrics drop out of the all-payer view.
+ */
+export function applyPayerView(ids: string[], payer: PayerView, catalog: MetricDef[]): string[] {
+  const out: string[] = []
+  for (const id of ids) {
+    const metric = catalog.find((m) => m.id === id)
+    if (!metric) continue
+    let shown: string | undefined = id
+    if (payer === "all") shown = metric.lens ? metric.allPayer : id
+    else if (!metric.lens) shown = catalog.find((m) => m.lens === payer && m.allPayer === id)?.id ?? id
+    else if (metric.lens !== payer) shown = metric.allPayer
+    if (shown && !out.includes(shown)) out.push(shown)
+  }
+  return out
+}

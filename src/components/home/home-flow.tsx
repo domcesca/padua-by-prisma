@@ -19,7 +19,7 @@ import { useRef, useState } from "react"
 import { FacilityPicker, type FacilityOption } from "@/components/benchmark/facility-picker"
 import { FilterPill } from "@/components/benchmark/filter-pill"
 import { Segmented } from "@/components/shell/segmented"
-import { CATEGORIES, CATEGORY_BY_ID, FUTURE_CATEGORIES, type MetricDef } from "@/lib/data/datasets"
+import { CATEGORIES, CATEGORY_BY_ID, FUTURE_CATEGORIES, pickableMetrics, type MetricDef } from "@/lib/data/datasets"
 import type { MetricCategory } from "@/lib/data/types"
 import { rememberSelection, useSelection } from "@/lib/selection"
 import { cn } from "@/lib/utils"
@@ -93,7 +93,7 @@ export function HomeFlow({
     void loadPreview(facilityId, mode)
   }
 
-  const categoryMetrics = category ? catalog.filter((m) => m.category === category && m.unit !== "share") : []
+  const categoryMetrics = category ? pickableMetrics(catalog, category, "all") : []
   const chosenMetrics = metrics ?? (category ? CATEGORY_BY_ID[category].defaultMetrics : [])
   const customMetrics = metrics != null && metrics.join(",") !== (category ? CATEGORY_BY_ID[category].defaultMetrics.join(",") : "")
 

@@ -20,7 +20,16 @@ function takeaway(point: SeriesPoint | undefined, metric: DictionaryMetric) {
   return `Higher than ${pct}% of ${point.n} peers. Peer median ${median}.`
 }
 
-export function MetricCard({ meta, points }: { meta: DictionaryMetric; points: SeriesPoint[] }) {
+export function MetricCard({
+  meta,
+  points,
+  tags = [],
+}: {
+  meta: DictionaryMetric
+  points: SeriesPoint[]
+  /** Short qualifiers shown under the title, e.g. "All payers" or "Fiscal years". */
+  tags?: string[]
+}) {
   const [view, setView] = useState<"chart" | "table">("chart")
   const latest = [...points].reverse().find((p) => p.value != null)
   const lastYear = points.at(-1)?.year
@@ -40,6 +49,15 @@ export function MetricCard({ meta, points }: { meta: DictionaryMetric; points: S
         </div>
         <ViewToggle value={view} onChange={setView} label={meta.label} />
       </header>
+      {tags.length > 0 && (
+        <ul className="mt-1.5 flex flex-wrap gap-1" aria-label="About this measure">
+          {tags.map((t) => (
+            <li key={t} className="rounded-full bg-black/5 px-2 py-0.5 text-[11px] text-muted-foreground dark:bg-white/8">
+              {t}
+            </li>
+          ))}
+        </ul>
+      )}
 
       <div className="mt-1.5 flex items-baseline gap-2">
         <p className="num text-[28px] leading-tight font-semibold tracking-tight">

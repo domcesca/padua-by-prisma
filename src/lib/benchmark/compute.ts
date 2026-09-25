@@ -1,6 +1,6 @@
 import "server-only"
 
-import { CATEGORY_BY_ID, type MetricDef } from "@/lib/data/datasets"
+import { applyPayerView, CATEGORY_BY_ID, type MetricDef, type PayerView } from "@/lib/data/datasets"
 import { getFacilities, getManifest, getMetricCatalog, getMetrics } from "@/lib/data/store"
 import type { Facility, MetricCategory, MetricsFile, PayerGroup, PayerMix } from "@/lib/data/types"
 import type { PeerFilters } from "./filters"
@@ -31,6 +31,9 @@ export type PeerSummary = { id: string; name: string; county: string | null; bed
 export type BenchmarkResult = {
   facility: Facility
   category: MetricCategory
+  payer: PayerView
+  /** Metric ids shown, in order, after the payer view is applied (keys of `series`). */
+  metrics: string[]
   /** Filters actually applied; for "similar" these are the ones chosen automatically. */
   filters: PeerFilters
   peerGroup: { description: string; note: string | null }
@@ -109,12 +112,15 @@ export async function computeBenchmark({
   category,
   metricIds,
   since = null,
+  payer = "all",
 }: {
   facilityId: string
   filters: PeerFilters
   category: MetricCategory
   /** Metrics to compute; defaults to the category's defaults. */
   metricIds?: string[]
+  /** Payer lens applied to metricIds (see applyPayerView). */
+  payer?: PayerView
   /** First year to include. */
   since?: number | null
 }): Promise<BenchmarkResult | null> {
@@ -126,7 +132,7 @@ export async function computeBenchmark({
   const peers = group.peers
   const peerIds = peers.map((p) => p.id)
 
-  const wanted = metricIds?.length ? metricIds : CATEGORY_BY_ID[category].defaultMetrics
+  const wanted = applyPayerView(metricIds?.length ? metricIds : CATEGORY_BY_ID[category].defaultMetrics, payer, catalog)
   const metrics = wanted
     .map((id) => catalog.find((m) => m.id === id))
     .filter((m): m is MetricDef => !!m && m.unit !== "share")
@@ -141,6 +147,8 @@ export async function computeBenchmark({
   return {
     facility,
     category,
+    payer,
+    metrics: metrics.map((m) => m.id),
     filters: group.filters,
     peerGroup: { description: group.description, note: group.note },
     peers: peers

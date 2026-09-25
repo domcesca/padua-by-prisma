@@ -163,7 +163,14 @@ export type DictionaryMetric = {
   higherIsBetter: boolean | null
   drivers: string[]
   caution?: string
+  /** Set on a payer-specific version of a metric (the Benchmark "Payer view"). */
+  lens?: PayerLens
+  /** The all-payer metric this one stands in for under its lens, if any. */
+  allPayer?: string
 }
+
+/** Payer views a metric can be narrowed to. */
+export type PayerLens = "medicare"
 
 export type Dictionary = {
   dataset: DatasetId

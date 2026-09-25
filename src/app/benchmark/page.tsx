@@ -31,7 +31,7 @@ export default async function BenchmarkPage({ searchParams }: PageProps<"/benchm
     getLatestYear(),
     Promise.all([getManifest("hafd-selected"), getManifest("hau")]),
     facilityId
-      ? computeBenchmark({ facilityId, filters, category: view.category, metricIds: metricsFor(view), since: view.since })
+      ? computeBenchmark({ facilityId, filters, category: view.category, metricIds: metricsFor(view), since: view.since, payer: view.payer })
       : Promise.resolve(null),
   ])
 

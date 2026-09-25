@@ -43,6 +43,20 @@ _Last updated 2026-09-24, after V2 (commit `b09ba3a`). Read this first, then `RE
 - **Build warning.** Turbopack warns about a stray `C:\Users\domin\package-lock.json` outside the repo. It's harmless, and the file hasn't been removed.
 - **No automated tests.** Verification so far has been typecheck, lint, `next build`, and manual/browser checks at desktop and 375px widths in both themes.
 
+### V3 (in progress)
+1. **Medicare lens** (done): a "Payer view" toggle (All payers / Medicare, `?payer=medicare`) on Benchmark, for both
+   Financials and Utilization. It uses HCAI's own Medicare columns. The user chose this over the CMS public-use file;
+   CMS payment per discharge may be added as an extra metric once Care Compare ingestion exists. See README
+   "Medicare lens". The processed `metrics.json`/`dictionary.json` were regenerated from `fields.json` via
+   `derive_medicare_metrics` because no raw files were reachable; a full ETL run produces the same values.
+2. **Quality tab** (CMS Care Compare + CDPH HAI): waiting on source files or network access. Agreed: HAI shows the SIR
+   as the main number with the raw rate beside it, labeled by infection type; confirm CDPH `Facility_ID` = HCAI
+   facility number on the real file; VRE shows "not yet reported" after its last year, never estimated.
+3. **Community context** (Census ACS via `CENSUS_API_KEY` at ETL time, plus DHCS Medi-Cal): waiting on data and key.
+4. **Correlate tab**: last, after 1–3.
+
+The cloud session's network policy blocks data.cms.gov, data.chhs.ca.gov and api.census.gov.
+
 ## 3. Key decisions and why
 
 ### Peer groups: a proxy, not a PSA/SSA

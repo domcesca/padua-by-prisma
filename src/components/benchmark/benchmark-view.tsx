@@ -7,7 +7,16 @@ import { Segmented } from "@/components/shell/segmented"
 import type { BenchmarkResult } from "@/lib/benchmark/compute"
 import { DEFAULT_FILTERS, filtersToParams, OWNERSHIP_LABEL, type PeerFilters } from "@/lib/benchmark/filters"
 import { metricsFor, viewToParams, type BenchmarkViewState } from "@/lib/benchmark/view"
-import { CATEGORIES, CATEGORY_BY_ID, DATASETS, type MetricDef } from "@/lib/data/datasets"
+import {
+  applyPayerView,
+  CATEGORIES,
+  CATEGORY_BY_ID,
+  DATASETS,
+  PAYER_VIEWS,
+  pickableMetrics,
+  type MetricDef,
+  type PayerView,
+} from "@/lib/data/datasets"
 import type { MetricCategory, PayerGroup } from "@/lib/data/types"
 import { rememberSelection } from "@/lib/selection"
 import { cn } from "@/lib/utils"
@@ -61,8 +70,14 @@ export function BenchmarkView({
   }, [facilityId, view.category])
   const metaById = Object.fromEntries(catalog.map((m) => [m.id, m]))
   const facility = facilityId ? (facilities.find((f) => f.id === facilityId) ?? null) : null
-  const categoryMetrics = catalog.filter((m) => m.category === view.category && m.unit !== "share")
+  const categoryMetrics = pickableMetrics(catalog, view.category, view.payer)
   const shownMetrics = metricsFor(view).filter((id) => metaById[id]?.category === view.category)
+  // Under a payer lens the picker keeps the all-payer ids but names what will be shown.
+  const metricOptions = categoryMetrics.map((m) => {
+    if (view.payer === "all" || m.lens) return { value: m.id, label: m.label }
+    const lensId = applyPayerView([m.id], view.payer, catalog)[0]
+    return { value: m.id, label: lensId !== m.id ? metaById[lensId].label : `${m.label} (all payers)` }
+  })
 
   async function apply(patch: Partial<State>) {
     const next = { ...state, ...patch }
@@ -94,12 +109,18 @@ export function BenchmarkView({
   }
 
   const setCategory = (category: MetricCategory) => apply({ view: { ...view, category, metrics: null } })
+  const setPayer = (payer: PayerView) => apply({ view: { ...view, payer } })
   const setMetrics = (metrics: string[]) => {
     const valid = metrics.filter((id) => metaById[id]?.category === view.category)
     return apply({ view: { ...view, metrics: valid.length ? valid : null } })
   }
 
-  const shown = result && result.facility.id === facilityId && result.category === view.category ? result : null
+  const shown =
+    result && result.facility.id === facilityId && result.category === view.category && result.payer === view.payer
+      ? result
+      : null
+  const primaryDataset = view.category === "utilization" ? "hau" : "hafd-selected"
+  const payerInfo = PAYER_VIEWS.find((p) => p.value === view.payer)!
   const categoryInfo = CATEGORY_BY_ID[view.category]
   const isDefaultMetrics = !view.metrics || view.metrics.join(",") === categoryInfo.defaultMetrics.join(",")
 
@@ -119,10 +140,16 @@ export function BenchmarkView({
             onChange={setCategory}
             options={CATEGORIES.map((c) => ({ value: c.id, label: c.label }))}
           />
+          <Segmented
+            label="Payer view"
+            value={view.payer}
+            onChange={setPayer}
+            options={PAYER_VIEWS.map((p) => ({ value: p.value, label: p.label }))}
+          />
           <FilterPill
             label="Metrics"
             summary={isDefaultMetrics ? null : `${shownMetrics.length} metric${shownMetrics.length === 1 ? "" : "s"}`}
-            options={categoryMetrics.map((m) => ({ value: m.id, label: m.label }))}
+            options={metricOptions}
             selected={shownMetrics}
             onChange={setMetrics}
             multiple
@@ -186,16 +213,32 @@ export function BenchmarkView({
             <>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <TrendLegend />
-                <p className="text-xs text-tertiary-foreground">
-                  {view.category === "utilization" ? DATASETS.hau.yearNote : DATASETS["hafd-selected"].yearNote}
+                <p className="max-w-xl text-xs text-tertiary-foreground sm:text-right">
+                  {view.payer === "all"
+                    ? DATASETS[primaryDataset].yearNote
+                    : `${payerInfo.label}: ${payerInfo.description} Measures HCAI doesn’t split by payer stay all-payer and are marked.`}
                 </p>
               </div>
-              {shownMetrics.length === 0 ? (
+              {shown.metrics.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Choose at least one metric.</p>
               ) : (
                 <div className="grid gap-4 md:grid-cols-2">
-                  {shownMetrics.map((id) =>
-                    shown.series[id] ? <MetricCard key={id} meta={metaById[id]} points={shown.series[id]} /> : null
+                  {shown.metrics.map((id) =>
+                    shown.series[id] ? (
+                      <MetricCard
+                        key={id}
+                        meta={metaById[id]}
+                        points={shown.series[id]}
+                        tags={[
+                          view.payer !== "all" && !metaById[id].lens ? "All payers" : null,
+                          metaById[id].dataset !== primaryDataset
+                            ? metaById[id].dataset === "hau"
+                              ? "Calendar years"
+                              : "Fiscal years"
+                            : null,
+                        ].filter((t): t is string => t != null)}
+                      />
+                    ) : null
                   )}
                 </div>
               )}
