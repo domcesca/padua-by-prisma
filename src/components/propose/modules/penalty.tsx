@@ -1,0 +1,491 @@
+"use client"
+
+import { Info, ShieldCheck } from "lucide-react"
+
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { formatInt, formatPercent, formatUsd } from "@/lib/format"
+import { defineModule, type BenefitLine, type ModuleEditorProps } from "@/lib/propose/module"
+import {
+  HAC_MEASURES,
+  HRRP_CONDITIONS,
+  adjustedErr,
+  avoidedByYear,
+  hacPenalized,
+  hacScore,
+  hrrpCounts,
+  hrrpReduction,
+  phaseIn,
+  type HaiKey,
+  type HrrpConditionKey,
+  type InfectionCuts,
+  type PenaltyData,
+  type Period,
+  type ReadmissionCuts,
+} from "@/lib/propose/penalty"
+import { cn } from "@/lib/utils"
+import { NumberField } from "../number-field"
+import { SourceTag } from "../source-tag"
+
+// Readmission and infection-reduction initiatives: the Medicare penalties they'd avoid. The
+// proposer enters the improvement; the hospital's published HRRP and HAC Reduction Program
+// results and CMS's formulas (lib/propose/penalty.ts) do the rest, phased in over the years the
+// programs take to see it.
+
+type State = { readm: ReadmissionCuts; hai: InfectionCuts }
+
+const READM_KEYS = HRRP_CONDITIONS.map((c) => c.key) as string[]
+const HAI_KEYS = HAC_MEASURES.map((m) => m.key) as string[]
+
+const encode = (cuts: Record<string, number | undefined>) =>
+  Object.entries(cuts)
+    .filter(([, v]) => v)
+    .map(([k, v]) => `${k}:${v}`)
+    .join(",")
+
+function decode<K extends string>(raw: string | null, keys: string[], max: number) {
+  const out: Partial<Record<K, number>> = {}
+  for (const part of (raw ?? "").split(",")) {
+    const [k, v] = part.split(":")
+    const n = Number(v)
+    if (keys.includes(k) && Number.isFinite(n) && n > 0) out[k as K] = Math.min(max, n)
+  }
+  return out
+}
+
+function toParams(s: State): Record<string, string> {
+  const out: Record<string, string> = {}
+  if (encode(s.readm)) out.readm = encode(s.readm)
+  if (encode(s.hai)) out.hai = encode(s.hai)
+  return out
+}
+
+const fromParams = (params: URLSearchParams): State => ({
+  readm: decode<HrrpConditionKey>(params.get("readm"), READM_KEYS, 100),
+  hai: decode<HaiKey>(params.get("hai"), HAI_KEYS, 100),
+})
+
+const hasCuts = (s: State) => Object.values(s.readm).some(Boolean) || Object.values(s.hai).some(Boolean)
+
+const monthYear = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString("en-US", { month: "short", year: "numeric" })
+const periodText = (p: Period) => `${monthYear(p.start)}–${monthYear(p.end)}`
+
+/** First year a program sees any of the improvement, and first year it sees all of it. */
+function timing(period: Period, fiscalYear: number) {
+  const shares = phaseIn(period, fiscalYear, 12)
+  return { first: shares.findIndex((s) => s > 0) + 1, full: shares.findIndex((s) => s >= 1) + 1 }
+}
+
+type Summary = {
+  years: ReturnType<typeof avoidedByYear>
+  hrrpFull: number
+  hacFull: number
+  hrrpAverage: number
+  hacAverage: number
+}
+
+function summarize(s: State, data: PenaltyData, life: number): Summary {
+  const years = avoidedByYear(data, s.readm, s.hai, life)
+  const pay = data.payments.hospital
+  const hrrpFull = pay ? (hrrpReduction(data.hrrp, s.readm, 0) - hrrpReduction(data.hrrp, s.readm)) * pay.baseOperating : 0
+  const hacFull =
+    pay && data.hac.hospital?.penalized && !hacPenalized(data.hac, hacScore(data.hac, s.hai)) ? data.hac.reduction * pay.operating : 0
+  const sum = (k: "hrrp" | "hac") => years.reduce((t, y) => t + y[k], 0)
+  return { years, hrrpFull, hacFull, hrrpAverage: sum("hrrp") / life, hacAverage: sum("hac") / life }
+}
+
+function Editor({ state, onChange, data, context }: ModuleEditorProps<State, PenaltyData>) {
+  if (!context.facilityId) {
+    return (
+      <div className="space-y-3">
+        <Intro />
+        <p className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-[13px] text-muted-foreground">
+          Pick a hospital above. This module works from that hospital’s own CMS penalty results.
+        </p>
+      </div>
+    )
+  }
+  if (!data) {
+    return (
+      <div className="space-y-3" aria-busy>
+        <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
+        <div className="h-28 animate-pulse rounded-xl bg-muted" />
+        <div className="h-28 animate-pulse rounded-xl bg-muted" />
+      </div>
+    )
+  }
+
+  const { hrrp, hac, payments } = data
+  const pay = payments.hospital
+  if (!hrrp.hospital && !hac.hospital) {
+    return (
+      <div className="space-y-3">
+        <Intro data={data} />
+        <p className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-[13px] text-muted-foreground">
+          CMS publishes no readmission (HRRP) or hospital-acquired condition (HAC) penalty results for{" "}
+          {context.facilityName ?? "this hospital"}. Critical access, children’s, psychiatric, rehabilitation, long-term care,
+          and cancer hospitals aren’t in these programs, so there’s no penalty to avoid.
+        </p>
+      </div>
+    )
+  }
+
+  const setReadm = (key: HrrpConditionKey, v: number) => onChange({ ...state, readm: { ...state.readm, [key]: v } })
+  const setHai = (key: HaiKey, v: number) => onChange({ ...state, hai: { ...state.hai, [key]: v } })
+
+  const hrrpNow = hrrpReduction(hrrp, state.readm, 0)
+  const hrrpAfter = hrrpReduction(hrrp, state.readm)
+  const scoreNow = hac.hospital?.totalScore ?? null
+  const scoreAfter = hacScore(hac, state.hai)
+  const hacNow = hac.hospital?.penalized ?? false
+
+  return (
+    <div className="space-y-4">
+      <Intro data={data} />
+      {data.reportedWithName && (
+        <p className="text-xs text-muted-foreground">
+          CMS reports this hospital’s results together with {data.reportedWithName} under one Medicare number; the figures
+          below are for both.
+        </p>
+      )}
+
+      {/* HRRP */}
+      <section className="surface space-y-3 rounded-xl p-3">
+        <header className="space-y-1">
+          <h3 className="flex flex-wrap items-center gap-2 text-[14px] font-medium">
+            Readmissions (HRRP) <SourceTag kind="data">CMS FY {hrrp.fiscalYear}</SourceTag>
+          </h3>
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            {hrrp.hospital ? (
+              <>
+                FY {hrrp.fiscalYear} penalty: <span className="num font-medium text-foreground">{formatPercent(hrrp.hospital.reduction, 2)}</span> of
+                base Medicare DRG payments
+                {pay && (
+                  <>
+                    , about <span className="num font-medium text-foreground">{formatUsd(hrrpNow * pay.baseOperating)}</span> a year
+                  </>
+                )}
+                . Scored on {periodText(hrrp.period)} discharges, against hospitals with a similar share of patients on both
+                Medicare and Medi-Cal (peer group {hrrp.hospital.peerGroup} of 5).
+              </>
+            ) : (
+              "CMS publishes no HRRP results for this hospital."
+            )}
+          </p>
+        </header>
+        {hrrp.hospital && (
+          <ul className="space-y-2">
+            {HRRP_CONDITIONS.map(({ key, label }) => {
+              const c = hrrp.hospital!.conditions[key]
+              if (!c) return null
+              const counts = hrrpCounts(c, hrrp.minDischarges)
+              const cut = state.readm[key] ?? 0
+              const err = adjustedErr(c, cut)
+              const above = c.peerMedian != null && c.err > c.peerMedian
+              return (
+                <li key={key} className="border-t border-border pt-2 first:border-0 first:pt-0">
+                  <div className="flex flex-wrap items-end gap-x-3 gap-y-2">
+                    <div className="min-w-0 flex-1 basis-56">
+                      <p className="text-[13px] font-medium">{label}</p>
+                      <p className="num text-xs text-muted-foreground">
+                        {c.predicted != null && `Rate ${c.predicted.toFixed(1)}% (expected ${c.expected?.toFixed(1)}%) · `}
+                        ERR {c.err.toFixed(3)}
+                        {c.peerMedian != null && ` vs peer median ${c.peerMedian.toFixed(3)}`}
+                        {c.discharges != null && ` · ${formatInt(c.discharges)} cases`}
+                      </p>
+                      <p className={cn("text-xs", counts && above ? "text-foreground" : "text-muted-foreground")}>
+                        {!counts
+                          ? `Under ${hrrp.minDischarges} cases: doesn’t count toward the penalty.`
+                          : above
+                            ? cut
+                              ? `ERR ${c.err.toFixed(3)} → ${err.toFixed(3)}${err <= c.peerMedian! ? ": at or below the median, no penalty from it" : ""}`
+                              : "Above the peer median: adds to the penalty."
+                            : "Already at or below the peer median: a cut here avoids no penalty."}
+                      </p>
+                    </div>
+                    {counts && above && c.predicted != null && (
+                      <NumberField
+                        label="Cut in rate"
+                        suffix="points"
+                        value={cut}
+                        onChange={(v) => setReadm(key, v)}
+                        max={Math.floor(c.predicted * 10) / 10}
+                        decimals={1}
+                        className="w-36"
+                      />
+                    )}
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+        {hrrp.hospital && Object.values(state.readm).some(Boolean) && (
+          <p className="num border-t border-border pt-2 text-[13px]">
+            Penalty {formatPercent(hrrpNow, 2)} → <span className="font-medium">{formatPercent(hrrpAfter, 2)}</span> of base DRG payments
+          </p>
+        )}
+      </section>
+
+      {/* HAC */}
+      <section className="surface space-y-3 rounded-xl p-3">
+        <header className="space-y-1">
+          <h3 className="flex flex-wrap items-center gap-2 text-[14px] font-medium">
+            Hospital-acquired conditions (HAC) <SourceTag kind="data">CMS FY {hac.fiscalYear}</SourceTag>
+          </h3>
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            {hac.hospital && scoreNow != null ? (
+              <>
+                All or nothing: hospitals whose Total HAC Score is above the national cutoff (worst quarter) lose 1% of Medicare
+                payments. FY {hac.fiscalYear}: score <span className="num font-medium text-foreground">{scoreNow.toFixed(3)}</span>, cutoff{" "}
+                <span className="num">{hac.cutoff.toFixed(3)}</span>:{" "}
+                {hacNow ? (
+                  <span className="font-medium text-foreground">
+                    penalized{pay && `, about ${formatUsd(hac.reduction * pay.operating)} a year`}.
+                  </span>
+                ) : (
+                  <span className="font-medium text-foreground">
+                    not penalized ({(hac.cutoff - scoreNow).toFixed(3)} below the cutoff), so there’s no HAC penalty to avoid.
+                  </span>
+                )}{" "}
+                Infections scored {periodText(hac.periods.hai)}.
+              </>
+            ) : (
+              "CMS publishes no Total HAC Score for this hospital."
+            )}
+          </p>
+        </header>
+        {hac.hospital && scoreNow != null && (
+          <ul className="space-y-2">
+            {HAC_MEASURES.map(({ key, label }) => {
+              const m = hac.hospital!.measures[key]
+              if (!m) return null
+              const p = hac.measures[key]
+              return (
+                <li key={key} className="border-t border-border pt-2 first:border-0 first:pt-0">
+                  <div className="flex flex-wrap items-end gap-x-3 gap-y-2">
+                    <div className="min-w-0 flex-1 basis-56">
+                      <p className="text-[13px] font-medium">{label}</p>
+                      <p className="num text-xs text-muted-foreground">
+                        {m.value != null ? `SIR ${m.value.toFixed(3)}` : "SIR not published"} (national average {p.mean.toFixed(2)}) · score {m.z.toFixed(2)}
+                      </p>
+                    </div>
+                    {m.value != null && m.value > 0 && hacNow && (
+                      <NumberField
+                        label="Fewer infections"
+                        suffix="%"
+                        value={state.hai[key] ?? 0}
+                        onChange={(v) => setHai(key, v)}
+                        max={100}
+                        decimals={0}
+                        className="w-36"
+                      />
+                    )}
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+        {hacNow && Object.values(state.hai).some(Boolean) && scoreAfter != null && (
+          <p className="num border-t border-border pt-2 text-[13px]">
+            Score {scoreNow!.toFixed(3)} → <span className="font-medium">{scoreAfter.toFixed(3)}</span>
+            {hacPenalized(hac, scoreAfter)
+              ? `: still above the cutoff (${hac.cutoff.toFixed(3)}), so the penalty stays.`
+              : `: below the FY ${hac.fiscalYear} cutoff (${hac.cutoff.toFixed(3)}), avoiding the 1% penalty.`}
+          </p>
+        )}
+      </section>
+
+      {pay ? (
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          <SourceTag kind="data" className="mr-1.5">
+            CMS FY {payments.fiscalYear} estimate
+          </SourceTag>
+          Medicare fee-for-service payments the penalties apply to: base DRG payments{" "}
+          <span className="num text-foreground">{formatUsd(pay.baseOperating, { compact: true })}</span> ({formatInt(pay.cases)} cases ×
+          case mix {pay.caseMixIndex.toFixed(2)} × wage-adjusted rate); with teaching, DSH, and outlier add-ons{" "}
+          <span className="num text-foreground">{formatUsd(pay.operating, { compact: true })}</span>.
+        </p>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          CMS’s FY {payments.fiscalYear} Impact File has no payment data for this hospital, so penalties can’t be put in dollars.
+        </p>
+      )}
+    </div>
+  )
+}
+
+/** Year-by-year phase-in, shown under the editor's totals. */
+function Timeline({ summary }: { summary: Summary }) {
+  return (
+    <div className="max-h-64 overflow-auto rounded-lg border border-border">
+      <table className="num w-full text-xs">
+        <thead className="sticky top-0 bg-background text-muted-foreground">
+          <tr>
+            <th className="px-2 py-1.5 text-left font-medium">Year</th>
+            <th className="px-2 py-1.5 text-right font-medium">Readmissions seen</th>
+            <th className="px-2 py-1.5 text-right font-medium">Infections seen</th>
+            <th className="px-2 py-1.5 text-right font-medium">Avoided</th>
+          </tr>
+        </thead>
+        <tbody>
+          {summary.years.map((y) => (
+            <tr key={y.year} className="border-t border-border">
+              <td className="px-2 py-1">{y.year}</td>
+              <td className="px-2 py-1 text-right">{Math.round(y.hrrpShare * 100)}%</td>
+              <td className="px-2 py-1 text-right">{Math.round(y.haiShare * 100)}%</td>
+              <td className="px-2 py-1 text-right">{formatUsd(y.hrrp + y.hac)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function Intro({ data }: { data?: PenaltyData }) {
+  return (
+    <p className="text-[13px] leading-relaxed text-muted-foreground">
+      For readmission and infection-reduction work. Enter the improvement you expect{" "}
+      <SourceTag kind="assumption" />; the module re-runs CMS’s penalty formulas on the hospital’s published results to
+      estimate the Medicare penalty it would avoid. {data && <MethodInfo data={data} />}
+    </p>
+  )
+}
+
+function MethodInfo({ data }: { data: PenaltyData }) {
+  const r = timing(data.hrrp.period, data.hrrp.fiscalYear)
+  const h = timing(data.hac.periods.hai, data.hac.fiscalYear)
+  return (
+    <Popover>
+      <PopoverTrigger
+        aria-label="How the penalty estimate works"
+        className="inline-flex translate-y-0.5 items-center gap-0.5 rounded font-medium text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+      >
+        <Info className="size-3.5" /> How it’s estimated
+      </PopoverTrigger>
+      <PopoverContent align="start" className="max-h-[70vh] w-[26rem] max-w-[calc(100vw-2rem)] space-y-2 overflow-y-auto text-[13px] leading-relaxed">
+        <p className="font-medium">An estimate built on CMS’s own formulas</p>
+        <p className="text-muted-foreground">
+          <span className="font-medium text-foreground">Readmissions (HRRP):</span> the penalty is the sum, over conditions with{" "}
+          {data.hrrp.minDischarges}+ cases, of each condition’s share of DRG payments × how far its excess readmission ratio (ERR)
+          sits above its peer group’s median, times a neutrality modifier, capped at {formatPercent(data.hrrp.cap, 0)} of base DRG
+          payments. Using the FY {data.hrrp.fiscalYear} components, this reproduces CMS’s published penalty for every hospital. A cut
+          of x points is treated as lowering the hospital’s predicted rate by x; CMS’s model pulls smaller hospitals toward the
+          average, so their ERR usually moves less. Peer medians are held where they are.
+        </p>
+        <p className="text-muted-foreground">
+          <span className="font-medium text-foreground">Hospital-acquired conditions (HAC):</span> each infection’s standardized
+          infection ratio (SIR) falls by the percent entered, is rescored against the FY {data.hac.fiscalYear} national average and
+          spread, and the Total HAC Score is compared with that year’s cutoff ({data.hac.cutoff.toFixed(4)}). The penalty is all or
+          nothing, and the cutoff moves every year as other hospitals improve. The patient safety measure (PSI 90) stays as published.
+        </p>
+        <p className="text-muted-foreground">
+          <span className="font-medium text-foreground">Timing:</span> both programs score performance that ended one to two years
+          before the payment year. Taking the improvement to start with year 1 (and year 1 to start on October 1, the federal fiscal
+          year), readmission savings begin in year {r.first} and reach full effect in year {r.full}; infection savings begin in year{" "}
+          {h.first} and reach full effect in year {h.full}. The yearly benefit is the average over the useful life.
+        </p>
+        <p className="text-muted-foreground">
+          <span className="font-medium text-foreground">Dollars:</span> Medicare fee-for-service payments estimated from CMS’s FY{" "}
+          {data.payments.fiscalYear} IPPS Impact File, not the hospital’s claims. Medicare Advantage isn’t penalized. Not counted:
+          payments for the readmissions that no longer happen (lost revenue), or the cost of care avoided.
+        </p>
+        <div className="flex flex-wrap gap-x-3">
+          <a href={data.hrrp.sourcePage} target="_blank" rel="noreferrer" className="font-medium text-primary hover:underline">
+            CMS HRRP data
+          </a>
+          <a href={data.hac.sourcePage} target="_blank" rel="noreferrer" className="font-medium text-primary hover:underline">
+            CMS HAC data
+          </a>
+          <a href={data.payments.sourcePage} target="_blank" rel="noreferrer" className="font-medium text-primary hover:underline">
+            FY {data.payments.fiscalYear} Final Rule files
+          </a>
+        </div>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+/** The editor's totals and phase-in table, which need the useful life (only `benefit` gets it). */
+function Totals({ state, data, life }: { state: State; data: PenaltyData; life: number }) {
+  const s = summarize(state, data, life)
+  const average = s.hrrpAverage + s.hacAverage
+  const full = s.hrrpFull + s.hacFull
+  return (
+    <div className="space-y-2 border-t border-border pt-3">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <p className="max-w-sm text-xs leading-relaxed text-muted-foreground">
+          Full effect <span className="num font-medium text-foreground">{formatUsd(full)}</span> a year, reached as the programs’
+          scoring windows fill with improved months (below).
+        </p>
+        <div className="text-right">
+          <p className="text-xs text-muted-foreground">
+            Average a year over {life} {life === 1 ? "year" : "years"}
+          </p>
+          <p className="num text-[20px] font-semibold tracking-tight">{formatUsd(average)}</p>
+        </div>
+      </div>
+      {full > 0 && <Timeline summary={s} />}
+    </div>
+  )
+}
+
+export const penaltyModule = defineModule<State, PenaltyData>({
+  id: "penalty",
+  label: "Avoided penalties",
+  summary: "Readmission or infection reduction, valued by the Medicare penalties it avoids.",
+  icon: ShieldCheck,
+  hasData: true,
+  initial: () => ({ readm: {}, hai: {} }),
+  toParams,
+  fromParams,
+  benefit: (s, data, { life }) => {
+    if (!data) return { annual: 0, lines: [], notes: [], incomplete: "Pick a hospital to load its CMS penalty results." }
+    if (!data.hrrp.hospital && !data.hac.hospital)
+      return { annual: 0, lines: [], notes: [], incomplete: "CMS has no readmission or HAC penalty results for this hospital." }
+    if (!data.payments.hospital)
+      return { annual: 0, lines: [], notes: [], incomplete: "CMS has no payment data for this hospital, so penalties can’t be put in dollars." }
+
+    const sum = summarize(s, data, life)
+    const r = timing(data.hrrp.period, data.hrrp.fiscalYear)
+    const h = timing(data.hac.periods.hai, data.hac.fiscalYear)
+    const over = `averaged over ${life} ${life === 1 ? "year" : "years"}`
+    const lines: BenefitLine[] = []
+    if (Object.values(s.readm).some(Boolean))
+      lines.push({
+        label: "Readmission penalty avoided (HRRP)",
+        detail: `${formatUsd(sum.hrrpFull)} a year at full effect (year ${r.full} on), ${over}`,
+        amount: sum.hrrpAverage,
+      })
+    if (Object.values(s.hai).some(Boolean))
+      lines.push({
+        label: "HAC penalty avoided",
+        detail: sum.hacFull ? `${formatUsd(sum.hacFull)} a year from year ${h.full}, ${over}` : "Score stays above the cutoff",
+        amount: sum.hacAverage,
+      })
+
+    const notes = [
+      `Estimate. Re-runs CMS’s HRRP and HAC Reduction Program formulas on the hospital’s published FY ${data.hrrp.fiscalYear} results with the proposer’s assumed reductions; peer medians and the HAC cutoff (${data.hac.cutoff.toFixed(4)}) are held at FY ${data.hac.fiscalYear} levels, though they move every year.`,
+      `Penalties lag performance: savings begin in year ${Math.min(r.first, h.first)} and reach full effect by year ${Math.max(r.full, h.full)} (assuming the work starts October 1 of year 1). The yearly benefit is the average over the useful life.`,
+      `Penalty dollars use FY ${data.payments.fiscalYear} Medicare fee-for-service payments estimated from CMS’s IPPS Impact File. Lost payments for the readmissions avoided, and care costs saved, aren’t counted.`,
+    ]
+    return {
+      annual: sum.hrrpAverage + sum.hacAverage,
+      lines,
+      notes,
+      incomplete: hasCuts(s) ? undefined : "Enter a readmission or infection reduction.",
+    }
+  },
+  Editor: (props) => {
+    const { data, state } = props
+    return (
+      <div className="space-y-4">
+        <Editor {...props} />
+        {data && data.payments.hospital && (data.hrrp.hospital || data.hac.hospital) && hasCuts(state) && (
+          <Totals state={state} data={data} life={props.context.life} />
+        )}
+      </div>
+    )
+  },
+})

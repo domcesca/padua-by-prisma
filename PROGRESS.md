@@ -193,6 +193,28 @@ downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and
   URLs redirect). Still to do there: the Vercel project name and its `usc-hcai-insights*.vercel.app` URLs, and the
   repo's listed homepage. Nothing in the code depends on them.
 
+### V6.5 (Propose: Cost savings and Avoided penalties modules)
+- **Cost savings** (`savings`): staff time (hours a week × loaded hourly cost × 52), shorter stays (patient days avoided ×
+  cost of a day), supplies/other (flat). No per-diem existed in the app; the cost of a day is derived per hospital from
+  HCAI fields already in `hafd-selected/fields.json` (TOT_OP_EXP ÷ (DAY_TOT × GR_PT_REV ÷ GR_IP_TOT)), latest year, with
+  the Benchmark peer median. Owner's call: pre-fill the average with a marginal-cost caution, no assumed "savable share".
+  Not pre-filled when >10% of days are long-term care (76 hospitals are above 20%; e.g. Alameda Hospital $1,658 vs a
+  $7,295 peer median).
+- **Avoided penalties** (`penalty`): new `cms-penalties` ETL (see README). Checked the Quality tab's sources first: Care Compare's
+  readmission rates are the public-reporting versions (a different period and cohort from the HRRP measures), and CDPH's
+  HAI data is California's own reporting with no national scoring or cutoff, so neither can drive CMS's penalty math.
+  The pipeline pattern (PDC download, `match_ccns`) is reused; the data is CMS's program files. Checks: the HRRP formula reproduces all 2,946 published
+  FY 2026 penalties (to rounding); recovered HAC parameters reproduce every z-score and Total HAC Score and every
+  California hospital's penalty flag. Owner's calls: (1) lag handled by averaging the phased-in benefit over the useful
+  life (no engine change; `benefit` and the editor context now receive `life`); (2) HAC all-or-nothing with distance to
+  the cutoff; the cutoff is last year's and moves.
+- **Data currency:** as of 2026-09-25 the newest complete sets are FY 2026 for both programs. FY 2027 HRRP components
+  (supplemental file, Table 15) aren't on the FY 2027 final rule page yet; FY 2027 HAC results post in early 2027. The
+  FY 2027 Impact File's "proxy" readmission factor is just the FY 2026 factor, so it isn't used. Re-run `cms-penalties`
+  when they post; it picks the Provider Data Catalog's fiscal year and that year's supplemental file.
+- **Refactor:** `cms_ipps.parse_table1` is shared and also returns Table 1B's labor split (wage index ≤ 1); `cms-ipps`
+  output is unchanged.
+
 ## 3. Key decisions and why
 
 ### Peer groups: a proxy, not a PSA/SSA

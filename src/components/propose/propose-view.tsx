@@ -93,7 +93,7 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
   const update = (patch: Partial<ProposalSpec>) => setSpec({ ...spec, ...patch })
   const setCost = (key: keyof CostInputs, value: number) => setSpec({ ...spec, costs: { ...spec.costs, [key]: value } })
 
-  const benefit = mod.benefit(state, moduleData)
+  const benefit = mod.benefit(state, moduleData, { life: spec.costs.life })
   const projections = projectAll(benefit.annual, spec.costs, spec.rates)
   const focused = projections.find((p) => p.scenario === focus)!
   const hasCost = spec.costs.capital + spec.costs.implementation + spec.costs.maintenance > 0
@@ -197,7 +197,7 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
               state={state}
               onChange={(next) => setStates((s) => ({ ...s, [mod.id]: next }))}
               data={moduleData}
-              context={{ facilityId: facility?.id ?? null, facilityName: facility?.name ?? null }}
+              context={{ facilityId: facility?.id ?? null, facilityName: facility?.name ?? null, life: spec.costs.life }}
             />
           )}
         </section>

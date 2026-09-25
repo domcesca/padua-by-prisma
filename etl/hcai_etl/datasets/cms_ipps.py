@@ -137,37 +137,7 @@ class CmsIpps(Dataset):
         return drgs
 
     def _table1(self, rows: list[tuple]) -> dict:
-        def first_amounts(title: str) -> tuple[list[float], str]:
-            """The first row of dollar amounts after a table's title, and the column heading above it."""
-            start = next((i for i, r in enumerate(rows) if _text(r[0]).upper().startswith(title)), None)
-            if start is None:
-                raise RuntimeError(f"Tables 1A-1E: {title} not found; the layout changed.")
-            for i in range(start + 1, min(start + 8, len(rows))):
-                nums = [v for v in rows[i] if isinstance(v, (int, float))]
-                if nums:
-                    return nums, _text(rows[start + 1][0])
-            raise RuntimeError(f"Tables 1A-1E: no amounts under {title}.")
-
-        a, a_heading = first_amounts("TABLE 1A")
-        b, _ = first_amounts("TABLE 1B")
-        d, _ = first_amounts("TABLE 1D")
-        if "quality data and is a meaningful ehr user" not in a_heading.lower():
-            raise RuntimeError(f"Table 1A: first column isn't the full-update rate ({a_heading!r}).")
-        total = round(a[0] + a[1], 2)
-        if abs(total - (b[0] + b[1])) > 0.02:
-            raise RuntimeError(f"Tables 1A and 1B disagree on the standardized amount: {total} vs {b[0] + b[1]}")
-        update = re.search(r"update\s*=\s*(-?[\d.]+)\s*percent", a_heading, re.I)
-        return {
-            "operating": {
-                "total": total,
-                "laborRelated": a[0],
-                "nonlaborRelated": a[1],
-                "laborShare": round(a[0] / total, 3),
-                "update": float(update.group(1)) if update else None,
-                "basis": a_heading,
-            },
-            "capital": d[0],
-        }
+        return parse_table1(rows)
 
     def build(self, data: dict) -> None:
         drgs, rates = data["drgs"], data["rates"]
@@ -194,3 +164,41 @@ class CmsIpps(Dataset):
             },
             compact=False,
         )
+
+
+def parse_table1(rows: list[tuple]) -> dict:
+    """Tables 1A-1E: the operating standardized amount (1A: wage index above 1; 1B: at or below 1) and capital rate (1D)."""
+
+    def first_amounts(title: str) -> tuple[list[float], str]:
+        """The first row of dollar amounts after a table's title, and the column heading above it."""
+        start = next((i for i, r in enumerate(rows) if _text(r[0]).upper().startswith(title)), None)
+        if start is None:
+            raise RuntimeError(f"Tables 1A-1E: {title} not found; the layout changed.")
+        for i in range(start + 1, min(start + 8, len(rows))):
+            nums = [v for v in rows[i] if isinstance(v, (int, float))]
+            if nums:
+                return nums, _text(rows[start + 1][0])
+        raise RuntimeError(f"Tables 1A-1E: no amounts under {title}.")
+
+    a, a_heading = first_amounts("TABLE 1A")
+    b, _ = first_amounts("TABLE 1B")
+    d, _ = first_amounts("TABLE 1D")
+    if "quality data and is a meaningful ehr user" not in a_heading.lower():
+        raise RuntimeError(f"Table 1A: first column isn't the full-update rate ({a_heading!r}).")
+    total = round(a[0] + a[1], 2)
+    if abs(total - (b[0] + b[1])) > 0.02:
+        raise RuntimeError(f"Tables 1A and 1B disagree on the standardized amount: {total} vs {b[0] + b[1]}")
+    update = re.search(r"update\s*=\s*(-?[\d.]+)\s*percent", a_heading, re.I)
+    return {
+        "operating": {
+            "total": total,
+            "laborRelated": a[0],
+            "nonlaborRelated": a[1],
+            "laborShare": round(a[0] / total, 3),
+            "update": float(update.group(1)) if update else None,
+            "basis": a_heading,
+        },
+        # Hospitals with a wage index at or below 1 get a smaller labor share (Table 1B).
+        "operatingLowWage": {"laborRelated": b[0], "nonlaborRelated": b[1]},
+        "capital": d[0],
+    }
