@@ -180,7 +180,9 @@ export function HomeFlow({
       {/* Step 1 */}
       <Step n={1} title="Which hospital?" done={facilityId != null}>
         <div className="max-w-2xl space-y-3">
-          <FacilityPicker facilities={facilities} value={facilityId} onChange={chooseFacility} latestYear={latestYear} />
+          <div data-tour="hospital">
+            <FacilityPicker facilities={facilities} value={facilityId} onChange={chooseFacility} latestYear={latestYear} />
+          </div>
           {facility && (
             <p className="fade-up text-[13px] text-muted-foreground" aria-live="polite">
               {previewLoading && !preview ? (
@@ -204,7 +206,7 @@ export function HomeFlow({
 
       {/* Step 2 */}
       <Step n={2} title="Choose a topic" done={category != null}>
-        <div role="radiogroup" aria-label="Topic" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div role="radiogroup" aria-label="Topic" data-tour="topic" className="scroll-mt-20 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {CATEGORIES.map((c) => {
             const Icon = ICONS[c.id]
             const selected = category === c.id
@@ -397,6 +399,7 @@ export function HomeFlow({
       <div className="flex flex-col gap-4 border-t border-border pt-8 sm:flex-row sm:items-center sm:justify-between">
         <Link
           href={benchmarkHref}
+          data-tour="compare"
           aria-disabled={!ready}
           tabIndex={ready ? undefined : -1}
           onClick={(e) => (ready ? remember() : e.preventDefault())}

@@ -1,12 +1,13 @@
 "use client"
 
-import { ArrowUpRight, ChevronDown, CircleHelp, Loader2, Search, X } from "lucide-react"
+import { ArrowUpRight, BookOpenText, ChevronDown, CircleHelp, Compass, Loader2, Search, X } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import type { GlossaryEntry } from "@/lib/glossary"
 import { cn } from "@/lib/utils"
+import { useStartTour } from "./tour"
 
 // The floating "?" on every page: a lookup over every metric and report field definition, from the
 // same dictionaries Translate shows (see lib/glossary.ts). A search box and a list; no questions
@@ -37,13 +38,14 @@ function score(e: GlossaryEntry, terms: string[]) {
   return 1 + kind
 }
 
-export function HelpPanel({ children }: { children?: React.ReactNode }) {
+export function HelpPanel() {
   const [open, setOpen] = useState(false)
   const [entries, setEntries] = useState<GlossaryEntry[] | null>(null)
   const [failed, setFailed] = useState(false)
   const [query, setQuery] = useState("")
   const [expanded, setExpanded] = useState<string | null>(null)
   const input = useRef<HTMLInputElement>(null)
+  const startTour = useStartTour()
 
   function openChange(next: boolean) {
     setOpen(next)
@@ -172,7 +174,25 @@ export function HelpPanel({ children }: { children?: React.ReactNode }) {
             </>
           )}
         </div>
-        {children && <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border px-4 py-2.5 text-[13px]">{children}</div>}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border px-4 py-2.5 text-[13px]">
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false)
+              startTour()
+            }}
+            className="inline-flex items-center gap-1.5 font-medium text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          >
+            <Compass className="size-3.5" /> Take the tour
+          </button>
+          <Link
+            href="/translate"
+            onClick={() => setOpen(false)}
+            className="inline-flex items-center gap-1.5 font-medium text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          >
+            <BookOpenText className="size-3.5" /> Every field, in Translate
+          </Link>
+        </div>
       </PopoverContent>
     </Popover>
   )

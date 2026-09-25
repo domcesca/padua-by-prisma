@@ -1,6 +1,6 @@
 # PROGRESS — handoff for the next session
 
-_Last updated 2026-09-25, mid-V4 (see §2 V4). Read this first, then `README.md` (run/refresh/deploy commands) and `AGENTS.md` (this is Next.js 16 — check `node_modules/next/dist/docs/` before writing Next code)._
+_Last updated 2026-09-25, V5 (see §2 V5). Read this first, then `README.md` (run/refresh/deploy commands) and `AGENTS.md` (this is Next.js 16 — check `node_modules/next/dist/docs/` before writing Next code)._
 
 ## 1. Project overview
 
@@ -97,6 +97,31 @@ _Last updated 2026-09-25, mid-V4 (see §2 V4). Read this first, then `README.md`
    and newborn-nursery census days (35). There is **no "Definitive Observation" line**. Each has licensed beds, bed
    days, discharges, census days (critical care also intra-hospital transfers). Raw files are cached in `data/raw/hau`.
 
+### V5 (UI polish and onboarding; no new data)
+1. **Home:** the "Or try" suggested-hospital chips under the hospital search are gone (Benchmark's empty state still
+   offers its own starting points; the spec only named the home page).
+2. **One picker for long lists:** `GroupedPicker` / `PickerPill` (`src/components/shell/grouped-picker.tsx`) — search
+   plus groups collapsed until opened; searching lists every match, label matches first (it also matches metric
+   summaries). Up to 4 choices show as removable chips, more become a collapsed "Chosen" group. Options come from
+   `metricPickerOptions` (`src/lib/data/metric-options.ts`): category · Medicare · quality sub-heading across
+   categories, sub-heading only within one. Applied to Build's metrics (was a wall of ~60 chips), Benchmark's Metrics,
+   Unit, and County pills, Correlate's two axes, and Home's Refine metrics. Home's step-3 unit chips stay chips (a
+   hospital has a handful of units). Filtering and ranking are done in React (`shouldFilter={false}`); cmdk's own
+   sorting reorders DOM nodes and fought the collapsible rendering.
+3. **Glossary:** floating "?" (`src/components/shell/help-panel.tsx`, mounted in the root layout; also the `?` key).
+   Data from `/api/glossary` → `src/lib/glossary.ts`, which builds entries from each dataset's `dictionary.json` via
+   `getDictionary` — the same files Translate and the metric catalog read, so no refactor was needed and nothing is
+   duplicated. 576 entries (62 metrics, 514 fields; quality/CMI metrics included), ~240 KB, fetched on first open.
+   Financial and utilization entries link to their Translate entry. Explicitly a lookup: no NL, no LLM.
+4. **Tour:** `src/components/shell/tour.tsx`, five steps on the home page (hospital → topic → Compare → Correlate nav →
+   help button), anchored on `data-tour` attributes. Auto-plays once (localStorage `hcai-tour-v1`; skip, close, Esc,
+   finishing, or navigating away all mark it done). "Take the tour" in the help panel replays it (from another page it
+   goes home first via a sessionStorage flag). Steps whose target isn't visible are skipped.
+
+Checked: typecheck, lint, `next build`; Playwright runs at 1280px and 375px in light and dark over every changed picker,
+the glossary (search, expand, deep link, `?` key), and the tour (autoplay, all steps, skip, Esc, no replay on reload,
+replay from another page). No horizontal overflow at 375px.
+
 Cloud sessions need data.cms.gov, data.chhs.ca.gov and api.census.gov allowed (the user added them); CHHS
 downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and aha.org were not.
 
@@ -185,7 +210,7 @@ The utilities are all in `src/app/globals.css`. **Reuse them; don't invent new o
 - **Readability first** for a CFO audience: text uses text tokens, never series colors. The iOS-style `Segmented` control is in `src/components/shell/segmented.tsx`.
 
 ## 4. Deferred or not built
-- **Ask** (natural-language queries): placeholder only. The intended design is NL → `ReportSpec` → the existing Build runner.
+- **Ask** (natural-language queries): placeholder only, deferred past V5. The intended design is NL → `ReportSpec` → the existing Build runner.
 - **Watch** (anomaly detection on uploaded data): placeholder only.
 - **Case mix** topic (conditions/procedures treated): shown as "coming later" on the home page (`FUTURE_CATEGORIES` in `datasets.ts`). The CMI itself is built (Utilization).
 - **Other**: no accounts, saved reports, server-side uploads or database.
@@ -200,7 +225,7 @@ The utilities are all in `src/app/globals.css`. **Reuse them; don't invent new o
   - **To go public:** turn off Deployment Protection, or assign a production domain, in the Vercel project settings.
 - **Local:** `npm run dev` serves http://localhost:3000. No environment variables are needed.
 
-## 6. Next: V3 scope
+## 6. Original V3 scope (done; kept for context)
 - **Quality tab:** CMS Care Compare (hospital quality measures) plus CDPH healthcare-associated infection (HAI) data. It would fill the reserved "Quality" topic on the home page.
 - **Medicare lens:** a Medicare-specific view on the existing tabs (Benchmark, Build and so on).
 - **Community context overlay on Benchmark:** Census ACS demographics plus DHCS Medi-Cal enrollment for the hospital's area.

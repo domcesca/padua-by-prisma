@@ -5,6 +5,7 @@ import { HelpPanel } from "@/components/shell/help-panel"
 import { MobileHeader, MobileTabBar } from "@/components/shell/mobile-nav"
 import { Sidebar } from "@/components/shell/sidebar"
 import { ThemeProvider } from "@/components/shell/theme-provider"
+import { Tour } from "@/components/shell/tour"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import "./globals.css"
 
@@ -42,6 +43,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             </div>
             <MobileTabBar />
             <HelpPanel />
+            <Tour />
           </TooltipProvider>
         </ThemeProvider>
       </body>
