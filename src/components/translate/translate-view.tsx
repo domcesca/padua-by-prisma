@@ -12,6 +12,7 @@ import { Segmented } from "@/components/shell/segmented"
 import { DATASET_SLUG, DATASETS, parseDatasetSlug } from "@/lib/data/datasets"
 import type { DatasetId, Dictionary, DictionaryField, DictionaryMetric, FieldYearMeta } from "@/lib/data/types"
 import { normalizeColumn, type Extract } from "@/lib/translate/columns"
+import { rememberSelection } from "@/lib/selection"
 import { cn } from "@/lib/utils"
 import { ExtractInput } from "./extract-input"
 import { BIG_CHANGE, FieldRow, type FieldValues } from "./field-row"
@@ -59,6 +60,9 @@ export function TranslateView({
   const [extract, setExtract] = useState<Extract | null>(null)
   const [extractRow, setExtractRow] = useState(0)
   const fetched = useRef<string | null>(null)
+  useEffect(() => {
+    rememberSelection({ ...(facilityId ? { facilityId } : {}), category: dataset === "hau" ? "utilization" : "financial" })
+  }, [facilityId, dataset])
   const source = DATASET_SLUG[dataset]
   const hrefFor = (params: Record<string, string | null>) => {
     const qs = new URLSearchParams({ source })

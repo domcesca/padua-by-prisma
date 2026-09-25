@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
     filters: parseFilters(params),
     category: view.category,
     metricIds: metricsFor(view),
+    since: view.since,
   })
   if (!result) {
     return NextResponse.json({ error: `Unknown facility ${facilityId}` }, { status: 404 })

@@ -75,9 +75,14 @@ export function metricValue(file: MetricsFile, facilityId: string, year: number,
 }
 
 /** Hospital vs peer distribution for one metric across its dataset's years. */
-export async function metricSeries(metric: MetricDef, facilityId: string | null, peerIds: string[]): Promise<SeriesPoint[]> {
+export async function metricSeries(
+  metric: MetricDef,
+  facilityId: string | null,
+  peerIds: string[],
+  since: number | null = null
+): Promise<SeriesPoint[]> {
   const [file, manifest] = await Promise.all([getMetrics(metric.dataset), getManifest(metric.dataset)])
-  return manifest.years.map((year) => {
+  return manifest.years.filter((y) => since == null || y >= since).map((year) => {
     const values = peerIds
       .map((id) => metricValue(file, id, year, metric.id))
       .filter((v): v is number => v != null)
@@ -103,12 +108,15 @@ export async function computeBenchmark({
   filters,
   category,
   metricIds,
+  since = null,
 }: {
   facilityId: string
   filters: PeerFilters
   category: MetricCategory
   /** Metrics to compute; defaults to the category's defaults. */
   metricIds?: string[]
+  /** First year to include. */
+  since?: number | null
 }): Promise<BenchmarkResult | null> {
   const [facilities, catalog] = await Promise.all([getFacilities(), getMetricCatalog()])
   const facility = facilities.find((f) => f.id === facilityId)
@@ -126,7 +134,7 @@ export async function computeBenchmark({
   const series: Record<string, SeriesPoint[]> = {}
   await Promise.all(
     metrics.map(async (m) => {
-      series[m.id] = await metricSeries(m, facility.id, peerIds)
+      series[m.id] = await metricSeries(m, facility.id, peerIds, since)
     })
   )
 

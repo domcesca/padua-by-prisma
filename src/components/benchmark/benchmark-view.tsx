@@ -2,7 +2,7 @@
 
 import { ChevronRight, Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 import { Segmented } from "@/components/shell/segmented"
 import type { BenchmarkResult } from "@/lib/benchmark/compute"
@@ -10,6 +10,7 @@ import { DEFAULT_FILTERS, filtersToParams, OWNERSHIP_LABEL, type PeerFilters } f
 import { metricsFor, viewToParams, type BenchmarkViewState } from "@/lib/benchmark/view"
 import { CATEGORIES, CATEGORY_BY_ID, DATASETS, type MetricDef } from "@/lib/data/datasets"
 import type { MetricCategory, PayerGroup } from "@/lib/data/types"
+import { rememberSelection } from "@/lib/selection"
 import { cn } from "@/lib/utils"
 import { FacilityPicker, type FacilityOption } from "./facility-picker"
 import { FilterPill } from "./filter-pill"
@@ -26,6 +27,7 @@ export function BenchmarkView({
   catalog,
   payerGroups,
   latestYear,
+  years,
   initialFacilityId,
   initialFilters,
   initialView,
@@ -38,6 +40,8 @@ export function BenchmarkView({
   catalog: MetricDef[]
   payerGroups: { id: PayerGroup; label: string }[]
   latestYear: number
+  /** Every year loaded in any dataset, ascending. */
+  years: number[]
   initialFacilityId: string | null
   initialFilters: PeerFilters
   initialView: BenchmarkViewState
@@ -52,6 +56,11 @@ export function BenchmarkView({
   const request = useRef<AbortController | null>(null)
 
   const { facilityId, filters, view } = state
+
+  // Carry the hospital and category to the other tabs.
+  useEffect(() => {
+    rememberSelection(facilityId ? { facilityId, category: view.category } : { category: view.category })
+  }, [facilityId, view.category])
   const metaById = Object.fromEntries(catalog.map((m) => [m.id, m]))
   const facility = facilityId ? (facilities.find((f) => f.id === facilityId) ?? null) : null
   const categoryMetrics = catalog.filter((m) => m.category === view.category && m.unit !== "share")
@@ -84,9 +93,11 @@ export function BenchmarkView({
     }
   }
 
-  const setCategory = (category: MetricCategory) => apply({ view: { category, metrics: null } })
-  const setMetrics = (metrics: string[]) =>
-    apply({ view: { ...view, metrics: metrics.length ? categoryMetrics.map((m) => m.id).filter((id) => metrics.includes(id)) : null } })
+  const setCategory = (category: MetricCategory) => apply({ view: { ...view, category, metrics: null } })
+  const setMetrics = (metrics: string[]) => {
+    const valid = metrics.filter((id) => metaById[id]?.category === view.category)
+    return apply({ view: { ...view, metrics: valid.length ? valid : null } })
+  }
 
   const shown = result && result.facility.id === facilityId && result.category === view.category ? result : null
   const categoryInfo = CATEGORY_BY_ID[view.category]
@@ -116,6 +127,16 @@ export function BenchmarkView({
             onChange={setMetrics}
             multiple
             quickActions={isDefaultMetrics ? undefined : [{ label: "Back to the standard set", onSelect: () => setMetrics([]) }]}
+          />
+          <FilterPill
+            label="Years"
+            summary={view.since != null ? `Since ${view.since}` : null}
+            options={[
+              { value: "all", label: `All years (${years[0]}–${years.at(-1)})` },
+              ...years.slice(0, -2).map((y) => ({ value: String(y), label: `Since ${y}` })),
+            ]}
+            selected={[view.since != null ? String(view.since) : "all"]}
+            onChange={([v]) => apply({ view: { ...view, since: v === "all" ? null : Number(v) } })}
           />
           {loading && (
             <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground" role="status">

@@ -2,7 +2,7 @@
 
 import { AlertCircle, CalendarDays, CheckCircle2, Clock } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useMemo, useState, useSyncExternalStore } from "react"
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react"
 
 import { FacilityPicker, type FacilityOption } from "@/components/benchmark/facility-picker"
 import { FilterPill } from "@/components/benchmark/filter-pill"
@@ -22,6 +22,7 @@ import {
   type FiscalYearEnd,
   type Progress,
 } from "@/lib/deadlines/rules"
+import { rememberSelection } from "@/lib/selection"
 import { useMounted } from "@/lib/use-mounted"
 import { cn } from "@/lib/utils"
 
@@ -98,6 +99,9 @@ export function DeadlinesView({
   const mounted = useMounted()
   const [facilityId, setFacilityId] = useState(initialFacilityId)
   const facility = facilities.find((f) => f.id === facilityId)
+  useEffect(() => {
+    if (facilityId) rememberSelection({ facilityId })
+  }, [facilityId])
   const [manualFye, setManualFye] = useState<FiscalYearEnd>({ month: 11 })
   const [offCycle, setOffCycle] = useState("")
   const progress = useProgress()

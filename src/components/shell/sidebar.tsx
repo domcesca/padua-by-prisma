@@ -3,18 +3,20 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
-import { NAV_ITEMS } from "@/lib/nav"
+import { isActivePath, NAV_ITEMS } from "@/lib/nav"
+import { hrefWithSelection, useSelection } from "@/lib/selection"
 import { cn } from "@/lib/utils"
 import { ThemeToggle } from "./theme-toggle"
 
 export function Sidebar() {
   const pathname = usePathname()
+  const selection = useSelection()
 
   return (
     <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar backdrop-blur-xl md:flex">
       <div className="px-5 pt-6 pb-5">
         <Link
-          href="/benchmark"
+          href="/"
           className="block rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
         >
           <p className="text-[15px] font-semibold tracking-tight">HCAI Insights</p>
@@ -25,11 +27,11 @@ export function Sidebar() {
       <nav aria-label="Sections" className="flex-1 px-3">
         <ul className="space-y-0.5">
           {NAV_ITEMS.map(({ href, label, icon: Icon, soon }) => {
-            const active = pathname === href || pathname.startsWith(`${href}/`)
+            const active = isActivePath(pathname, href)
             return (
               <li key={href}>
                 <Link
-                  href={href}
+                  href={hrefWithSelection(href, selection)}
                   aria-current={active ? "page" : undefined}
                   className={cn(
                     "group flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-sm transition-colors duration-150",

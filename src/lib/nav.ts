@@ -2,6 +2,8 @@ import {
   BarChart3,
   BookOpenText,
   CalendarClock,
+  ChartColumnBig,
+  House,
   MessageSquareText,
   ScanEye,
   type LucideIcon,
@@ -17,10 +19,22 @@ export type NavItem = {
 
 export const NAV_ITEMS: NavItem[] = [
   {
+    href: "/",
+    label: "Home",
+    description: "Pick what to look at and which hospital",
+    icon: House,
+  },
+  {
     href: "/benchmark",
     label: "Benchmark",
-    description: "Compare a hospital with its peers",
+    description: "Compare a hospital with similar hospitals",
     icon: BarChart3,
+  },
+  {
+    href: "/build",
+    label: "Build",
+    description: "Make a chart or table from the data",
+    icon: ChartColumnBig,
   },
   {
     href: "/translate",
@@ -49,3 +63,6 @@ export const NAV_ITEMS: NavItem[] = [
     soon: true,
   },
 ]
+
+export const isActivePath = (pathname: string, href: string) =>
+  href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`)

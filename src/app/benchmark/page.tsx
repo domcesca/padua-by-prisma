@@ -31,7 +31,7 @@ export default async function BenchmarkPage({ searchParams }: PageProps<"/benchm
     getLatestYear(),
     Promise.all([getManifest("hafd-selected"), getManifest("hau")]),
     facilityId
-      ? computeBenchmark({ facilityId, filters, category: view.category, metricIds: metricsFor(view) })
+      ? computeBenchmark({ facilityId, filters, category: view.category, metricIds: metricsFor(view), since: view.since })
       : Promise.resolve(null),
   ])
 
@@ -58,6 +58,7 @@ export default async function BenchmarkPage({ searchParams }: PageProps<"/benchm
         catalog={catalog}
         payerGroups={dictionary.payerGroups.map(({ id, label }) => ({ id, label }))}
         latestYear={latestYear}
+        years={[...new Set(manifests.flatMap((m) => m.years))].sort((a, b) => a - b)}
         initialFacilityId={initialResult ? facilityId : null}
         initialFilters={filters}
         initialView={view}
