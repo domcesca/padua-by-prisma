@@ -1,6 +1,6 @@
 # PROGRESS — handoff for the next session
 
-_Last updated 2026-09-25, mid-V3 (see §2 V3). Read this first, then `README.md` (run/refresh/deploy commands) and `AGENTS.md` (this is Next.js 16 — check `node_modules/next/dist/docs/` before writing Next code)._
+_Last updated 2026-09-25, mid-V4 (see §2 V4; V3's Correlate tab is still not built). Read this first, then `README.md` (run/refresh/deploy commands) and `AGENTS.md` (this is Next.js 16 — check `node_modules/next/dist/docs/` before writing Next code)._
 
 ## 1. Project overview
 
@@ -63,6 +63,25 @@ _Last updated 2026-09-25, mid-V3 (see §2 V3). Read this first, then `README.md`
    Imperial. DHCS enrollment runs well above ACS self-reported Medicaid (15.0M vs ~10.6M statewide; LA 42% vs 30%) —
    known survey undercount; the panel labels the Census bar self-reported and explains the gap.
 4. **Correlate tab**: not started (build last, per the user).
+
+### V4 (in progress)
+1. **Length of stay / average daily census** (done). All-payer LoS already existed as `alos` ("Average length of stay
+   (acute)", GAC lines 1–9). Added `adc` = acute census days ÷ days in the period (`hau`). Both acute-only; note that
+   inpatient days, discharges and occupancy are all-bed totals, not acute-only. Medicare-lens LoS (financial report)
+   still includes SNF days.
+2. **Home page reorder** (done): hospital first, then topic.
+3. **Case mix index** (done): pulled directly from CHHS (`case-mix-index` package) — the user didn't need to supply a
+   file. Federal fiscal years 2019–2025, category Utilization. Per-facility in the source, so campuses are combined by
+   utilization-report discharge weights (see README). The "Case mix" home placeholder now describes a future
+   conditions/procedures topic.
+4. **Hospital card** (done): licensed beds, FY end, data years, plus latest LoS, ADC (both acute) and CMI.
+5. **Unit-level drill-down**: not started — waiting on the user to confirm bed categories. The real HAU file (report
+   page 3) has: Medical/Surgical (1), Perinatal (2), Pediatric (3), Intensive Care (4), Coronary Care (5), Acute
+   Respiratory Care (6), Burn (7), Intensive Care Newborn Nursery (8), Rehabilitation Center (9), GAC subtotal (15),
+   Chemical Dependency Recovery (16), Acute Psychiatric (17), Skilled Nursing (18), Intermediate Care (19), ICF-DD
+   (20), Total (25), plus lines 30/31 (chemical dependency recovery hospital / acute psychiatric hospital licenses)
+   and newborn-nursery census days (35). There is **no "Definitive Observation" line**. Each has licensed beds, bed
+   days, discharges, census days (critical care also intra-hospital transfers). Raw files are cached in `data/raw/hau`.
 
 Cloud sessions need data.cms.gov, data.chhs.ca.gov and api.census.gov allowed (the user added them); CHHS
 downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and aha.org were not.
@@ -154,9 +173,9 @@ The utilities are all in `src/app/globals.css`. **Reuse them; don't invent new o
 ## 4. Deferred or not built
 - **Ask** (natural-language queries): placeholder only. The intended design is NL → `ReportSpec` → the existing Build runner.
 - **Watch** (anomaly detection on uploaded data): placeholder only.
-- **Case mix** topic: shown as "coming later" on the home page (`FUTURE_CATEGORIES` in `datasets.ts`).
+- **Case mix** topic (conditions/procedures treated): shown as "coming later" on the home page (`FUTURE_CATEGORIES` in `datasets.ts`). The CMI itself is built (Utilization).
 - **Other**: no accounts, saved reports, server-side uploads or database.
-- **More HCAI datasets:** Quarterly Financial & Utilization, the complete Annual Disclosure set and the Case Mix Index are planned but not started.
+- **More HCAI datasets:** Quarterly Financial & Utilization and the complete Annual Disclosure set are planned but not started.
 
 ## 5. Deployment state (checked 2026-09-24)
 - **GitHub:** https://github.com/domcesca/usc-hcai-insights (public). `main` is pushed and in sync with `origin/main` at `b09ba3a`.

@@ -17,6 +17,7 @@ Data, calendar/report years 2019–2024:
 
 - [HCAI Hospital Annual Financial Data – Selected Data & Pivot Tables](https://data.chhs.ca.gov/dataset/hospital-annual-financial-data-selected-data-pivot-tables)
 - [HCAI Hospital Annual Utilization Report & Pivot Tables](https://data.chhs.ca.gov/dataset/hospital-annual-utilization-report)
+- [HCAI Case Mix Index](https://data.chhs.ca.gov/dataset/case-mix-index) (federal fiscal years 2019–2025)
 - [CMS Care Compare – Hospitals](https://data.cms.gov/provider-data/topics/hospitals) (archived snapshots, 2019–2026)
 - [CDPH Healthcare-Associated Infections](https://www.cdph.ca.gov/Programs/CHCQ/HAI/Pages/HAIreport.aspx) (CLABSI, C. diff, MRSA, VRE; 2019–2025)
 - [DHCS Medi-Cal Certified Eligibles by month](https://data.chhs.ca.gov/dataset/medi-cal-certified-eligibles-with-demographics-by-month) and the [Census ACS 5-year API](https://www.census.gov/data/developers/data-sets/acs-5year.html) (county context)
@@ -54,8 +55,8 @@ Each dataset writes `data/processed/<id>/`:
 - `dictionary.json`: plain-language data dictionary and metric definitions (from `etl/hcai_etl/dictionary/<id>.py`)
 - `manifest.json`: source files, years, and processing notes
 
-Commit the regenerated files and redeploy. Build the HCAI datasets (`hafd-selected`, `hau`) before `cms-care-compare`
-and `cdph-hai`, which map onto their facility list (the default order does this).
+Commit the regenerated files and redeploy. Build the HCAI datasets (`hafd-selected`, `hau`) before `case-mix-index`,
+`cms-care-compare` and `cdph-hai`, which map onto their facility list (the default order does this).
 
 ### How the ETL handles HCAI's quirks
 
@@ -80,6 +81,10 @@ Utilization (`hau`):
   discharges (critical care adds transfers out), per HCAI's instructions.
 - **Workbook layout.** Data is on the "Page 1-6" sheet with four metadata rows (description, Page, Column, Line) under
   the header; both the ETL and browser uploads skip them.
+- **Length of stay and average daily census are acute-only** (general acute bed lines 1–9: med/surg, perinatal,
+  pediatric, ICU, CCU, acute respiratory, burn, NICU, rehab), so skilled nursing, psychiatric, and chemical-dependency
+  units don't distort them. ADC = acute census days ÷ days in the period. Inpatient days, discharges, and occupancy
+  are all-bed totals. The Medicare lens's length of stay comes from the financial report and includes SNF days.
 - **Known gaps in HCAI's files:** births are blank from 2022 on; there's no total outpatient-visits field (the app
   takes outpatient visits from the financial report instead, labeled as fiscal-year).
 
@@ -88,8 +93,15 @@ Utilization (`hau`):
 Subclass `hcai_etl.core.Dataset` in `etl/hcai_etl/datasets/`, implement `resources()` / `load()` / `build()`, add a
 dictionary module (with `category` on each metric), register it in `datasets/__init__.py`, and add its id to
 `DATASET_IDS` in `src/lib/data/store.ts` and `DATASETS` in `src/lib/data/datasets.ts`. Its metrics then appear in
-Benchmark, Build, and Translate. Planned: Quarterly Financial & Utilization, Annual Disclosure complete set, Case Mix
-Index.
+Benchmark, Build, and Translate. Planned: Quarterly Financial & Utilization, Annual Disclosure complete set.
+
+Case mix index (`case-mix-index`):
+
+- **Federal fiscal years** (October–September), filed under the year they end, and tagged on the card.
+- **IDs:** the workbook's `oshpd_id` drops the `106` prefix and a leading zero (`10735` → `106010735`).
+- **Campuses:** HCAI calculates CMI per facility, so the license's CMI is its campuses' CMIs weighted by their
+  utilization-report discharges (19 hospitals; the card says which campuses). Single-facility values are HCAI's own,
+  unchanged. State hospitals (DSH) and Porterville have no CMI.
 
 ## Quality (Benchmark's third topic)
 
