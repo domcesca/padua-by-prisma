@@ -17,7 +17,7 @@ export function MobileHeader() {
       <Link href="/" aria-label={`${APP_FULL_NAME}: home`} className="flex items-center gap-2 text-[16px] font-semibold tracking-tight">
         <PaduaMark size={22} />
         <span className="whitespace-nowrap">
-          {APP_NAME} <span className="text-[12px] font-normal tracking-normal text-muted-foreground">{APP_BYLINE}</span>
+          {APP_NAME} <span className="text-[12px] font-medium tracking-normal text-primary">{APP_BYLINE}</span>
         </span>
       </Link>
       <ThemeToggle />

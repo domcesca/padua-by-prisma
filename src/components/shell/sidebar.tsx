@@ -25,7 +25,7 @@ export function Sidebar() {
           <PaduaMark size={30} />
           <span className="min-w-0">
             <span className="block text-[17px] leading-tight font-semibold tracking-tight whitespace-nowrap">
-              {APP_NAME} <span className="text-[12px] font-normal tracking-normal text-muted-foreground">{APP_BYLINE}</span>
+              {APP_NAME} <span className="text-[12px] font-medium tracking-normal text-primary">{APP_BYLINE}</span>
             </span>
             <span className="block text-xs font-normal text-muted-foreground">{APP_TAGLINE}</span>
           </span>
