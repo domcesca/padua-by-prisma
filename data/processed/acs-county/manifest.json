@@ -1,0 +1,36 @@
+{
+  "id": "acs-county",
+  "title": "Census ACS 5-year estimates – California counties",
+  "sourcePage": "https://www.census.gov/programs-surveys/acs",
+  "years": [
+    2024
+  ],
+  "vintage": "2020–2024",
+  "sources": [
+    {
+      "name": "ACS 5-year 2024, detailed tables",
+      "url": "https://api.census.gov/data/2024/acs/acs5"
+    },
+    {
+      "name": "ACS 5-year 2024, subject tables",
+      "url": "https://api.census.gov/data/2024/acs/acs5/subject"
+    }
+  ],
+  "variables": {
+    "population": "B01003_001E",
+    "medianHouseholdIncome": "B19013_001E",
+    "medianAge": "B01002_001E",
+    "pctAge65Plus": "S0101_C02_030E",
+    "pctBelowPoverty": "S1701_C03_001E",
+    "pctUninsured": "S2701_C05_001E",
+    "pctPrivate": "S2703_C03_001E",
+    "pctMedicare": "S2704_C03_002E",
+    "pctMedicaid": "S2704_C03_006E"
+  },
+  "generatedAt": "2026-09-25T05:02:23Z",
+  "notes": [
+    "ACS 5-year estimates pool surveys from 2020 through 2024.",
+    "Coverage percentages are 'alone or in combination' and overlap, so they don't sum to 100%.",
+    "Median household income is in the final year's inflation-adjusted dollars."
+  ]
+}

@@ -121,8 +121,17 @@ export function CommunityPanel({ context }: { context: CommunityContext }) {
                 <CoverageBar label="Medi-Cal" value={acs.pctMedicaid} />
                 <CoverageBar label="Uninsured" value={acs.pctUninsured} />
               </div>
-              <p className="text-xs text-tertiary-foreground">
-                Share of residents with each type, alone or with another, so they add to more than 100%.
+              <p className="text-xs leading-relaxed text-tertiary-foreground">
+                What residents told the Census they have, alone or with another type, so the bars add to more than 100%.
+                {shareOfPopulation != null && acs.pctMedicaid != null && (
+                  <>
+                    {" "}
+                    Medi-Cal here ({acs.pctMedicaid.toFixed(0)}%) is lower than DHCS&apos;s enrollment count (
+                    {shareOfPopulation.toFixed(0)}% of residents): surveys are known to undercount Medicaid, since people
+                    often name their health plan instead, while DHCS counts everyone certified eligible in a month. For
+                    Medi-Cal volume, use the enrollment figure.
+                  </>
+                )}
               </p>
             </div>
           )}

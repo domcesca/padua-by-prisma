@@ -56,9 +56,12 @@ _Last updated 2026-09-25, mid-V3 (see §2 V3). Read this first, then `README.md`
    crosswalk (`etl/hcai_etl/crosswalk.py`), 286/288 comparable general hospitals matched. **VRE has no SIR** in the
    source (no national risk adjustment) — rate only, as the user agreed for missing years. VRE is still published
    through 2025. Rates follow CDPH units (CLABSI per 1,000 line days, others per 10,000 patient days).
-3. **Community context** (done except Census data): Medi-Cal enrollment is loaded. **ACS needs `CENSUS_API_KEY`**,
-   which wasn't set in the cloud session; the pipeline was tested against a mock of the API's response shape only.
-   Run `python -m hcai_etl acs-county` once the key is in `.env`, check the output, and commit `data/processed/acs-county/`.
+3. **Community context** (done): Medi-Cal enrollment (DHCS) and Census ACS 2020–2024 5-year, fetched from the
+   live API with the user's `CENSUS_API_KEY` (never written to disk). Verified: 58 counties, no nulls, county
+   populations sum exactly to the API's state total (39,287,377), and population, median age, % 65+, median household
+   income, poverty, and uninsured match Census's independent profile tables (DP03/DP05) for LA, SF, Humboldt, and
+   Imperial. DHCS enrollment runs well above ACS self-reported Medicaid (15.0M vs ~10.6M statewide; LA 42% vs 30%) —
+   known survey undercount; the panel labels the Census bar self-reported and explains the gap.
 4. **Correlate tab**: not started (build last, per the user).
 
 Cloud sessions need data.cms.gov, data.chhs.ca.gov and api.census.gov allowed (the user added them); CHHS
