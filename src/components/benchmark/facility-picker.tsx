@@ -5,6 +5,8 @@ import { useState } from "react"
 
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { FacilityFlagBadge } from "@/components/shell/facility-flag-note"
+import { facilityFlag, type FacilityClosure } from "@/lib/facility-flag"
 import { cn } from "@/lib/utils"
 
 export type FacilityOption = {
@@ -17,6 +19,8 @@ export type FacilityOption = {
   typeOfCare: string | null
   hospitalType: string | null
   lastYear: number
+  /** Closure evidence from the state's license listing (lib/facility-flag.ts). */
+  closure: FacilityClosure | null
 }
 
 export function FacilityPicker({
@@ -36,6 +40,7 @@ export function FacilityPicker({
 }) {
   const [open, setOpen] = useState(false)
   const selected = facilities.find((f) => f.id === value) ?? null
+  const selectedFlag = selected ? facilityFlag(selected, latestYear) : null
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -51,6 +56,7 @@ export function FacilityPicker({
         <span className={cn("flex-1 truncate text-[15px]", !selected && "text-muted-foreground")}>
           {selected ? selected.name : placeholder}
         </span>
+        {selectedFlag && <FacilityFlagBadge flag={selectedFlag} />}
         <ChevronsUpDown className="size-4 shrink-0 text-tertiary-foreground" />
       </PopoverTrigger>
       <PopoverContent align="start" className="w-(--anchor-width) min-w-80 p-0">
@@ -66,7 +72,9 @@ export function FacilityPicker({
           <CommandList className="max-h-80">
             <CommandEmpty>No hospitals match.</CommandEmpty>
             <CommandGroup>
-              {facilities.map((f) => (
+              {facilities.map((f) => {
+                const flag = facilityFlag(f, latestYear)
+                return (
                 <CommandItem
                   key={f.id}
                   value={[f.name, f.city, f.county, ...f.formerNames, f.id].filter(Boolean).join(" ")}
@@ -78,7 +86,10 @@ export function FacilityPicker({
                   className="items-start py-2 data-[checked=true]:*:[svg]:text-primary"
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm">{f.name}</p>
+                    <p className="flex items-center gap-1.5 text-sm">
+                      <span className="truncate">{f.name}</span>
+                      {flag && <FacilityFlagBadge flag={flag} />}
+                    </p>
                     <p className="truncate text-xs text-muted-foreground">
                       {[f.city, f.county && `${f.county} County`].filter(Boolean).join(" · ")}
                       {f.licensedBeds != null && ` · ${f.licensedBeds} beds`}
@@ -86,7 +97,8 @@ export function FacilityPicker({
                     </p>
                   </div>
                 </CommandItem>
-              ))}
+                )
+              })}
             </CommandGroup>
           </CommandList>
         </Command>

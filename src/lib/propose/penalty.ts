@@ -10,6 +10,8 @@ import { rampShare } from "./advanced"
 // applied to base operating DRG payments. A condition's ERR is predicted ÷ expected readmission
 // rate; a cut of x points in the readmission rate is modeled as the predicted rate falling by x
 // (ERR × (predicted − x) ÷ predicted), with the peer medians and modifier held where they are.
+// Advanced mode can damp that move (× a factor from 0 to 1) for CMS's pull toward the average, and can net out the
+// revenue lost with the readmissions that no longer happen (`readmissionsAvoided` × the proposer's amount).
 //
 // HAC (Hospital-Acquired Condition) Reduction Program: Total HAC Score = the average of the
 // hospital's Winsorized z-scores; above the national cutoff (worst quartile), operating payments
@@ -104,10 +106,15 @@ export type PenaltyData = {
 /** Readmission-rate cuts in percentage points, by condition. */
 export type ReadmissionCuts = Partial<Record<HrrpConditionKey, number>>
 
-/** The ERR after a cut of `points` (scaled by `share`, the part of the window it covers). */
-export function adjustedErr(c: HrrpCondition, points: number, share = 1) {
+/**
+ * The ERR after a cut of `points` (scaled by `share`, the part of the window it covers). `damp` (Advanced, 0 to 1)
+ * keeps only that fraction of the move: CMS's model shrinks a hospital's rate toward the average, more so for smaller
+ * hospitals, so its ERR moves less than its raw rate. 1 = no dampening.
+ */
+export function adjustedErr(c: HrrpCondition, points: number, share = 1, damp = 1) {
   if (!points || !c.predicted) return c.err
-  return (c.err * Math.max(0, c.predicted - points * share)) / c.predicted
+  const naive = (c.err * Math.max(0, c.predicted - points * share)) / c.predicted
+  return c.err - damp * (c.err - naive)
 }
 
 /** A condition only counts with enough discharges and published components. */
@@ -115,14 +122,14 @@ export const hrrpCounts = (c: HrrpCondition, minDischarges: number) =>
   c.discharges != null && c.discharges >= minDischarges && c.peerMedian != null && c.paymentRatio != null
 
 /** Payment reduction (0 to cap) after the cuts, `share` of the way through the performance window. */
-export function hrrpReduction(data: PenaltyData["hrrp"], cuts: ReadmissionCuts, share = 1) {
+export function hrrpReduction(data: PenaltyData["hrrp"], cuts: ReadmissionCuts, share = 1, damp = 1) {
   const h = data.hospital
   if (!h) return 0
   let sum = 0
   for (const { key } of HRRP_CONDITIONS) {
     const c = h.conditions[key]
     if (!c || !hrrpCounts(c, data.minDischarges)) continue
-    sum += c.paymentRatio! * Math.max(0, adjustedErr(c, cuts[key] ?? 0, share) - c.peerMedian!)
+    sum += c.paymentRatio! * Math.max(0, adjustedErr(c, cuts[key] ?? 0, share, damp) - c.peerMedian!)
   }
   return Math.min(data.cap, sum * h.neutralityModifier)
 }
@@ -183,13 +190,14 @@ export type Timing = { start: number; full: number }
 const shares = (period: Period, fiscalYear: number, life: number, timing?: Timing) =>
   timing ? Array.from({ length: life }, (_, i) => rampShare(i + 1, timing.start, timing.full)) : phaseIn(period, fiscalYear, life)
 
-/** Avoided penalty dollars for each proposal year, with how far each program has phased in. */
+/** Avoided penalty dollars for each proposal year, with how far each program has phased in. `damp`: see `adjustedErr`. */
 export function avoidedByYear(
   data: PenaltyData,
   readm: ReadmissionCuts,
   hai: InfectionCuts,
   life: number,
-  timing: { readm?: Timing; hai?: Timing } = {}
+  timing: { readm?: Timing; hai?: Timing } = {},
+  damp = 1
 ): PenaltyYear[] {
   const pay = data.payments.hospital
   const hrrpShares = shares(data.hrrp.period, data.hrrp.fiscalYear, life, timing.readm)
@@ -198,8 +206,49 @@ export function avoidedByYear(
   const hacNow = data.hac.hospital?.penalized ?? false
   return hrrpShares.map((hrrpShare, i) => {
     const haiShare = haiShares[i]
-    const hrrp = pay ? (hrrpNow - hrrpReduction(data.hrrp, readm, hrrpShare)) * pay.baseOperating : 0
+    const hrrp = pay ? (hrrpNow - hrrpReduction(data.hrrp, readm, hrrpShare, damp)) * pay.baseOperating : 0
     const hac = pay && hacNow && !hacPenalized(data.hac, hacScore(data.hac, hai, haiShare)) ? data.hac.reduction * pay.operating : 0
     return { year: i + 1, hrrpShare, haiShare, hrrp, hac }
   })
+}
+
+// -- Advanced: readmissions avoided and CMS's shrinkage ---------------------------------------------------------------
+
+/** Years in a performance window (HRRP's is three). */
+export const windowYears = (p: Period) => (monthIndex(p.end) - (monthIndex(p.start) - (p.start.endsWith("-01") ? 0 : 1))) / 12
+
+/**
+ * Medicare fee-for-service readmissions avoided a year: each condition's cut (points) × its eligible discharges a year
+ * (the window's discharges ÷ its years). Only the six HRRP conditions' Medicare patients, the ones the cut is entered for.
+ */
+export function readmissionsAvoided(data: PenaltyData["hrrp"], cuts: ReadmissionCuts) {
+  const h = data.hospital
+  if (!h) return 0
+  const years = windowYears(data.period)
+  let n = 0
+  for (const { key } of HRRP_CONDITIONS) {
+    const c = h.conditions[key]
+    const cut = cuts[key] ?? 0
+    if (c?.discharges && cut) n += ((cut / 100) * c.discharges) / years
+  }
+  return n
+}
+
+/**
+ * How far CMS's model moved this hospital's rate from expected toward its raw rate, per condition: (predicted −
+ * expected) ÷ (raw − expected), raw = readmissions ÷ discharges. A rough reading of CMS's shrinkage, for reference
+ * only; conditions whose raw rate sits within half a point of expected (too little to divide by) are left out.
+ */
+export function impliedShrinkage(data: PenaltyData["hrrp"]) {
+  const out: { key: HrrpConditionKey; label: string; factor: number; discharges: number }[] = []
+  for (const { key, label } of HRRP_CONDITIONS) {
+    const c = data.hospital?.conditions[key]
+    if (!c?.readmissions || !c.discharges || c.predicted == null || c.expected == null) continue
+    const raw = (100 * c.readmissions) / c.discharges
+    if (Math.abs(raw - c.expected) < 0.5) continue
+    const factor = (c.predicted - c.expected) / (raw - c.expected)
+    if (factor >= 0 && factor <= 1) out.push({ key, label, factor, discharges: c.discharges })
+  }
+  const total = out.reduce((t, x) => t + x.discharges, 0)
+  return { conditions: out, weighted: total ? out.reduce((t, x) => t + x.factor * x.discharges, 0) / total : null }
 }

@@ -8,9 +8,11 @@ from .cms_inpatient import CmsInpatient
 from .cms_ipps import CmsIpps
 from .cms_opps import CmsOpps
 from .cms_penalties import CmsPenalties
+from .cms_wage_index import CmsWageIndex
 from .dhcs_medi_cal import DhcsMediCal
 from .hafd_selected import HafdSelected
 from .hau import HospitalUtilization
+from .hcai_facility_status import HcaiFacilityStatus
 
 # Planned (build on the same core.Dataset contract when needed):
 #   "quarterly-financial"  – Hospital Quarterly Financial & Utilization Report, Complete Data Set
@@ -20,6 +22,8 @@ REGISTRY = {
     HospitalUtilization.id: HospitalUtilization,
     # Uses the utilization report's campus discharges to combine campuses.
     CaseMixIndex.id: CaseMixIndex,
+    # License status from HCAI's Licensed Healthcare Facility Listing, to flag closed hospitals.
+    HcaiFacilityStatus.id: HcaiFacilityStatus,
     # Non-HCAI sources, mapped onto HCAI facility numbers; build after the HCAI datasets.
     CdphHai.id: CdphHai,
     CmsCareCompare.id: CmsCareCompare,
@@ -28,6 +32,8 @@ REGISTRY = {
     CmsOpps.id: CmsOpps,
     # HRRP and HAC Reduction Program standing plus estimated Medicare payments, for Propose.
     CmsPenalties.id: CmsPenalties,
+    # Each hospital's IPPS and OPPS wage index, for Propose's Advanced mode (after cms-opps).
+    CmsWageIndex.id: CmsWageIndex,
     # Reference tables (not per-hospital): MS-DRG weights for Propose.
     CmsIpps.id: CmsIpps,
     # County context (not hospital metrics).

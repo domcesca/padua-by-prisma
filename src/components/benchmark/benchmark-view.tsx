@@ -3,6 +3,7 @@
 import { ChevronRight, Loader2 } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 
+import { FacilityFlagNote } from "@/components/shell/facility-flag-note"
 import { PickerPill } from "@/components/shell/grouped-picker"
 import { Segmented } from "@/components/shell/segmented"
 import type { BenchmarkResult } from "@/lib/benchmark/compute"
@@ -24,6 +25,7 @@ import {
   type PayerView,
 } from "@/lib/data/datasets"
 import { metricPickerOptions } from "@/lib/data/metric-options"
+import { facilityFlag, type FacilityFlag } from "@/lib/facility-flag"
 import type { MetricCategory, PayerGroup } from "@/lib/data/types"
 import { rememberSelection } from "@/lib/selection"
 import { cn } from "@/lib/utils"
@@ -251,7 +253,7 @@ export function BenchmarkView({
 
       {shown && (
         <div className={cn("space-y-6 transition-opacity duration-200", loading && "opacity-60")}>
-          <FacilitySummary result={shown} lastYear={facility?.lastYear ?? latestYear} />
+          <FacilitySummary result={shown} lastYear={facility?.lastYear ?? latestYear} flag={facility ? facilityFlag(facility, latestYear) : null} />
           {shown.community && <CommunityPanel context={shown.community} />}
 
           {shown.peers.length === 0 ? (
@@ -313,7 +315,7 @@ export function BenchmarkView({
   )
 }
 
-function FacilitySummary({ result, lastYear }: { result: BenchmarkResult; lastYear: number }) {
+function FacilitySummary({ result, lastYear, flag }: { result: BenchmarkResult; lastYear: number; flag: FacilityFlag | null }) {
   const f = result.facility
   const snapshot = result.snapshot
   const facts = [
@@ -340,6 +342,7 @@ function FacilitySummary({ result, lastYear }: { result: BenchmarkResult; lastYe
         <p className="text-[11px] font-medium tracking-wide text-tertiary-foreground uppercase">Hospital</p>
         <h2 className="text-2xl leading-tight font-semibold tracking-tight">{f.name}</h2>
         <p className="text-sm text-muted-foreground">{facts.join(" · ")}</p>
+        {flag && <FacilityFlagNote flag={flag} />}
         {result.category === "utilization" && f.campuses.length > 0 && (
           <p className="text-[13px] text-muted-foreground">
             Includes {f.campuses.length === 1 ? "the" : "its"} {listFormat(f.campuses)} campus
@@ -356,7 +359,7 @@ function FacilitySummary({ result, lastYear }: { result: BenchmarkResult; lastYe
             data aren&apos;t reported by unit.
           </p>
         )}
-        {result.category !== "quality" && lastYear < latestOf(result) && (
+        {!flag && result.category !== "quality" && lastYear < latestOf(result) && (
           <p className="text-[13px] text-muted-foreground">Last reported in {lastYear}.</p>
         )}
         {noData && (

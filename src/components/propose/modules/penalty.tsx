@@ -14,7 +14,10 @@ import {
   hacScore,
   hrrpCounts,
   hrrpReduction,
+  impliedShrinkage,
   phaseIn,
+  readmissionsAvoided,
+  windowYears,
   type HaiKey,
   type HrrpConditionKey,
   type InfectionCuts,
@@ -24,6 +27,7 @@ import {
   type Timing,
 } from "@/lib/propose/penalty"
 import { cn } from "@/lib/utils"
+import { Toggle } from "../advanced-panel"
 import { NumberField } from "../number-field"
 import { SourceTag } from "../source-tag"
 
@@ -32,8 +36,18 @@ import { SourceTag } from "../source-tag"
 // results and CMS's formulas (lib/propose/penalty.ts) do the rest, phased in over the years the
 // programs take to see it.
 
-/** `timing`: Advanced mode's phase-in years per program; unset = CMS's scoring windows. Ignored when Advanced is off. */
-type State = { readm: ReadmissionCuts; hai: InfectionCuts; timing: { readm?: Timing; hai?: Timing } }
+/**
+ * `timing`: Advanced mode's phase-in years per program; unset = CMS's scoring windows. `lostRevenue`: Advanced, revenue
+ * lost per readmission avoided, netted against the benefit. `damp`: Advanced, the share of a readmission cut that reaches
+ * the ERR (1 = all of it). All three are ignored when Advanced is off, and the last two when switched off.
+ */
+type State = {
+  readm: ReadmissionCuts
+  hai: InfectionCuts
+  timing: { readm?: Timing; hai?: Timing }
+  lostRevenue: { on: boolean; perReadmission: number }
+  damp: { on: boolean; factor: number }
+}
 
 const READM_KEYS = HRRP_CONDITIONS.map((c) => c.key) as string[]
 const HAI_KEYS = HAC_MEASURES.map((m) => m.key) as string[]
@@ -60,7 +74,15 @@ function toParams(s: State): Record<string, string> {
   if (encode(s.hai)) out.hai = encode(s.hai)
   const t = (["readm", "hai"] as const).filter((k) => s.timing[k]).map((k) => `${k}:${s.timing[k]!.start}-${s.timing[k]!.full}`)
   if (t.length) out.ptime = t.join(",")
+  if (s.lostRevenue.on || s.lostRevenue.perReadmission) out.lostrev = `${s.lostRevenue.on ? "on" : "off"}:${s.lostRevenue.perReadmission}`
+  if (s.damp.on || s.damp.factor !== 1) out.damp = `${s.damp.on ? "on" : "off"}:${s.damp.factor}`
   return out
+}
+
+/** "on:12000" → switched on, 12000. */
+function parseSwitch(raw: string | null, fallback: number, max: number) {
+  const m = (raw ?? "").match(/^(on|off):(\d+(?:\.\d+)?)$/)
+  return m ? { on: m[1] === "on", value: Math.min(max, Number(m[2])) } : { on: false, value: fallback }
 }
 
 function parseTiming(raw: string | null): State["timing"] {
@@ -74,11 +96,17 @@ function parseTiming(raw: string | null): State["timing"] {
   return out
 }
 
-const fromParams = (params: URLSearchParams): State => ({
-  readm: decode<HrrpConditionKey>(params.get("readm"), READM_KEYS, 100),
-  hai: decode<HaiKey>(params.get("hai"), HAI_KEYS, 100),
-  timing: parseTiming(params.get("ptime")),
-})
+function fromParams(params: URLSearchParams): State {
+  const lost = parseSwitch(params.get("lostrev"), 0, 1e7)
+  const damp = parseSwitch(params.get("damp"), 1, 1)
+  return {
+    readm: decode<HrrpConditionKey>(params.get("readm"), READM_KEYS, 100),
+    hai: decode<HaiKey>(params.get("hai"), HAI_KEYS, 100),
+    timing: parseTiming(params.get("ptime")),
+    lostRevenue: { on: lost.on, perReadmission: lost.value },
+    damp: { on: damp.on, factor: damp.value },
+  }
+}
 
 const hasCuts = (s: State) => Object.values(s.readm).some(Boolean) || Object.values(s.hai).some(Boolean)
 
@@ -94,6 +122,14 @@ function timing(period: Period, fiscalYear: number, override?: Timing) {
 
 /** The phase-in overrides in force: only in Advanced mode. */
 const overrides = (s: State, advanced: boolean) => (advanced ? s.timing : {})
+/** The dampening factor in force: 1 unless switched on in Advanced mode. */
+const dampOf = (s: State, advanced: boolean) => (advanced && s.damp.on ? s.damp.factor : 1)
+/** Revenue lost a year with the readmissions avoided (Advanced, switched on), from year 1. */
+function lostRevenueOf(s: State, data: PenaltyData, advanced: boolean) {
+  if (!advanced || !s.lostRevenue.on || !s.lostRevenue.perReadmission) return null
+  const count = readmissionsAvoided(data.hrrp, s.readm)
+  return count ? { count, amount: count * s.lostRevenue.perReadmission } : null
+}
 
 type Summary = {
   years: ReturnType<typeof avoidedByYear>
@@ -101,16 +137,19 @@ type Summary = {
   hacFull: number
   hrrpAverage: number
   hacAverage: number
+  /** Advanced: revenue lost a year with the readmissions avoided, or null. */
+  lost: { count: number; amount: number } | null
 }
 
 function summarize(s: State, data: PenaltyData, life: number, advanced: boolean): Summary {
-  const years = avoidedByYear(data, s.readm, s.hai, life, overrides(s, advanced))
+  const damp = dampOf(s, advanced)
+  const years = avoidedByYear(data, s.readm, s.hai, life, overrides(s, advanced), damp)
   const pay = data.payments.hospital
-  const hrrpFull = pay ? (hrrpReduction(data.hrrp, s.readm, 0) - hrrpReduction(data.hrrp, s.readm)) * pay.baseOperating : 0
+  const hrrpFull = pay ? (hrrpReduction(data.hrrp, s.readm, 0) - hrrpReduction(data.hrrp, s.readm, 1, damp)) * pay.baseOperating : 0
   const hacFull =
     pay && data.hac.hospital?.penalized && !hacPenalized(data.hac, hacScore(data.hac, s.hai)) ? data.hac.reduction * pay.operating : 0
   const sum = (k: "hrrp" | "hac") => years.reduce((t, y) => t + y[k], 0)
-  return { years, hrrpFull, hacFull, hrrpAverage: sum("hrrp") / life, hacAverage: sum("hac") / life }
+  return { years, hrrpFull, hacFull, hrrpAverage: sum("hrrp") / life, hacAverage: sum("hac") / life, lost: lostRevenueOf(s, data, advanced) }
 }
 
 function Editor({ state, onChange, data, context }: ModuleEditorProps<State, PenaltyData>) {
@@ -152,8 +191,9 @@ function Editor({ state, onChange, data, context }: ModuleEditorProps<State, Pen
   const setReadm = (key: HrrpConditionKey, v: number) => onChange({ ...state, readm: { ...state.readm, [key]: v } })
   const setHai = (key: HaiKey, v: number) => onChange({ ...state, hai: { ...state.hai, [key]: v } })
 
+  const damp = dampOf(state, context.advanced)
   const hrrpNow = hrrpReduction(hrrp, state.readm, 0)
-  const hrrpAfter = hrrpReduction(hrrp, state.readm)
+  const hrrpAfter = hrrpReduction(hrrp, state.readm, 1, damp)
   const scoreNow = hac.hospital?.totalScore ?? null
   const scoreAfter = hacScore(hac, state.hai)
   const hacNow = hac.hospital?.penalized ?? false
@@ -199,7 +239,7 @@ function Editor({ state, onChange, data, context }: ModuleEditorProps<State, Pen
               if (!c) return null
               const counts = hrrpCounts(c, hrrp.minDischarges)
               const cut = state.readm[key] ?? 0
-              const err = adjustedErr(c, cut)
+              const err = adjustedErr(c, cut, 1, damp)
               const above = c.peerMedian != null && c.err > c.peerMedian
               return (
                 <li key={key} className="border-t border-border pt-2 first:border-0 first:pt-0">
@@ -242,8 +282,10 @@ function Editor({ state, onChange, data, context }: ModuleEditorProps<State, Pen
         {hrrp.hospital && Object.values(state.readm).some(Boolean) && (
           <p className="num border-t border-border pt-2 text-[13px]">
             Penalty {formatPercent(hrrpNow, 2)} → <span className="font-medium">{formatPercent(hrrpAfter, 2)}</span> of base DRG payments
+            {damp !== 1 && <span className="text-muted-foreground"> (dampened × {damp.toFixed(2)})</span>}
           </p>
         )}
+        {context.advanced && hrrp.hospital && <ReadmissionAdvanced state={state} data={data} onChange={onChange} />}
       </section>
 
       {/* HAC */}
@@ -331,6 +373,97 @@ function Editor({ state, onChange, data, context }: ModuleEditorProps<State, Pen
           CMS’s FY {payments.fiscalYear} Impact File has no payment data for this hospital, so penalties can’t be put in dollars.
         </p>
       )}
+    </div>
+  )
+}
+
+/** Advanced mode's readmission options: lost revenue netted out, and dampening for CMS's pull toward the average. */
+function ReadmissionAdvanced({ state, data, onChange }: { state: State; data: PenaltyData; onChange: (s: State) => void }) {
+  const count = readmissionsAvoided(data.hrrp, state.readm)
+  const years = windowYears(data.hrrp.period)
+  const implied = impliedShrinkage(data.hrrp)
+  const setLost = (patch: Partial<State["lostRevenue"]>) => onChange({ ...state, lostRevenue: { ...state.lostRevenue, ...patch } })
+  const setDamp = (patch: Partial<State["damp"]>) => onChange({ ...state, damp: { ...state.damp, ...patch } })
+  return (
+    <div className="space-y-3 rounded-xl border border-dashed border-border p-3">
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Toggle label="Subtract revenue lost with the readmissions avoided" checked={state.lostRevenue.on} onChange={(on) => setLost({ on })} />
+          <SourceTag kind="assumption">Advanced · optional</SourceTag>
+        </div>
+        {state.lostRevenue.on && (
+          <div className="flex flex-wrap items-end gap-3">
+            <NumberField
+              label="Revenue lost per avoided readmission"
+              prefix="$"
+              value={state.lostRevenue.perReadmission}
+              onChange={(perReadmission) => setLost({ perReadmission })}
+              max={1e7}
+              className="w-60"
+            />
+            <p className="num mb-2.5 text-[13px] text-muted-foreground">
+              {count ? (
+                <>
+                  ≈ {count.toLocaleString("en-US", { maximumFractionDigits: 1 })} fewer readmissions a year × {formatUsd(state.lostRevenue.perReadmission)} ={" "}
+                  <span className="font-medium text-foreground">−{formatUsd(count * state.lostRevenue.perReadmission)}</span> a year
+                </>
+              ) : (
+                "Enter a readmission cut above to count the readmissions avoided."
+              )}
+            </p>
+          </div>
+        )}
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          Why it matters: a readmission is also a paid stay. Fewer readmissions avoid the penalty but give up that payment,
+          which the estimate otherwise leaves out (see “How it’s estimated”); for many hospitals the lost payment is larger
+          than the penalty avoided. Readmissions avoided = each cut × the condition’s Medicare discharges a year (CMS’s{" "}
+          {Math.round(years)}-year count ÷ {Math.round(years)}), from year 1. Enter the fee-for-service revenue one readmission
+          brings in: all payers’ readmissions fall too, but only these Medicare patients are counted.
+        </p>
+      </div>
+
+      <div className="space-y-2 border-t border-border pt-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <Toggle label="Dampen for CMS’s pull toward the average" checked={state.damp.on} onChange={(on) => setDamp({ on })} />
+          <SourceTag kind="assumption">Advanced · optional</SourceTag>
+        </div>
+        {state.damp.on && (
+          <div className="flex flex-wrap items-end gap-3">
+            <NumberField
+              label="Share of a cut that reaches the penalty"
+              prefix="×"
+              value={state.damp.factor}
+              onChange={(factor) => setDamp({ factor: Math.min(1, Math.max(0, factor)) })}
+              max={1}
+              decimals={2}
+              className="w-56"
+            />
+            {implied.weighted != null && (
+              <button
+                type="button"
+                onClick={() => setDamp({ factor: Math.round(implied.weighted! * 100) / 100 })}
+                className="mb-1 inline-flex h-8 items-center rounded-full px-2.5 text-[12px] font-medium text-primary hover:bg-primary/10 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+              >
+                Use {implied.weighted.toFixed(2)} (this hospital, rough)
+              </button>
+            )}
+          </div>
+        )}
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          CMS’s risk model pulls each hospital’s rate toward the average, more for smaller hospitals, so a real cut moves the
+          ratio CMS scores less than the full amount. 1.00 (the default) assumes the whole cut counts; a lower factor keeps only
+          that share, for a more conservative estimate.
+          {implied.weighted != null && (
+            <>
+              {" "}
+              For reference, in CMS’s FY {data.hrrp.fiscalYear} figures this hospital’s risk-adjusted rates sit about{" "}
+              <span className="num">{implied.weighted.toFixed(2)}</span> of the way from expected to its raw rates (
+              {implied.conditions.map((c) => `${c.label.split(" (")[0].toLowerCase()} ${c.factor.toFixed(2)}`).join(", ")}): a rough
+              reading of that pull, not a CMS figure.
+            </>
+          )}
+        </p>
+      </div>
     </div>
   )
 }
@@ -430,7 +563,7 @@ function MethodInfo({ data }: { data: PenaltyData }) {
 /** The editor's totals and phase-in table, which need the useful life (only `benefit` gets it). */
 function Totals({ state, data, life, advanced, onChange }: { state: State; data: PenaltyData; life: number; advanced: boolean; onChange: (s: State) => void }) {
   const s = summarize(state, data, life, advanced)
-  const average = s.hrrpAverage + s.hacAverage
+  const average = s.hrrpAverage + s.hacAverage - (s.lost?.amount ?? 0)
   const full = s.hrrpFull + s.hacFull
   return (
     <div className="space-y-2 border-t border-border pt-3">
@@ -444,6 +577,7 @@ function Totals({ state, data, life, advanced, onChange }: { state: State; data:
             Average a year over {life} {life === 1 ? "year" : "years"}
           </p>
           <p className="num text-[20px] font-semibold tracking-tight">{formatUsd(average)}</p>
+          {s.lost && <p className="num text-xs text-muted-foreground">after −{formatUsd(s.lost.amount)} lost readmission revenue</p>}
         </div>
       </div>
       {advanced && <TimingEditor state={state} data={data} onChange={onChange} />}
@@ -499,7 +633,31 @@ export const penaltyModule = defineModule<State, PenaltyData>({
   summary: "Readmission or infection reduction, valued by the Medicare penalties it avoids.",
   icon: ShieldCheck,
   hasData: true,
-  initial: () => ({ readm: {}, hai: {}, timing: {} }),
+  initial: () => ({ readm: {}, hai: {}, timing: {}, lostRevenue: { on: false, perReadmission: 0 }, damp: { on: false, factor: 1 } }),
+  advancedExtras: ["phase-in timing", "lost readmission revenue", "readmission dampening"],
+  volume: {
+    label: "Improvement (readmission and infection cuts)",
+    scale: (s, k, data) => ({
+      ...s,
+      readm: Object.fromEntries(
+        Object.entries(s.readm).map(([key, v]) => [key, Math.min((v ?? 0) * k, data?.hrrp.hospital?.conditions[key as HrrpConditionKey]?.predicted ?? 100)])
+      ),
+      hai: Object.fromEntries(Object.entries(s.hai).map(([key, v]) => [key, Math.min((v ?? 0) * k, 100)])),
+    }),
+    describe: (s, _data, k) => {
+      const parts = [
+        ...HRRP_CONDITIONS.filter((c) => s.readm[c.key]).map((c) => `${c.label.split(" (")[0].toLowerCase()} −${((s.readm[c.key] ?? 0) * k).toFixed(1)} pts`),
+        ...HAC_MEASURES.filter((m) => s.hai[m.key]).map((m) => `${m.label.match(/\(([^)]+)\)/)?.[1] ?? m.label} −${Math.min(100, (s.hai[m.key] ?? 0) * k).toFixed(0)}%`),
+      ]
+      return { value: `${Math.round(k * 100)}% of the improvement entered`, detail: parts.join(", ") }
+    },
+  },
+  drivers: (s, _data, { advanced }) => [
+    ...(advanced && s.lostRevenue.on && s.lostRevenue.perReadmission
+      ? [{ id: "lostrev", label: "Revenue lost per readmission", apply: (st: State, f: number) => ({ ...st, lostRevenue: { ...st.lostRevenue, perReadmission: st.lostRevenue.perReadmission * f } }) }]
+      : []),
+    ...(advanced && s.damp.on ? [{ id: "damp", label: "Dampening factor", apply: (st: State, f: number) => ({ ...st, damp: { ...st.damp, factor: Math.min(1, st.damp.factor * f) } }) }] : []),
+  ],
   ownTiming: true,
   toParams,
   fromParams,
@@ -529,15 +687,28 @@ export const penaltyModule = defineModule<State, PenaltyData>({
         amount: sum.hacAverage,
       })
 
+    if (sum.lost)
+      lines.push({
+        label: "Revenue lost with the readmissions avoided (advanced)",
+        detail: `${sum.lost.count.toLocaleString("en-US", { maximumFractionDigits: 1 })} Medicare readmissions a year × ${formatUsd(s.lostRevenue.perReadmission)}, from year 1`,
+        amount: -sum.lost.amount,
+      })
+    const damp = dampOf(s, advanced)
+
     const custom = [o.readm && `readmissions years ${o.readm.start}–${o.readm.full}`, o.hai && `infections years ${o.hai.start}–${o.hai.full}`].filter(Boolean)
     const notes = [
       `Estimate. Re-runs CMS’s HRRP and HAC Reduction Program formulas on the hospital’s published FY ${data.hrrp.fiscalYear} results with the proposer’s assumed reductions; peer medians and the HAC cutoff (${data.hac.cutoff.toFixed(4)}) are held at FY ${data.hac.fiscalYear} levels, though they move every year.`,
       `Penalties lag performance: savings begin in year ${Math.min(r.first, h.first)} and reach full effect by year ${Math.max(r.full, h.full)} (assuming the work starts October 1 of year 1). The yearly benefit is the average over the useful life.`,
       ...(custom.length ? [`Advanced: phase-in timing set by the proposer (${custom.join("; ")}, straight-line), instead of CMS’s scoring windows.`] : []),
-      `Penalty dollars use FY ${data.payments.fiscalYear} Medicare fee-for-service payments estimated from CMS’s IPPS Impact File. Lost payments for the readmissions avoided, and care costs saved, aren’t counted.`,
+      ...(damp !== 1 && Object.values(s.readm).some(Boolean)
+        ? [`Advanced: readmission cuts are dampened × ${damp.toFixed(2)} before they reach the excess readmission ratio, for CMS’s pull of each hospital’s rate toward the average (proposer’s estimate).`]
+        : []),
+      sum.lost
+        ? `Penalty dollars use FY ${data.payments.fiscalYear} Medicare fee-for-service payments estimated from CMS’s IPPS Impact File. Advanced: revenue lost with the readmissions avoided is subtracted: each cut × the condition’s Medicare discharges a year (CMS’s ${Math.round(windowYears(data.hrrp.period))}-year count), × ${formatUsd(s.lostRevenue.perReadmission)} a readmission (proposer’s figure), from year 1. Other payers’ readmissions and care costs saved aren’t counted.`
+        : `Penalty dollars use FY ${data.payments.fiscalYear} Medicare fee-for-service payments estimated from CMS’s IPPS Impact File. Lost payments for the readmissions avoided, and care costs saved, aren’t counted.`,
     ]
     return {
-      annual: sum.hrrpAverage + sum.hacAverage,
+      annual: sum.hrrpAverage + sum.hacAverage - (sum.lost?.amount ?? 0),
       lines,
       notes,
       incomplete: hasCuts(s) ? undefined : "Enter a readmission or infection reduction.",

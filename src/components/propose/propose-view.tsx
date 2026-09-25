@@ -4,9 +4,11 @@ import { Check, ChevronDown, Link2, Printer, TriangleAlert } from "lucide-react"
 import { useEffect, useMemo, useState, type CSSProperties } from "react"
 
 import { FacilityPicker, type FacilityOption } from "@/components/benchmark/facility-picker"
+import { FacilityFlagNote } from "@/components/shell/facility-flag-note"
 import { PaduaMark } from "@/components/shell/padua-mark"
 import { Segmented } from "@/components/shell/segmented"
 import { APP_FULL_NAME } from "@/lib/brand"
+import { facilityFlag } from "@/lib/facility-flag"
 import { formatPercent, formatUsd } from "@/lib/format"
 import {
   formatPayback,
@@ -19,9 +21,11 @@ import {
   type ScenarioId,
   type ScenarioRates,
 } from "@/lib/propose/engine"
-import { missingText, payerBlend, rampActive, yearFactors, type AdvancedSettings } from "@/lib/propose/advanced"
+import { payerBlend, rampActive, SWINGS, yearFactors, type AdvancedSettings } from "@/lib/propose/advanced"
+import { breakEven, modelBenefit, sensitivity, type BreakEven, type Model } from "@/lib/propose/analysis"
 import { suggestModule } from "@/lib/propose/intake"
-import type { Benefit, ProposalModule } from "@/lib/propose/module"
+import type { ProposalModule } from "@/lib/propose/module"
+import type { HospitalWageIndex } from "@/lib/propose/wage-index"
 import { matchingPreset, PRESETS, type SectionId } from "@/lib/propose/output"
 import { parseProposalSpec, proposalSpecToParams, type ProposalSpec } from "@/lib/propose/spec"
 import { rememberSelection, useSelection } from "@/lib/selection"
@@ -32,6 +36,7 @@ import { ModuleIntake } from "./module-intake"
 import { MODULE_IDS, MODULES } from "./modules"
 import { NumberField } from "./number-field"
 import { PrintoutPanel } from "./printout-panel"
+import { SensitivityChart } from "./sensitivity-chart"
 
 // Module data is shared across hospitals' reference tables but carries hospital context, so it's
 // cached per module + hospital for the session.
@@ -77,6 +82,7 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
   const mod = MODULES.find((m) => m.id === spec.module) ?? MODULES[0]
   const state = states[mod.id]
   const facility = facilities.find((f) => f.id === spec.facilityId) ?? null
+  const facilityFlagNow = facility ? facilityFlag(facility, latestYear) : null
   const dataKey = `${mod.id}|${spec.facilityId ?? ""}`
   const moduleData = mod.hasData && data?.key === dataKey ? (data.value ?? null) : null
   const dataError = mod.hasData && data?.key === dataKey && !!data.failed
@@ -117,13 +123,19 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
   const setCost = (key: keyof CostInputs, value: number) => setSpec({ ...spec, costs: { ...spec.costs, [key]: value } })
 
   const adv = spec.advanced
-  const benefit = withPayerMix(mod.benefit(state, moduleData, { life: spec.costs.life, advanced: adv.on }), mod, adv)
+  const model: Model = { module: mod, state, data: moduleData, costs: spec.costs, rates: spec.rates, advanced: adv }
+  const benefit = modelBenefit(model)
   const factors = yearFactors(adv, spec.costs.life, !!mod.ownTiming)
   const projections = projectAll(benefit.annual, spec.costs, spec.rates, factors)
   const advancedNotes = advancedNotesFor(adv, mod)
+  const showBreakEven = adv.on && adv.breakeven
+  const showSensitivity = adv.on && adv.sensitivity.on
   const focused = projections.find((p) => p.scenario === focus)!
   const hasCost = spec.costs.capital + spec.costs.implementation + spec.costs.maintenance > 0
   const ready = !benefit.incomplete && hasCost
+  // Advanced read-outs: the same model re-run, so only once there's something to re-run.
+  const breakEvenResult = showBreakEven && ready ? breakEven(model) : null
+  const sensitivityResult = showSensitivity && ready ? sensitivity(model) : null
   const title = spec.name.trim() || "Untitled proposal"
   const Editor = mod.Editor
   const preset = matchingPreset(spec.output)
@@ -161,6 +173,7 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
         <p className="text-sm text-muted-foreground">
           {facility ? facility.name : "No hospital chosen"} · {mod.label} estimate · Useful life {spec.costs.life} years
         </p>
+        {facilityFlagNow && <FacilityFlagNote flag={facilityFlagNow} className="mt-2" />}
       </div>
 
       <section aria-labelledby="setup-title" className="space-y-3 print:hidden">
@@ -171,6 +184,7 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
           <div>
             <p className="mb-1 text-[13px] font-medium">Hospital</p>
             <FacilityPicker facilities={facilities} value={spec.facilityId} onChange={(id) => update({ facilityId: id })} latestYear={latestYear} />
+            {facilityFlagNow && <FacilityFlagNote flag={facilityFlagNow} className="mt-2" />}
           </div>
           <div>
             <label htmlFor="proposal-name" className="mb-1 block text-[13px] font-medium">
@@ -214,7 +228,13 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
               state={state}
               onChange={(next) => setStates((s) => ({ ...s, [mod.id]: next }))}
               data={moduleData}
-              context={{ facilityId: facility?.id ?? null, facilityName: facility?.name ?? null, life: spec.costs.life, advanced: adv.on }}
+              context={{
+                facilityId: facility?.id ?? null,
+                facilityName: facility?.name ?? null,
+                life: spec.costs.life,
+                advanced: adv.on,
+                wageIndex: adv.on && adv.wageIndex,
+              }}
             />
           )}
         </section>
@@ -275,7 +295,7 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
 
         {printoutOpen && (
           <div id="printout-panel" className="print:hidden">
-            <PrintoutPanel value={spec.output} onChange={(output) => update({ output })} />
+            <PrintoutPanel value={spec.output} onChange={(output) => update({ output })} unavailable={showSensitivity ? [] : ["sensitivity"]} />
           </div>
         )}
 
@@ -319,7 +339,8 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
           )}
         </div>
 
-        <div data-tour="propose-scenarios" {...printSlot("scenarios")} className={cn("grid gap-3 md:grid-cols-3 print:grid-cols-3", printSlot("scenarios").className)}>
+        <div style={printSlot("scenarios").style} className={cn("space-y-3", printSlot("scenarios").className)}>
+        <div data-tour="propose-scenarios" className="grid gap-3 md:grid-cols-3 print:grid-cols-3">
           {projections.map((p) => (
             <ScenarioCard
               key={p.scenario}
@@ -331,6 +352,8 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
               onFocus={() => setFocus(p.scenario)}
             />
           ))}
+        </div>
+        {showBreakEven && <BreakEvenLine result={breakEvenResult} ready={ready} life={spec.costs.life} expectedRate={spec.rates.expected} module={mod} />}
         </div>
 
         <section
@@ -366,6 +389,62 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
           <CumulativeChart projections={projections} focus={focus} />
         </section>
 
+        {showSensitivity && (
+          <section
+            aria-labelledby="sensitivity-title"
+            style={printSlot("sensitivity").style}
+            className={cn("glass min-w-0 rounded-2xl p-5 print:break-inside-avoid", printSlot("sensitivity").className)}
+          >
+            <header className="mb-3 flex flex-wrap items-start justify-between gap-3">
+              <div className="space-y-1">
+                <h3 id="sensitivity-title" className="text-[15px] font-semibold tracking-tight">
+                  Sensitivity · expected scenario
+                </h3>
+                <p className="max-w-xl text-xs text-muted-foreground">
+                  Each input lowered and raised {adv.sensitivity.swing}% on its own, everything else as entered. The longest bars are the
+                  assumptions the {adv.sensitivity.outcome === "roi" ? "ROI" : "NPV"} depends on most.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 print:hidden">
+                <Segmented
+                  label="Outcome"
+                  size="sm"
+                  value={adv.sensitivity.outcome}
+                  onChange={(outcome) => update({ advanced: { ...adv, sensitivity: { ...adv.sensitivity, outcome } } })}
+                  options={[
+                    { value: "npv", label: "NPV" },
+                    { value: "roi", label: "ROI" },
+                  ]}
+                />
+                <Segmented
+                  label="Swing"
+                  size="sm"
+                  value={String(adv.sensitivity.swing)}
+                  onChange={(v) => update({ advanced: { ...adv, sensitivity: { ...adv.sensitivity, swing: Number(v) } } })}
+                  options={SWINGS.map((n) => ({ value: String(n), label: `±${n}%` }))}
+                />
+              </div>
+            </header>
+            {!ready ? (
+              <p className="text-[13px] text-muted-foreground">Shows once the benefit and costs are entered.</p>
+            ) : !sensitivityResult ? (
+              <p className="text-[13px] text-muted-foreground">ROI needs a cost to divide by; switch to NPV or enter a cost.</p>
+            ) : sensitivityResult.bars.length ? (
+              <>
+                <SensitivityChart result={sensitivityResult} />
+                {sensitivityResult.flat.length > 0 && (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    No effect at ±{adv.sensitivity.swing}% (zero, or not part of the {adv.sensitivity.outcome === "roi" ? "ROI" : "NPV"}):{" "}
+                    {sensitivityResult.flat.join(", ")}.
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="text-[13px] text-muted-foreground">No input moves the outcome at ±{adv.sensitivity.swing}%.</p>
+            )}
+          </section>
+        )}
+
         <div className="grid gap-4 lg:grid-cols-5 print:contents">
           <section
             aria-labelledby="table-title"
@@ -388,14 +467,14 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
             <h3 id="inputs-title" className="mb-3 text-[15px] font-semibold tracking-tight">
               What went in
             </h3>
-            <Inputs costs={spec.costs} rates={spec.rates} lines={benefit.lines} annual={benefit.annual} advanced={advancedRows(adv, mod)} />
+            <Inputs costs={spec.costs} rates={spec.rates} lines={benefit.lines} annual={benefit.annual} advanced={advancedRows(adv, mod, moduleData, breakEvenResult)} />
           </section>
         </div>
 
         {/* The board summary's short assumptions box: printout only (the screen always has the full list). */}
         {keyAssumptions && (
           <section style={assumptions.style} className={cn("hidden print:block print:break-inside-avoid", assumptions.className)} aria-label="Key assumptions">
-            <KeyAssumptions costs={spec.costs} rates={spec.rates} annual={benefit.annual} moduleLabel={mod.label} advanced={advancedRows(adv, mod)} />
+            <KeyAssumptions costs={spec.costs} rates={spec.rates} annual={benefit.annual} moduleLabel={mod.label} advanced={advancedRows(adv, mod, moduleData, breakEvenResult)} />
           </section>
         )}
 
@@ -422,19 +501,6 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
 
 // -- Advanced mode ----------------------------------------------------------------------------------------------------
 
-/** Payer-mix weighting for reimbursement modules: one more benefit line, so the lines still add up to the total. */
-function withPayerMix(benefit: Benefit, mod: ProposalModule, adv: AdvancedSettings): Benefit {
-  const blend = adv.on && mod.payerMix ? payerBlend(adv.payerMix) : null
-  if (!blend || !benefit.annual) return benefit
-  if (blend.missing.length)
-    return { ...benefit, incomplete: benefit.incomplete ?? `Advanced payer mix: enter what ${missingText(blend.missing)} vs Medicare.` }
-  return {
-    ...benefit,
-    annual: benefit.annual * blend.factor,
-    lines: [...benefit.lines, { label: "Payer mix adjustment (advanced)", detail: `× ${blend.factor.toFixed(3)} blended: ${blend.detail}`, amount: benefit.annual * (blend.factor - 1) }],
-  }
-}
-
 function advancedNotesFor(adv: AdvancedSettings, mod: ProposalModule) {
   if (!adv.on) return []
   const notes: string[] = []
@@ -445,18 +511,72 @@ function advancedNotesFor(adv: AdvancedSettings, mod: ProposalModule) {
     notes.push(`Advanced: the benefit ramps up straight-line from year ${adv.ramp.start} to full in year ${adv.ramp.full} (proposer’s assumption).`)
   if (adv.escalation.benefit || adv.escalation.cost)
     notes.push(`Advanced: benefits change ${adv.escalation.benefit}% and running costs ${adv.escalation.cost}% a year, compounding from year 2 (proposer’s assumption); card figures marked “avg” are averages over the useful life.`)
+  if (adv.breakeven)
+    notes.push("Advanced: break-even volume re-runs this model’s expected scenario with every volume input scaled together (same mix, same prices and costs) to find the least volume whose cumulative cash reaches zero by the end of the useful life.")
+  if (adv.sensitivity.on)
+    notes.push(`Advanced: sensitivity re-runs the expected scenario with one input at a time lowered and raised ${adv.sensitivity.swing}%, everything else as entered. It shows which assumptions matter most, not how likely each change is.`)
   return notes
 }
 
+/** The module data's CMS wage index, for reimbursement modules that have one. */
+const wageIndexIn = (data: unknown) => (data as { wageIndex?: HospitalWageIndex | null } | null)?.wageIndex ?? null
+
 /** Advanced settings in force, for "What went in" and the key-assumptions box. */
-function advancedRows(adv: AdvancedSettings, mod: ProposalModule): [string, string][] {
+function advancedRows(adv: AdvancedSettings, mod: ProposalModule, data: unknown, breakEvenResult: BreakEven | null): [string, string][] {
   if (!adv.on) return []
   const rows: [string, string][] = []
+  if (adv.wageIndex && mod.wageIndex) {
+    const wi = wageIndexIn(data)
+    rows.push(wi ? [`Wage-index-adjusted for ${wi.hospital}`, `${wi.value.toFixed(4)} (${wi.year})`] : ["Wage index", "None published: national rate"])
+  }
+  if (breakEvenResult?.kind === "volume") rows.push(["Break-even volume", breakEvenResult.value])
+  if (breakEvenResult?.kind === "unreachable") rows.push(["Break-even volume", "Not reachable within the useful life"])
   const blend = mod.payerMix ? payerBlend(adv.payerMix) : null
   if (blend && !blend.missing.length) rows.push(["Payer mix", `× ${blend.factor.toFixed(3)} blended`])
   if (!mod.ownTiming && rampActive(adv)) rows.push(["Ramp-up", `Year ${adv.ramp.start} → full in year ${adv.ramp.full}`])
   if (adv.escalation.benefit || adv.escalation.cost) rows.push(["Escalation", `Benefit ${adv.escalation.benefit}% · costs ${adv.escalation.cost}% a year`])
   return rows
+}
+
+/** Advanced mode's break-even volume: the one number, beside the scenario cards. */
+function BreakEvenLine({
+  result,
+  ready,
+  life,
+  expectedRate,
+  module,
+}: {
+  result: BreakEven | null
+  ready: boolean
+  life: number
+  expectedRate: number
+  module: ProposalModule
+}) {
+  const within = `within the ${life}-year useful life`
+  return (
+    <div className="glass flex flex-wrap items-center justify-between gap-x-6 gap-y-1 rounded-2xl px-5 py-3 print:break-inside-avoid">
+      <div>
+        <p className="text-[11px] font-medium tracking-wide text-tertiary-foreground uppercase">Break-even volume · expected scenario</p>
+        <p className="text-xs text-muted-foreground">
+          The least volume that pays back {within}, with costs and prices as entered{expectedRate !== 100 ? ` and the benefit at ${expectedRate}% of the estimate` : ""}.
+        </p>
+      </div>
+      <div className="text-right">
+        {!ready || !result ? (
+          <p className="text-[13px] text-muted-foreground">Shows once the benefit and costs are entered.</p>
+        ) : result.kind === "volume" ? (
+          <>
+            <p className="num text-[22px] leading-tight font-semibold tracking-tight">{result.value}</p>
+            {result.detail && <p className="num text-xs text-muted-foreground">{result.detail}</p>}
+          </>
+        ) : result.kind === "unreachable" ? (
+          <p className="max-w-xs text-[13px] font-medium">Not reachable: even 1,000 times the volume entered doesn’t pay back {within}.</p>
+        ) : (
+          <p className="max-w-xs text-[13px] text-muted-foreground">{module.label} has no volume to solve for.</p>
+        )}
+      </div>
+    </div>
+  )
 }
 
 /** A scenario multiplier as a percent: 0.7 → "70%". */

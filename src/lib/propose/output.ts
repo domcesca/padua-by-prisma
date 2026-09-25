@@ -6,10 +6,13 @@
 //     "What went in" list). Links made before output settings existed open as this, so nothing they printed changes.
 //   * Board summary: the condensed one-pager (scenario comparison, chart, and a short key-assumptions box; no table).
 //
+// Sensitivity (Advanced mode's tornado chart) prints only when it's switched on in Advanced; it's in the finance
+// preset, not the board one-pager.
+//
 // In the link as `out=`: "board" or "finance" when it matches a preset, otherwise the sections that are on, in
 // order, e.g. "out=chart,scenarios,assumptions:key".
 
-export type SectionId = "scenarios" | "chart" | "table" | "assumptions"
+export type SectionId = "scenarios" | "chart" | "table" | "sensitivity" | "assumptions"
 export type AssumptionsDetail = "key" | "full"
 
 export type OutputConfig = {
@@ -25,10 +28,11 @@ export const SECTION_LABELS: Record<SectionId, string> = {
   scenarios: "Scenario comparison",
   chart: "Cumulative chart",
   table: "Year-by-year table",
+  sensitivity: "Sensitivity (Advanced)",
   assumptions: "Assumptions",
 }
 
-const ALL: SectionId[] = ["scenarios", "chart", "table", "assumptions"]
+const ALL: SectionId[] = ["scenarios", "chart", "table", "sensitivity", "assumptions"]
 
 export const PRESETS: Record<PresetId, { label: string; summary: string; config: OutputConfig }> = {
   board: {
@@ -40,18 +44,20 @@ export const PRESETS: Record<PresetId, { label: string; summary: string; config:
         { id: "chart", on: true },
         { id: "assumptions", on: true },
         { id: "table", on: false },
+        { id: "sensitivity", on: false },
       ],
       assumptions: "key",
     },
   },
   finance: {
     label: "Finance committee",
-    summary: "Everything: adds the year-by-year table and the full assumptions list.",
+    summary: "Everything: adds the year-by-year table, sensitivity (when on in Advanced), and the full assumptions list.",
     config: {
       sections: [
         { id: "scenarios", on: true },
         { id: "chart", on: true },
         { id: "table", on: true },
+        { id: "sensitivity", on: true },
         { id: "assumptions", on: true },
       ],
       assumptions: "full",

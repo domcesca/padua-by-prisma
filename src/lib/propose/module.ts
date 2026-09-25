@@ -33,6 +33,8 @@ export type ModuleContext = {
   life: number
   /** Advanced mode is on: show advanced-only inputs. */
   advanced: boolean
+  /** Advanced mode's wage index adjustment is on (reimbursement modules). */
+  wageIndex: boolean
 }
 
 /** What a module's benefit may depend on besides its own inputs. */
@@ -41,7 +43,27 @@ export type BenefitContext = {
   life: number
   /** Advanced mode is on: apply advanced-only inputs (off: ignore them, whatever they hold). */
   advanced: boolean
+  /** Advanced mode's wage index adjustment is on: price at the hospital's wage-adjusted rate where the module can. */
+  wageIndex: boolean
 }
+
+/**
+ * What the module's volume is, for Advanced mode's break-even and sensitivity: scaling it by k multiplies every
+ * volume input (cases, services, hours, improvements) by k and leaves prices alone.
+ */
+export type VolumeHook<State, Data> = {
+  /** The sensitivity bar's label, e.g. "Added cases". */
+  label: string
+  scale: (state: State, k: number, data: Data | null) => State
+  /** The break-even read-out at k times the volume entered, e.g. { value: "142 cases a year", detail: "71% of the 200 entered" }. */
+  describe: (state: State, data: Data | null, k: number) => { value: string; detail?: string }
+}
+
+/**
+ * One input the sensitivity analysis varies: `apply` scales it by f (0.8 for −20%). Without `apply`, the input is a
+ * price: it scales the module's whole benefit (e.g. the payment per case).
+ */
+export type Driver<State> = { id: string; label: string; apply?: (state: State, f: number) => State }
 
 export type ModuleEditorProps<State, Data> = {
   state: State
@@ -68,6 +90,13 @@ export type ProposalModule<State = unknown, Data = unknown> = {
   payerMix?: boolean
   /** The module phases its benefit in itself, so Advanced mode's generic ramp-up doesn't apply. */
   ownTiming?: boolean
+  /** Advanced mode's wage index adjustment applies (reimbursement modules priced at national Medicare rates). */
+  wageIndex?: boolean
+  /** Advanced options this module keeps in its own benefit section, named for the Advanced panel. */
+  advancedExtras?: string[]
+  volume?: VolumeHook<State, Data>
+  /** Inputs besides volume and the shared costs that the sensitivity analysis varies. */
+  drivers?: (state: State, data: Data | null, context: BenefitContext) => Driver<State>[]
   Editor: ComponentType<ModuleEditorProps<State, Data>>
 }
 

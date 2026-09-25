@@ -1,5 +1,7 @@
 // Types shared by the reimbursement module's server loader and its editor.
 
+import type { HospitalWageIndex, LaborSplit } from "./wage-index"
+
 export type DrgOption = {
   code: string
   label: string
@@ -23,6 +25,10 @@ export type ReimbursementData = {
   rate: number
   rateBasis: string
   capitalRate: number
+  /** The standardized amount's labor-related and non-labor parts (Tables 1A/1B), for Advanced mode's wage index. */
+  laborSplit: { above: LaborSplit; atMost: LaborSplit }
+  /** This hospital's FY IPPS wage index, or null when CMS has none (hospitals not paid under IPPS). */
+  wageIndex: HospitalWageIndex | null
   drgs: DrgOption[]
   /** This hospital's Medicare fee-for-service cases per DRG, or null when CMS has none for it. */
   baseline: {

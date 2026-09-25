@@ -1,0 +1,121 @@
+{
+  "id": "hcai-facility-status",
+  "title": "HCAI Licensed Healthcare Facility Listing: hospital license status",
+  "sourcePage": "https://data.chhs.ca.gov/dataset/licensed-healthcare-facility-listing",
+  "listingDate": "2026-09-01",
+  "snapshots": [
+    "2016-12-31",
+    "2017-06-30",
+    "2017-12-31",
+    "2018-06-30",
+    "2018-12-31",
+    "2019-06-30",
+    "2019-12-31",
+    "2020-06-30",
+    "2020-12-31",
+    "2021-06-30",
+    "2021-12-31",
+    "2022-06-30",
+    "2022-12-31",
+    "2023-06-30",
+    "2023-12-31",
+    "2024-06-30",
+    "2024-12-31",
+    "2025-06-30",
+    "2025-12-31",
+    "2026-06-30"
+  ],
+  "hospitals": 467,
+  "closureEvidence": 6,
+  "sources": [
+    {
+      "name": "Licensed Healthcare Facility Listing, December 31, 2016 (CSV)",
+      "url": "https://data.chhs.ca.gov/dataset/59d9abe7-2664-407a-a5aa-f89a866f3381/resource/27b8786d-c06f-47f0-b4fb-7a8fc4d7c2a9/download/licensed-healthcare-facility-listing-december-31-2016.csv"
+    },
+    {
+      "name": "Licensed Healthcare Facility Listing, June 30, 2017",
+      "url": "https://data.chhs.ca.gov/dataset/59d9abe7-2664-407a-a5aa-f89a866f3381/resource/0efcdfc8-9623-4155-9de5-d08d5d986a49/download/licensed-healthcare-facility-listing-june-30-2017.csv"
+    },
+    {
+      "name": "Licensed Healthcare Facility Listing, December 31, 2017",
+      "url": "https://data.chhs.ca.gov/dataset/59d9abe7-2664-407a-a5aa-f89a866f3381/resource/eff78ca9-5595-4c3a-880d-3488f129329c/download/licensed-healthcare-facility-listing-december-31-2017.csv"
+    },
+    {
+      "name": "Licensed Healthcare Facility Listing, June 30, 2018",
+      "url": "https://data.chhs.ca.gov/dataset/59d9abe7-2664-407a-a5aa-f89a866f3381/resource/6ff44089-c5d8-46f0-add1-8c10236ce7fa/download/licensed-healthcare-facility-listing-june-30-2018.csv"
+    },
+    {
+      "name": "Licensed Healthcare Facility Listing, December 31, 2018",
+      "url": "https://data.chhs.ca.gov/dataset/59d9abe7-2664-407a-a5aa-f89a866f3381/resource/bd107216-1e93-4dea-abc6-001176a389b5/download/licensed-healthcare-facility-listing-december-31-2018.csv"
+    },
+    {
+      "name": "Licensed Healthcare Facility Listing, June 30, 2019",
+      "url": "https://data.chhs.ca.gov/dataset/59d9abe7-2664-407a-a5aa-f89a866f3381/resource/e9c0e2a1-a2dd-462f-b35a-17841810e78f/download/licensed-healthcare-facility-listing-june-30-2019.csv"
+    },
+    {
+      "name": "Licensed Healthcare Facility Listing, December 31, 2019",
+      "url": "https://data.chhs.ca.gov/dataset/59d9abe7-2664-407a-a5aa-f89a866f3381/resource/a849e4cc-be50-4ff0-99a2-b7910b6b6f79/download/licensed-healthcare-facility-listing-december-31-2019.csv"
+    },
+    {
+      "name": "Licensed Healthcare Facility Listing, June 30, 2020",
+      "url": "https://data.chhs.ca.gov/dataset/59d9abe7-2664-407a-a5aa-f89a866f3381/resource/c640e4be-9b0a-4099-9d60-f12d58c790e8/download/licensed-healthcare-facility-listing-june-30-2020.csv"
+    },
+    {
+      "name": "Licensed Healthcare Facility Listing, December 31, 2020",
+      "url": "https://data.chhs.ca.gov/dataset/59d9abe7-2664-407a-a5aa-f89a866f3381/resource/677eb6cf-46b0-47f0-9184-7e36f6743ac4/download/licensed-healthcare-facility-listing-december-31-2020.csv"
+    },
+    {
+      "name": "Licensed Healthcare Facility Listing, June 30, 2021",
+      "url": "https://data.chhs.ca.gov/dataset/59d9abe7-2664-407a-a5aa-f89a866f3381/resource/160d4cd5-148a-408a-b093-01cacc504320/download/licensed-healthcare-facility-listing-june-30-2021.csv"
+    },
+    {
+      "name": "Licensed Healthcare Facility Listing, December 31, 2021",
+      "url": "https://data.chhs.ca.gov/dataset/59d9abe7-2664-407a-a5aa-f89a866f3381/resource/21836826-39d5-47e5-8b43-6e62dba7b52b/download/licensed-healthcare-facility-listing-december-31-2021.csv"
+    },
+    {
+      "name": "Licensed Healthcare Facility Listing, June 30, 2022",
+      "url": "https://data.chhs.ca.gov/dataset/59d9abe7-2664-407a-a5aa-f89a866f3381/resource/2d73e50b-e9b7-41b5-88ff-4efaa101b022/download/licensed-healthcare-facility-listing-june-30-2022.csv"
+    },
+    {
+      "name": "Licensed Healthcare Facility Listing, December 31, 2022",
+      "url": "https://data.chhs.ca.gov/dataset/59d9abe7-2664-407a-a5aa-f89a866f3381/resource/e93f1582-17be-4289-8efe-2f653246b46f/download/licensed-healthcare-facility-listing-december-31-2022.csv"
+    },
+    {
+      "name": "Licensed Healthcare Facility Listing, June 30, 2023",
+      "url": "https://data.chhs.ca.gov/dataset/59d9abe7-2664-407a-a5aa-f89a866f3381/resource/64d0e9d0-39c9-45bb-8772-4c4daff10c5a/download/licensed-healthcare-facility-listing-june-30-2023.csv"
+    },
+    {
+      "name": "Licensed Healthcare Facility Listing, December 31, 2023",
+      "url": "https://data.chhs.ca.gov/dataset/59d9abe7-2664-407a-a5aa-f89a866f3381/resource/1f4f684b-3413-437a-8441-8858fd568d10/download/licensed-healthcare-facility-listing-december-31-2023.csv"
+    },
+    {
+      "name": "Licensed Healthcare Facility Listing, June 30, 2024",
+      "url": "https://data.chhs.ca.gov/dataset/59d9abe7-2664-407a-a5aa-f89a866f3381/resource/5bbf6d3d-e284-47e3-b31e-397802d9f7b9/download/licensed-healthcare-facility-listing-june-30-2024.csv"
+    },
+    {
+      "name": "Licensed Healthcare Facility Listing, December 31, 2024",
+      "url": "https://data.chhs.ca.gov/dataset/59d9abe7-2664-407a-a5aa-f89a866f3381/resource/f5bc9454-325a-406f-aa72-d7b1f29d899d/download/licensed-healthcare-facility-listing-december-31-2024.csv"
+    },
+    {
+      "name": "Licensed Healthcare Facility Listing, June 30, 2025",
+      "url": "https://data.chhs.ca.gov/dataset/59d9abe7-2664-407a-a5aa-f89a866f3381/resource/eca781b1-643f-499d-92c2-7b229e0d1e9a/download/licensed-healthcare-facility-listing-june-30-2025.csv"
+    },
+    {
+      "name": "Licensed Healthcare Facility Listing, December 31, 2025",
+      "url": "https://data.chhs.ca.gov/dataset/59d9abe7-2664-407a-a5aa-f89a866f3381/resource/81361b94-077a-443b-97aa-d4e7b9bbd5e4/download/licensed-healthcare-facility-listing-december-31-2025.csv"
+    },
+    {
+      "name": "Licensed Healthcare Facility Listing, June 30, 2026",
+      "url": "https://data.chhs.ca.gov/dataset/59d9abe7-2664-407a-a5aa-f89a866f3381/resource/66e8522e-daa1-4de3-9aa0-e77bddfbf0b5/download/licensed-healthcare-facility-listing-june-30-2026.csv"
+    },
+    {
+      "name": "Current California Healthcare Facility Listing",
+      "url": "https://data.chhs.ca.gov/dataset/59d9abe7-2664-407a-a5aa-f89a866f3381/resource/641c5557-7d65-4379-8fea-6b7dedbda40b/download/current-healthcare-facility-listing20260901.csv"
+    }
+  ],
+  "generatedAt": "2026-09-25T19:24:50Z",
+  "notes": [
+    "Only hospitals that aren't Open on the current listing are in status.json.",
+    "closure: the license is in Suspense (or Closed) now, or was when the hospital dropped off the listing; asOf is that status's effective date. Hospitals that dropped off while Open have no closure: the listing can't tell a closure from a new license number."
+  ]
+}

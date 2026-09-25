@@ -11,6 +11,7 @@ import { formatInt, formatUsd } from "@/lib/format"
 import { defineModule, type BenefitLine, type ModuleEditorProps } from "@/lib/propose/module"
 import type { OutpatientData, RevenueScope } from "@/lib/propose/outpatient"
 import { APC_SEARCH_NOTES } from "@/lib/propose/search-terms"
+import { oppsWageRate } from "@/lib/propose/wage-index"
 import { NumberField } from "../number-field"
 import { SourceTag } from "../source-tag"
 
@@ -90,8 +91,15 @@ function fromParams(params: URLSearchParams): State {
 
 type Computed = { code: string; title: string; rate: number; pro: number; baseline: number | null; added: number; facility: number; professional: number }
 
-function compute(s: State, data: OutpatientData | null): Computed[] {
+/** The hospital-side rate: national, or wage-adjusted with Advanced mode's wage index on and one published for the hospital. */
+function pricing(data: OutpatientData, wageIndex: boolean) {
+  const wi = wageIndex ? data.wageIndex : null
+  return { adjusted: wi, rate: (national: number) => (wi ? oppsWageRate(national, data.laborShare, wi.value) : national) }
+}
+
+function compute(s: State, data: OutpatientData | null, wageIndex: boolean): Computed[] {
   if (!data) return []
+  const price = pricing(data, wageIndex).rate
   const byCode = new Map(data.apcs.map((a) => [a.code, a]))
   return s.apcs.flatMap((r) => {
     const a = byCode.get(r.code)
@@ -102,11 +110,11 @@ function compute(s: State, data: OutpatientData | null): Computed[] {
       {
         code: r.code,
         title: a.title,
-        rate: a.rate,
+        rate: price(a.rate),
         pro: r.pro,
         baseline,
         added,
-        facility: includesFacility(s.scope) ? added * a.rate : 0,
+        facility: includesFacility(s.scope) ? added * price(a.rate) : 0,
         professional: includesPro(s.scope) ? added * r.pro : 0,
       },
     ]
@@ -129,13 +137,13 @@ function Editor({ state, onChange, data, context }: ModuleEditorProps<State, Out
         .map((a) => ({
           value: a.code,
           label: `${a.code} · ${a.title}`,
-          hint: formatUsd(a.rate, { compact: true }),
+          hint: formatUsd(pricing(data, context.wageIndex).rate(a.rate), { compact: true }),
           group: a.group,
           keywords: [`apc ${a.code}`],
           tags: a.terms,
           leadTags: a.leadTerms,
         })) ?? [],
-    [data, group]
+    [data, group, context.wageIndex]
   )
   const emptyText = (query: string) => {
     const q = query.trim().toLowerCase()
@@ -155,7 +163,8 @@ function Editor({ state, onChange, data, context }: ModuleEditorProps<State, Out
     )
   }
 
-  const rows = compute(state, data)
+  const rows = compute(state, data, context.wageIndex)
+  const { adjusted } = pricing(data, context.wageIndex)
   const baselineSet = new Set(data.baselineApcs)
   const facility = rows.reduce((t, r) => t + r.facility, 0)
   const professional = rows.reduce((t, r) => t + r.professional, 0)
@@ -168,9 +177,15 @@ function Editor({ state, onChange, data, context }: ModuleEditorProps<State, Out
     <div className="space-y-4">
       <p className="text-[13px] leading-relaxed text-muted-foreground">
         Pick the outpatient payment groups (APCs) the added services fall in and how many more a year. The hospital’s side is
-        valued at each APC’s <span className="font-medium text-foreground">national Medicare outpatient rate</span> for CY{" "}
-        {data.calendarYear}. <MethodInfo data={data} />
+        valued at each APC’s{" "}
+        {adjusted ? (
+          <span className="font-medium text-foreground">Medicare outpatient rate, wage-index-adjusted for {adjusted.hospital}</span>
+        ) : (
+          <span className="font-medium text-foreground">national Medicare outpatient rate</span>
+        )}{" "}
+        for CY {data.calendarYear}. <MethodInfo data={data} />
       </p>
+      {context.wageIndex && <WageIndexNote data={data} facilityName={context.facilityName} />}
 
       <div className="surface space-y-2 rounded-xl p-3">
         <p className="text-[13px] font-medium">Whose revenue counts</p>
@@ -243,7 +258,7 @@ function Editor({ state, onChange, data, context }: ModuleEditorProps<State, Out
                       <span className="num mr-1.5 text-muted-foreground">{r.code}</span>
                       {r.title}
                     </p>
-                    <p className="num mt-0.5 text-xs text-muted-foreground">{formatUsd(r.rate, { compact: r.rate >= 100000 })} a service, national rate</p>
+                    <p className="num mt-0.5 text-xs text-muted-foreground">{formatUsd(r.rate, { compact: r.rate >= 100000 })} a service, {adjusted ? "wage-index-adjusted" : "national rate"}</p>
                     {context.facilityId && (
                       <p className="mt-0.5 text-xs text-muted-foreground">
                         {!published
@@ -350,6 +365,35 @@ function Editor({ state, onChange, data, context }: ModuleEditorProps<State, Out
   )
 }
 
+/** Advanced mode's wage index: which one is in use, or why the national rate still is. */
+function WageIndexNote({ data, facilityName }: { data: OutpatientData; facilityName: string | null }) {
+  const wi = data.wageIndex
+  const labor = Math.round(data.laborShare * 100)
+  return (
+    <p className="rounded-xl border border-dashed border-border px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+      <SourceTag kind="data" className="mr-1.5">
+        Advanced · wage index
+      </SourceTag>
+      {wi ? (
+        <>
+          {wi.hospital}’s {wi.year} OPPS wage index is <span className="num font-medium text-foreground">{wi.value.toFixed(4)}</span> ({wi.table}, CCN{" "}
+          {wi.ccn}
+          {wi.reportedWithName ? `, paid under ${wi.reportedWithName}’s Medicare number` : ""}). As CMS does, {labor}% of each national rate
+          is multiplied by it: <span className="num">rate × ({(labor / 100).toFixed(2)} × {wi.value.toFixed(4)} + {(1 - labor / 100).toFixed(2)})</span>.
+          Physician payments are your own figures and aren’t adjusted.{" "}
+          <a href={wi.sourcePage} target="_blank" rel="noreferrer" className="font-medium text-primary hover:underline">
+            CMS source
+          </a>
+        </>
+      ) : facilityName ? (
+        `CMS publishes no OPPS wage index for ${facilityName} (critical access, children’s, and cancer hospitals aren’t in CMS’s OPPS file), so the national rate is used.`
+      ) : (
+        "Pick a hospital to apply its CMS wage index; until then the national rate is used."
+      )}
+    </p>
+  )
+}
+
 function MethodInfo({ data }: { data: OutpatientData }) {
   return (
     <Popover>
@@ -398,19 +442,33 @@ export const outpatientModule = defineModule<State, OutpatientData>({
   id: "outpatient",
   label: "Outpatient reimbursement",
   payerMix: true,
+  wageIndex: true,
+  volume: {
+    label: "Added services",
+    scale: (s, k) => ({ ...s, apcs: s.apcs.map((r) => ({ ...r, value: r.value * k })) }),
+    describe: (s, data, k) => {
+      const entered = compute(s, data, false).reduce((t, r) => t + r.added, 0)
+      return { value: `${servicesText(Math.ceil(entered * k * 10) / 10)} a year`, detail: `${Math.round(k * 100)}% of the ${servicesText(entered)} entered, in the same APC mix` }
+    },
+  },
+  drivers: (s) => [
+    { id: "price", label: "Payment per service" },
+    ...(s.careCost ? [{ id: "care", label: "Cost of providing the added services", apply: (st: State, f: number) => ({ ...st, careCost: Math.min(100, st.careCost * f) }) }] : []),
+  ],
   summary: "Added outpatient visits, scans, or procedures, valued by APC; physician fees optional.",
   icon: Stethoscope,
   hasData: true,
   initial: () => ({ apcs: [], scope: "facility", careCost: 0 }),
   toParams,
   fromParams,
-  benefit: (s, data) => {
+  benefit: (s, data, { wageIndex }) => {
     if (!data) return { annual: 0, lines: [], notes: [], incomplete: "Loading the APC table…" }
-    const rows = compute(s, data)
+    const rows = compute(s, data, wageIndex)
+    const { adjusted } = pricing(data, wageIndex)
     const lines: BenefitLine[] = []
     for (const r of rows) {
       if (includesFacility(s.scope))
-        lines.push({ label: `APC ${r.code} · ${r.title}${s.scope === "both" ? " (hospital)" : ""}`, detail: `${servicesText(r.added)} × ${formatUsd(r.rate)} · level to confirm with coding`, amount: r.facility })
+        lines.push({ label: `APC ${r.code} · ${r.title}${s.scope === "both" ? " (hospital)" : ""}`, detail: `${servicesText(r.added)} × ${formatUsd(r.rate)}${adjusted ? ` (wage-index-adjusted, ${adjusted.value.toFixed(4)})` : ""} · level to confirm with coding`, amount: r.facility })
       if (includesPro(s.scope))
         lines.push({ label: `APC ${r.code} · ${r.title} (physician)`, detail: `${servicesText(r.added)} × ${formatUsd(r.pro)}, proposer’s figure · level to confirm with coding`, amount: r.professional })
     }
@@ -420,8 +478,12 @@ export const outpatientModule = defineModule<State, OutpatientData>({
     const notes = [SCOPE_NOTES[s.scope]]
     if (includesFacility(s.scope))
       notes.push(
-        `Hospital payment per service = the APC’s CY ${data.calendarYear} national unadjusted OPPS rate (Addendum A, ${data.quarter}). A national Medicare estimate, not this hospital’s actual reimbursement: wage index, multiple-procedure discounts, packaging, outliers, and payer mix aren’t applied.`
+        adjusted
+          ? `Advanced: hospital payment per service is wage-index-adjusted for ${adjusted.hospital}: the APC’s CY ${data.calendarYear} national OPPS rate (Addendum A, ${data.quarter}) × (${data.laborShare.toFixed(2)} × wage index ${adjusted.value.toFixed(4)} + ${(1 - data.laborShare).toFixed(2)}), with the hospital’s wage index from CMS’s ${adjusted.table} (CCN ${adjusted.ccn}). Still an estimate, not the hospital’s actual reimbursement: multiple-procedure discounts, packaging, outliers, and payer mix aren’t applied.`
+          : `Hospital payment per service = the APC’s CY ${data.calendarYear} national unadjusted OPPS rate (Addendum A, ${data.quarter}). A national Medicare estimate, not this hospital’s actual reimbursement: wage index, multiple-procedure discounts, packaging, outliers, and payer mix aren’t applied.`
       )
+    if (wageIndex && includesFacility(s.scope) && !adjusted)
+      notes.push("Advanced: the wage index adjustment is on, but CMS publishes no OPPS wage index for this hospital (or none is picked), so the national rate is used.")
     if (includesPro(s.scope))
       notes.push("Physician payments per service are the proposer’s figures; the hospital collects them only if it employs or bills for the physicians.")
     if (!s.careCost) notes.push("Counts revenue, not margin: the cost of providing the added services isn’t subtracted.")

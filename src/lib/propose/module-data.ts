@@ -16,12 +16,15 @@ import {
   getOutpatientServices,
   getPenaltyHospitals,
   getPenaltyManifest,
+  getWageIndexHospitals,
+  getWageIndexManifest,
 } from "@/lib/data/store"
 import { SEARCH_TERMS } from "./search-terms"
 import type { ApcOption, OutpatientData } from "./outpatient"
 import type { PenaltyData } from "./penalty"
 import type { DrgOption, ReimbursementData } from "./reimbursement"
 import { MAX_LONG_TERM_CARE_SHARE, type SavingsData } from "./savings"
+import type { HospitalWageIndex } from "./wage-index"
 
 // Server data for Propose's modules, served by /api/propose/<module>. A module that needs data
 // registers a loader here; one that doesn't (Custom) has nothing to add.
@@ -120,6 +123,28 @@ function codeTerms(items: { code: string; group: string | null }[], kind: "drg" 
 /** Plain-language terms per DRG code; ranges are checked against body systems (MDC). */
 export const drgTerms = (drgs: { code: string; mdc: string | null }[]) => codeTerms(drgs.map((d) => ({ code: d.code, group: d.mdc })), "drg")
 
+// -- Wage index (Advanced mode) -----------------------------------------------------------------------------------------
+
+/** The hospital's CMS wage index for IPPS or OPPS payments; a hospital CMS pays under another's number shares its index. */
+async function hospitalWageIndex(facilityId: string | null, system: "ipps" | "opps"): Promise<HospitalWageIndex | null> {
+  if (!facilityId) return null
+  const [hospitals, manifest, facilities] = await Promise.all([getWageIndexHospitals(), getWageIndexManifest(), getFacilities()])
+  const shared = manifest.sharedReporting[facilityId]
+  const h = hospitals[shared?.reportedWith ?? facilityId]
+  const own = h?.[system]
+  if (!h || !own) return null
+  const m = manifest[system]
+  return {
+    hospital: facilities.find((f) => f.id === facilityId)?.name ?? h.cmsName ?? `CCN ${h.ccn}`,
+    value: own.wageIndex,
+    year: system === "ipps" ? `FY ${manifest.ipps.fiscalYear}` : `CY ${manifest.opps.calendarYear}`,
+    ccn: h.ccn,
+    table: m.table,
+    sourcePage: m.sourcePage,
+    reportedWithName: shared?.reportedWithName ?? null,
+  }
+}
+
 let drgOptions: Promise<DrgOption[]> | null = null
 function getDrgOptions() {
   drgOptions ??= getIppsDrgs().then((drgs) => {
@@ -140,12 +165,14 @@ function getDrgOptions() {
 }
 
 async function loadReimbursement(facilityId: string | null): Promise<ReimbursementData> {
-  const [manifest, drgs, cases, casesManifest, facilities] = await Promise.all([
+  const [manifest, drgs, cases, casesManifest, facilities, wageIndex, wageManifest] = await Promise.all([
     getIppsManifest(),
     getDrgOptions(),
     getInpatientCases(),
     getInpatientCasesManifest(),
     getFacilities(),
+    hospitalWageIndex(facilityId, "ipps"),
+    getWageIndexManifest(),
   ])
   const year = casesManifest.years.at(-1)!
   const facility = facilityId ? facilities.find((f) => f.id === facilityId) : undefined
@@ -177,6 +204,8 @@ async function loadReimbursement(facilityId: string | null): Promise<Reimburseme
     rate: manifest.standardizedAmount.total,
     rateBasis: manifest.standardizedAmount.basis,
     capitalRate: manifest.capitalRate,
+    laborSplit: { above: wageManifest.ipps.standardizedAmount.wageIndexAboveOne, atMost: wageManifest.ipps.standardizedAmount.wageIndexAtMostOne },
+    wageIndex: wageManifest.ipps.fiscalYear === manifest.fiscalYear ? wageIndex : null,
     drgs,
     baseline,
     peers,
@@ -295,7 +324,14 @@ function getApcOptions() {
 }
 
 async function loadOutpatient(facilityId: string | null): Promise<OutpatientData> {
-  const [manifest, apcs, services, facilities] = await Promise.all([getOppsManifest(), getApcOptions(), getOutpatientServices(), getFacilities()])
+  const [manifest, apcs, services, facilities, wageIndex, wageManifest] = await Promise.all([
+    getOppsManifest(),
+    getApcOptions(),
+    getOutpatientServices(),
+    getFacilities(),
+    hospitalWageIndex(facilityId, "opps"),
+    getWageIndexManifest(),
+  ])
   const year = manifest.services.year
   const facility = facilityId ? facilities.find((f) => f.id === facilityId) : undefined
   let baseline: OutpatientData["baseline"] = null
@@ -320,6 +356,8 @@ async function loadOutpatient(facilityId: string | null): Promise<OutpatientData
     quarter: manifest.quarter,
     sourcePage: manifest.sourcePage,
     conversionFactor: manifest.conversionFactor,
+    laborShare: wageManifest.opps.laborShare,
+    wageIndex: wageManifest.opps.calendarYear === manifest.calendarYear ? wageIndex : null,
     apcs,
     baselineApcs: manifest.services.apcs,
     baseline,

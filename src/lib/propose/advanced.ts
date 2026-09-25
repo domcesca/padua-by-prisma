@@ -8,10 +8,17 @@ import type { YearFactors } from "./engine"
 //   * Ramp-up (every module but avoided penalties, which has its own CMS-based timing): the benefit starts in
 //     `start` and reaches full in `full`, straight-line between. Default 1 → 1: full benefit from year 1.
 //   * Escalation: benefits and running costs grow by a percent a year from year 2. Default 0%.
-// Year-by-year effects go to the engine as per-year factors (engine.ts `YearFactors`).
+//   * Wage index (inpatient and outpatient reimbursement): the labor-related share of the national rate × the
+//     hospital's CMS wage index, as CMS pays it (wage-index.ts). Off by default.
+//   * Break-even volume and sensitivity (every module): read-outs re-computed from the same model (analysis.ts);
+//     they add to the results and never change the estimate. Off by default.
+// Each is switched on separately. Year-by-year effects go to the engine as per-year factors (engine.ts `YearFactors`).
+// Module-specific refinements (staff time by role, lost readmission revenue, readmission dampening) live in the
+// module's own state and editor, with their own switches.
 //
 // In the link: `adv=1` when on; `pm=medicare:40:1,medical:30:0.6,…` (share %, multiplier), `ramp=2-3`, `esc=3,4`
-// (benefit %, cost %) whenever set, so turning Advanced off and on again keeps them.
+// (benefit %, cost %), `wi=1`, `be=1`, `sens=20` or `sens=20:roi` (swing %, outcome) whenever set, so turning
+// Advanced off and on again keeps them.
 
 export const PAYERS = [
   { id: "medicare", label: "Medicare" },
@@ -28,7 +35,17 @@ export type AdvancedSettings = {
   payerMix: PayerRow[]
   ramp: { start: number; full: number }
   escalation: { benefit: number; cost: number }
+  /** Apply the hospital's CMS wage index to reimbursement estimates. */
+  wageIndex: boolean
+  /** Show the volume needed to pay back within the useful life. */
+  breakeven: boolean
+  /** One-at-a-time sensitivity (tornado): each input ± `swing`%, ranked by its effect on `outcome`. */
+  sensitivity: { on: boolean; swing: number; outcome: SensitivityOutcome }
 }
+
+export type SensitivityOutcome = "npv" | "roi"
+export const SWINGS = [10, 20, 30] as const
+export const DEFAULT_SWING = 20
 
 export const MAX_ESCALATION = 25
 
@@ -39,6 +56,9 @@ export const defaultAdvanced = (): AdvancedSettings => ({
   payerMix: defaultPayers(),
   ramp: { start: 1, full: 1 },
   escalation: { benefit: 0, cost: 0 },
+  wageIndex: false,
+  breakeven: false,
+  sensitivity: { on: false, swing: DEFAULT_SWING, outcome: "npv" },
 })
 
 const num = (raw: string | undefined, min: number, max: number) => {
@@ -63,6 +83,13 @@ export function parseAdvanced(params: URLSearchParams, maxLife: number): Advance
   }
   const [eb, ec] = (params.get("esc") ?? "").split(",")
   adv.escalation = { benefit: num(eb, -MAX_ESCALATION, MAX_ESCALATION) ?? 0, cost: num(ec, -MAX_ESCALATION, MAX_ESCALATION) ?? 0 }
+  adv.wageIndex = params.get("wi") === "1"
+  adv.breakeven = params.get("be") === "1"
+  const sens = (params.get("sens") ?? "").match(/^(\d+)(?::(npv|roi))?$/)
+  if (sens) {
+    const swing = Number(sens[1])
+    adv.sensitivity = { on: true, swing: (SWINGS as readonly number[]).includes(swing) ? swing : DEFAULT_SWING, outcome: (sens[2] as SensitivityOutcome) ?? "npv" }
+  }
   return adv
 }
 
@@ -72,6 +99,9 @@ export function advancedToParams(adv: AdvancedSettings, params: URLSearchParams)
   if (mixed.length) params.set("pm", mixed.map((r) => `${r.id}:${r.share}:${r.multiplier ?? ""}`).join(","))
   if (adv.ramp.start !== 1 || adv.ramp.full !== 1) params.set("ramp", `${adv.ramp.start}-${adv.ramp.full}`)
   if (adv.escalation.benefit || adv.escalation.cost) params.set("esc", `${adv.escalation.benefit},${adv.escalation.cost}`)
+  if (adv.wageIndex) params.set("wi", "1")
+  if (adv.breakeven) params.set("be", "1")
+  if (adv.sensitivity.on) params.set("sens", `${adv.sensitivity.swing}${adv.sensitivity.outcome === "roi" ? ":roi" : ""}`)
 }
 
 // -- Payer mix ------------------------------------------------------------------------------------------------------
