@@ -1,10 +1,10 @@
 # PROGRESS — handoff for the next session
 
-_Last updated 2026-09-25, V5 (see §2 V5). Read this first, then `README.md` (run/refresh/deploy commands) and `AGENTS.md` (this is Next.js 16 — check `node_modules/next/dist/docs/` before writing Next code)._
+_Last updated 2026-09-25, V6.0 (see §2 V6.0). Read this first, then `README.md` (run/refresh/deploy commands) and `AGENTS.md` (this is Next.js 16 — check `node_modules/next/dist/docs/` before writing Next code)._
 
 ## 1. Project overview
 
-**HCAI Insights** (working name; the repo is `usc-hcai-insights`) is a web app for California hospital administrators and finance leaders (CFO-level readers). It turns HCAI's public hospital financial and utilization files into peer benchmarks, a chart/table builder, a plain-language field guide, and a filing calendar. There are no accounts, no database and no API keys. All data is public HCAI open data, pre-processed by a Python ETL into committed JSON.
+**HCAI Insights** (working name; the repo is `usc-hcai-insights`) is a web app for California hospital administrators and finance leaders (CFO-level readers). It turns HCAI's public hospital financial and utilization files into peer benchmarks, a chart/table builder, a plain-language field guide, a business-case builder (Propose), and a filing calendar. There are no accounts, no database and no API keys. All data is public HCAI open data, pre-processed by a Python ETL into committed JSON.
 
 ## 2. What's built
 
@@ -124,6 +124,35 @@ replay from another page). No horizontal overflow at 375px.
 
 Cloud sessions need data.cms.gov, data.chhs.ca.gov and api.census.gov allowed (the user added them); CHHS
 downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and aha.org were not.
+
+### V6.0 (Propose: proposal builder, core engine + two modules)
+- **Data (step 1):** two new ETL datasets.
+  - `cms-ipps`: FY 2027 IPPS Final Rule (effective 2026-10-01). Table 5 → `drgs.json` (766 MS-DRGs; 998/999 have no
+    weight and are dropped), weight = "Weights - 10% Cap Applied". Tables 1A–1E → manifest: national operating
+    standardized amount $6,848.98 (1A: $4,520.33 labor + $2,328.65 non-labor, "submitted quality data and meaningful
+    EHR user", update 2.3%; 1B splits the same total), capital rate $540.03 (not used in the estimate; mentioned).
+  - `cms-inpatient`: Medicare Inpatient Hospitals by Provider and Service, data year 2024 → `cases.json`
+    (hospital → year → DRG → Original Medicare discharges). 271 of 272 California IPPS CCNs matched. The CCN matcher
+    moved from `cms_care_compare.py` into `crosswalk.match_ccns` (re-ran Care Compare: metrics.json byte-identical).
+  - www.cms.gov was blocked in the cloud environment at first; the user allowed it.
+- **Engine (step 2):** `src/lib/propose/engine.ts`. Cash view (year 0 outlay, full benefit − maintenance each year,
+  no ramp-up) for payback / cumulative / ROI / NPV; straight-line amortization shown as the accounting view. NPV
+  was cheap, so it's in (discount rate input, default 5%).
+- **Modules (steps 3–4):** `ProposalModule` contract (`src/lib/propose/module.ts`), registry in
+  `src/components/propose/modules/index.ts`, server data via `MODULE_DATA` in `src/lib/propose/module-data.ts` and
+  `/api/propose/[module]`. Reimbursement: `GroupedPicker` over 766 DRGs grouped by MDC (up to 20), per-DRG added
+  cases or % of the hospital's 2024 Medicare cases, peer median as context (step 7), optional cost-of-care %.
+  Custom: up to 20 lines, quantity × rate or flat.
+- **Scenarios, results, print (steps 5–6):** three scenario cards side by side (0.7× / 1× / 1.3× benefit; clicking one
+  or the segmented control picks the highlighted line and the year-by-year table), cumulative chart, "What went in",
+  caveats. Browser print-to-PDF with print CSS (light palette even from dark mode; chrome, inputs, and controls hidden).
+- **Persistence:** user agreed to URL state (session-only plus a shareable link). Every module's inputs are in the URL.
+- **Nav (step 8):** Propose (Calculator icon) after Correlate; carries the remembered hospital. The mobile tab bar has
+  7 tabs now, so labels are 9.5px under 400px wide and truncate rather than overlap.
+- Checked: typecheck, lint, `next build`; Playwright at 1280 and 375, light and dark; reload restores the proposal;
+  PDF output reviewed. No horizontal overflow at 375px.
+- **Deferred to V6.5:** two more modules, slider sensitivity. Not done: hospital-specific payment (wage index,
+  DSH/IME), ramp-up years, payer mix.
 
 ## 3. Key decisions and why
 
