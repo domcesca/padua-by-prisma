@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react"
 import { FacilityPicker, type FacilityOption } from "@/components/benchmark/facility-picker"
 import { FilterPill } from "@/components/benchmark/filter-pill"
 import { MetricInfo } from "@/components/benchmark/metric-info"
+import { PickerPill } from "@/components/shell/grouped-picker"
 import { Segmented } from "@/components/shell/segmented"
 import {
   correlateSpecToParams,
@@ -15,7 +16,8 @@ import {
   type CorrelateResult,
   type CorrelateSpec,
 } from "@/lib/correlate/spec"
-import { CATEGORY_BY_ID, type MetricDef } from "@/lib/data/datasets"
+import { type MetricDef } from "@/lib/data/datasets"
+import { metricPickerOptions } from "@/lib/data/metric-options"
 import { rememberSelection } from "@/lib/selection"
 import { cn } from "@/lib/utils"
 import { ScatterPlot, ScatterTable } from "./scatter-plot"
@@ -81,13 +83,10 @@ export function CorrelateView({
 
   // Metrics grouped by topic, Medicare-lens versions in their own group.
   const metricOptions = (exclude: string) =>
-    catalog
-      .filter((m) => m.id !== exclude)
-      .map((m) => ({
-        value: m.id,
-        label: m.label,
-        group: `${CATEGORY_BY_ID[m.category].label}${m.lens === "medicare" ? " · Medicare" : ""}`,
-      }))
+    metricPickerOptions(
+      catalog.filter((m) => m.id !== exclude),
+      { acrossCategories: true }
+    )
   const mx = byId.get(spec.x)
   const my = byId.get(spec.y)
   // While a new pair loads, the previous result stays up (dimmed), labeled by its own measures.
@@ -127,14 +126,14 @@ export function CorrelateView({
       <div className="space-y-3">
         <FacilityPicker facilities={facilities} value={spec.facilityId} onChange={(id) => update({ facilityId: id, year: null })} latestYear={latestYear} />
         <div className="flex flex-wrap items-center gap-2">
-          <FilterPill
+          <PickerPill
+            noun="measures"
             label="Across (horizontal)"
             summary={mx ? `Across: ${mx.label}` : null}
             active={false}
             options={metricOptions(spec.y)}
             selected={[spec.x]}
             onChange={([x]) => x && update({ x, year: null })}
-            searchable
             wide
           />
           <button
@@ -146,14 +145,14 @@ export function CorrelateView({
           >
             <ArrowLeftRight className="size-3.5" />
           </button>
-          <FilterPill
+          <PickerPill
+            noun="measures"
             label="Up (vertical)"
             summary={my ? `Up: ${my.label}` : null}
             active={false}
             options={metricOptions(spec.x)}
             selected={[spec.y]}
             onChange={([y]) => y && update({ y, year: null })}
-            searchable
             wide
           />
         </div>

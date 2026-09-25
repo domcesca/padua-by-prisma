@@ -38,6 +38,7 @@ export function MobileTabBar() {
               <Link
                 href={hrefWithSelection(href, selection)}
                 aria-current={active ? "page" : undefined}
+                data-tour={`nav-${label.toLowerCase()}`}
                 className={cn(
                   "relative flex h-14 flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors",
                   active ? "text-primary" : "text-tertiary-foreground"

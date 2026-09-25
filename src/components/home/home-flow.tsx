@@ -19,6 +19,7 @@ import { useRef, useState } from "react"
 
 import { FacilityPicker, type FacilityOption } from "@/components/benchmark/facility-picker"
 import { FilterPill } from "@/components/benchmark/filter-pill"
+import { GroupedPicker } from "@/components/shell/grouped-picker"
 import { Segmented } from "@/components/shell/segmented"
 import {
   CATEGORIES,
@@ -31,6 +32,7 @@ import {
   UNIT_METRICS,
   type MetricDef,
 } from "@/lib/data/datasets"
+import { metricPickerOptions } from "@/lib/data/metric-options"
 import type { FacilityUnit, MetricCategory } from "@/lib/data/types"
 import { rememberSelection, useSelection } from "@/lib/selection"
 import { cn } from "@/lib/utils"
@@ -56,13 +58,11 @@ export function HomeFlow({
   catalog,
   years,
   latestYear,
-  suggestions,
 }: {
   facilities: FacilityOption[]
   catalog: MetricDef[]
   years: number[]
   latestYear: number
-  suggestions: FacilityOption[]
 }) {
   const [category, setCategory] = useState<MetricCategory | null>(null)
   const [facilityId, setFacilityId] = useState<string | null>(null)
@@ -121,20 +121,15 @@ export function HomeFlow({
 
   // Under a unit, only the metrics HCAI reports by bed classification.
   const categoryMetrics = unit
-    ? UNIT_METRICS.map((id) => ({ id, label: UNIT_METRIC_LABELS[id] }))
+    ? UNIT_METRICS.map((id) => ({ value: id, label: UNIT_METRIC_LABELS[id] }))
     : category
-      ? pickableMetrics(catalog, category, "all")
+      ? metricPickerOptions(pickableMetrics(catalog, category, "all"), { acrossCategories: false })
       : []
   const defaultMetrics = unit ? UNIT_DEFAULT_METRICS : category ? CATEGORY_BY_ID[category].defaultMetrics : []
   const chosenMetrics = metrics ?? defaultMetrics
   const customMetrics = metrics != null && metrics.join(",") !== defaultMetrics.join(",")
   const units = preview?.units ?? []
   const unitInfo = units.find((u) => u.id === unit)
-
-  function toggleMetric(id: string) {
-    // Added metrics go at the end, after the standard set.
-    setMetrics(chosenMetrics.includes(id) ? chosenMetrics.filter((m) => m !== id) : [...chosenMetrics, id])
-  }
 
   const ready = category != null && facilityId != null
   const benchmarkHref = (() => {
@@ -185,22 +180,9 @@ export function HomeFlow({
       {/* Step 1 */}
       <Step n={1} title="Which hospital?" done={facilityId != null}>
         <div className="max-w-2xl space-y-3">
-          <FacilityPicker facilities={facilities} value={facilityId} onChange={chooseFacility} latestYear={latestYear} />
-          {!facilityId && (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs text-tertiary-foreground">Or try</span>
-              {suggestions.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => chooseFacility(s.id)}
-                  className="glass-subtle rounded-full px-3 py-1.5 text-[13px] transition-colors hover:bg-white/80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none dark:hover:bg-white/10"
-                >
-                  {s.name}
-                </button>
-              ))}
-            </div>
-          )}
+          <div data-tour="hospital">
+            <FacilityPicker facilities={facilities} value={facilityId} onChange={chooseFacility} latestYear={latestYear} />
+          </div>
           {facility && (
             <p className="fade-up text-[13px] text-muted-foreground" aria-live="polite">
               {previewLoading && !preview ? (
@@ -224,7 +206,7 @@ export function HomeFlow({
 
       {/* Step 2 */}
       <Step n={2} title="Choose a topic" done={category != null}>
-        <div role="radiogroup" aria-label="Topic" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div role="radiogroup" aria-label="Topic" data-tour="topic" className="scroll-mt-20 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {CATEGORIES.map((c) => {
             const Icon = ICONS[c.id]
             const selected = category === c.id
@@ -380,27 +362,16 @@ export function HomeFlow({
 
             <p className="text-[13px] font-medium md:pt-1">Metrics</p>
             {category ? (
-              <div className="flex flex-wrap gap-1.5">
-                {categoryMetrics.map((m) => {
-                  const on = chosenMetrics.includes(m.id)
-                  return (
-                    <button
-                      key={m.id}
-                      type="button"
-                      aria-pressed={on}
-                      onClick={() => toggleMetric(m.id)}
-                      className={cn(
-                        "inline-flex h-8 items-center gap-1 rounded-full px-3 text-[13px] transition-[color,box-shadow] duration-200 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
-                        on
-                          ? "glass-subtle ring-accent glow-soft text-foreground"
-                          : "glass-subtle text-muted-foreground hover:text-foreground"
-                      )}
-                    >
-                      {on && <Check className="size-3.5" />}
-                      {m.label}
-                    </button>
-                  )
-                })}
+              <div className="glass-subtle max-w-md rounded-2xl p-1.5">
+                <GroupedPicker
+                  key={`${category}-${unit ?? ""}`}
+                  noun="metrics"
+                  options={categoryMetrics}
+                  selected={chosenMetrics}
+                  onChange={setMetrics}
+                  multiple
+                  listClassName="max-h-60"
+                />
               </div>
             ) : (
               <p className="text-[13px] text-muted-foreground">Choose a topic first.</p>
@@ -428,6 +399,7 @@ export function HomeFlow({
       <div className="flex flex-col gap-4 border-t border-border pt-8 sm:flex-row sm:items-center sm:justify-between">
         <Link
           href={benchmarkHref}
+          data-tour="compare"
           aria-disabled={!ready}
           tabIndex={ready ? undefined : -1}
           onClick={(e) => (ready ? remember() : e.preventDefault())}

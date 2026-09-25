@@ -13,6 +13,10 @@ plain-language field guide, and a reporting calendar.
 | **Translate** | Every field in either dataset in plain language, with why it moves. Pick a hospital to see year-over-year changes, or paste/upload a raw HCAI extract (.xlsx/.csv, including the utilization workbook) to translate its columns. Parsing happens in the browser. |
 | **Deadlines** | Quarterly and annual financial report due dates for a hospital's fiscal year, the Annual Utilization Report (Feb 15), extension limits, off-cycle report periods, and filed/extended tracking (saved in the browser). |
 | **Ask** / **Watch** | Placeholders for natural-language queries and anomaly detection on uploaded data. |
+| **Help (?)** | On every page (bottom corner, or press <kbd>?</kbd>): a search-as-you-type glossary of every metric and HCAI field, read from the same dictionaries as Translate. A lookup, not a chat. Also replays the tour. |
+
+A short guided tour (five steps) plays on the first visit to the home page. It's remembered in the browser
+(`hcai-tour-v1` in localStorage), can be skipped at any step, and can be replayed from the help panel.
 
 Data, calendar/report years 2019–2024:
 
@@ -197,7 +201,9 @@ src/lib/benchmark/     peer groups (peers.ts), filters/URL state, percentile sta
 src/lib/report/        ReportSpec (spec.ts) and its runner (run.ts) for the Build tab
 src/lib/deadlines/     HCAI filing rules with citations
 src/lib/selection.ts   the remembered hospital + topic (browser storage, per viewer)
-src/app/api/           /api/benchmark, /api/peers, /api/report, /api/facilities/[id]/fields
+src/lib/glossary.ts    the help panel's glossary, built from the dataset dictionaries (no second copy)
+src/app/api/           /api/benchmark, /api/peers, /api/report, /api/correlate, /api/glossary,
+                       /api/facilities/[id]/fields
 src/app/<tab>/         one route per tab; / is the guided home page
 ```
 
@@ -224,6 +230,9 @@ Apple-style restraint with a "Liquid Glass" layer (utilities in `src/app/globals
   without `backdrop-filter` get opaque surfaces; `prefers-reduced-motion` stops the loading sweep.
 - Charts: one metric per panel (no dual axes), thin lines, minimal gridlines, a legend, and a table view. Hospital
   series use a validated 5-slot categorical palette (`--series-1..5`); peer and state medians are gray context.
+- Long lists (metrics, units, counties) all use one picker, `GroupedPicker` / `PickerPill`
+  (`src/components/shell/grouped-picker.tsx`): a search box over groups that stay collapsed until opened. Short fixed
+  lists (years, distance, bed size) use `FilterPill`.
 
 ## Deploying (Vercel)
 

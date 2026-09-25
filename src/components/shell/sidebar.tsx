@@ -33,6 +33,7 @@ export function Sidebar() {
                 <Link
                   href={hrefWithSelection(href, selection)}
                   aria-current={active ? "page" : undefined}
+                  data-tour={`nav-${label.toLowerCase()}`}
                   className={cn(
                     "group relative flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-sm transition-[background-color,color,box-shadow] duration-200",
                     "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",

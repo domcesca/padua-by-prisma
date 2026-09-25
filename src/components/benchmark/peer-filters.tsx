@@ -2,6 +2,7 @@
 
 import { Info, RotateCcw } from "lucide-react"
 
+import { PickerPill } from "@/components/shell/grouped-picker"
 import { Segmented } from "@/components/shell/segmented"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import {
@@ -95,15 +96,15 @@ export function PeerFilterBar({
         <PeerGroupInfo />
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <FilterPill
+        <PickerPill
+          noun="counties"
           label="County"
           summary={countySummary}
           options={counties.map((c) => ({ value: c, label: c }))}
           selected={shown.counties}
           onChange={(counties) => edit({ counties, radiusMiles: null })}
           multiple
-          searchable
-          quickActions={
+          actions={
             facility?.county && !(shown.counties.length === 1 && shown.counties[0] === facility.county)
               ? [{ label: `Use ${facility.county} County`, onSelect: () => edit({ counties: [facility.county!], radiusMiles: null }) }]
               : undefined

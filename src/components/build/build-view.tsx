@@ -6,8 +6,10 @@ import { useEffect, useRef, useState } from "react"
 import { MetricInfo } from "@/components/benchmark/metric-info"
 import { FacilityPicker, type FacilityOption } from "@/components/benchmark/facility-picker"
 import { FilterPill } from "@/components/benchmark/filter-pill"
+import { GroupedPicker } from "@/components/shell/grouped-picker"
 import { Segmented } from "@/components/shell/segmented"
-import { CATEGORIES, type MetricDef } from "@/lib/data/datasets"
+import { type MetricDef } from "@/lib/data/datasets"
+import { metricPickerOptions } from "@/lib/data/metric-options"
 import { formatMetric } from "@/lib/format"
 import {
   chartAllowed,
@@ -85,12 +87,6 @@ export function BuildView({
     }
   }
 
-  function toggleMetric(id: string) {
-    const on = spec.metrics.includes(id)
-    if (!on && spec.metrics.length >= MAX_METRICS) return
-    void update({ metrics: on ? spec.metrics.filter((m) => m !== id) : [...spec.metrics, id] })
-  }
-
   const showCompare = spec.groupBy === "year" || (spec.groupBy === "facility" && spec.hospitals === "picked")
   const showYear = spec.groupBy === "facility" || (spec.groupBy === "peerGroup" && spec.chart === "bar")
   const showPeers = !(spec.groupBy === "facility" && spec.hospitals === "picked")
@@ -132,12 +128,6 @@ export function BuildView({
     }
   }
 
-  // Each category's all-payer metrics, then its Medicare-lens versions.
-  const metricGroups = CATEGORIES.flatMap((c) => [
-    { key: c.id, label: c.label, metrics: catalog.filter((m) => m.category === c.id && !m.lens) },
-    { key: `${c.id}-medicare`, label: `${c.label} · Medicare`, metrics: catalog.filter((m) => m.category === c.id && m.lens === "medicare") },
-  ]).filter((g) => g.metrics.length > 0)
-
   return (
     <div className="grid gap-8 lg:grid-cols-[20rem_minmax(0,1fr)]">
       {/* Controls */}
@@ -147,37 +137,15 @@ export function BuildView({
         </Field>
 
         <Field label="Metrics" hint={`Up to ${MAX_METRICS}; each gets its own chart.`}>
-          <div className="space-y-3">
-            {metricGroups.map((g) => (
-              <div key={g.key} className="space-y-1.5">
-                <p className="text-[11px] font-medium tracking-wide text-tertiary-foreground uppercase">{g.label}</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {g.metrics.map((m) => {
-                    const on = spec.metrics.includes(m.id)
-                    const full = !on && spec.metrics.length >= MAX_METRICS
-                    return (
-                      <button
-                        key={m.id}
-                        type="button"
-                        aria-pressed={on}
-                        disabled={full}
-                        onClick={() => toggleMetric(m.id)}
-                        className={cn(
-                          "inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-[12px] transition-[color,box-shadow] duration-200",
-                          "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-40",
-                          on
-                            ? "glass-subtle ring-accent glow-soft text-foreground"
-                            : "glass-subtle text-muted-foreground hover:text-foreground"
-                        )}
-                      >
-                        {on && <Check className="size-3" />}
-                        {m.label}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            ))}
+          <div className="glass rounded-2xl p-1.5">
+            <GroupedPicker
+              noun="metrics"
+              options={metricPickerOptions(catalog, { acrossCategories: true })}
+              selected={spec.metrics}
+              onChange={(metrics) => update({ metrics: metrics.slice(0, MAX_METRICS) })}
+              multiple
+              max={MAX_METRICS}
+            />
           </div>
         </Field>
 
