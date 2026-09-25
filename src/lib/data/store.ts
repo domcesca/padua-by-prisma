@@ -304,3 +304,44 @@ export const getIppsManifest = () => loadReference<IppsManifest>("cms-ipps", "ma
 /** Medicare fee-for-service cases per hospital, year, and MS-DRG (11+ cases only). */
 export const getInpatientCases = () => loadReference<Record<string, Record<string, Record<string, number>>>>("cms-inpatient", "cases.json")
 export const getInpatientCasesManifest = () => loadReference<InpatientCasesManifest>("cms-inpatient", "manifest.json")
+
+/** HRRP and HAC Reduction Program standing plus estimated Medicare payments, per HCAI hospital (cms-penalties). */
+export type PenaltyHospital = {
+  ccn: string
+  cmsName: string | null
+  hrrp: {
+    fiscalYear: number
+    adjustmentFactor: number
+    reduction: number
+    peerGroup: number | null
+    neutralityModifier: number
+    conditions: Record<string, { discharges: number | null; err: number; peerMedian: number | null; paymentRatio: number | null; predicted: number | null; expected: number | null; readmissions: number | null }>
+  } | null
+  hac: {
+    fiscalYear: number
+    measures: Record<string, { value: number | null; z: number }>
+    totalScore: number | null
+    penalized: boolean | null
+    footnote: string | null
+  } | null
+  payments: { fiscalYear: number; cases: number; caseMixIndex: number; wageIndex: number; ime: number; dsh: number; outlier: number; baseOperating: number; operating: number } | null
+}
+
+type Period = { start: string; end: string }
+export type PenaltyManifest = {
+  hrrp: { fiscalYear: number; period: Period; minDischarges: number; cap: number; sourcePage: string }
+  hac: {
+    fiscalYear: number
+    periods: { psi90: Period; hai: Period }
+    reduction: number
+    measures: Record<string, { mean: number; sd: number; low: number; high: number }>
+    cutoff: number
+    lowestPenalized: number
+    sourcePage: string
+  }
+  payments: { fiscalYear: number; sourcePage: string }
+  sharedReporting: Record<string, { ccn: string; reportedWith: string; reportedWithName: string }>
+}
+
+export const getPenaltyHospitals = () => loadReference<Record<string, PenaltyHospital>>("cms-penalties", "hospitals.json")
+export const getPenaltyManifest = () => loadReference<PenaltyManifest>("cms-penalties", "manifest.json")

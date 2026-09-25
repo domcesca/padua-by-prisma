@@ -24,7 +24,18 @@ export type Benefit = {
   incomplete?: string
 }
 
-export type ModuleContext = { facilityId: string | null; facilityName: string | null }
+export type ModuleContext = {
+  facilityId: string | null
+  facilityName: string | null
+  /** Useful life in years, from the cost inputs. */
+  life: number
+}
+
+/** What a module's benefit may depend on besides its own inputs. */
+export type BenefitContext = {
+  /** Useful life in years, from the cost inputs: for benefits that phase in, averaged over it. */
+  life: number
+}
 
 export type ModuleEditorProps<State, Data> = {
   state: State
@@ -46,7 +57,7 @@ export type ProposalModule<State = unknown, Data = unknown> = {
   /** State → URL params (keys unique to this module), so a proposal survives reloads and can be shared. */
   toParams: (state: State) => Record<string, string>
   fromParams: (params: URLSearchParams) => State
-  benefit: (state: State, data: Data | null) => Benefit
+  benefit: (state: State, data: Data | null, context: BenefitContext) => Benefit
   Editor: ComponentType<ModuleEditorProps<State, Data>>
 }
 

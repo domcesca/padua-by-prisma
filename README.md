@@ -11,7 +11,7 @@ business-case builder for new initiatives, a plain-language field guide, and a r
 | **Benchmark** | A hospital against its peer group on financial metrics (operating margin, days cash on hand, cost and revenue per adjusted discharge, payer mix) utilization metrics (occupancy, ALOS, ED visits and flow, surgeries, cath volume), or quality (CMS readmissions, mortality, patient experience, star ratings; CDPH infection ratios). A collapsible panel shows the county's Census and Medi-Cal context. Default peers are **similar hospitals** (see below); switch to all of California or set filters yourself. A **Payer view** toggle (All payers / Medicare) narrows the metrics to Medicare where HCAI reports a Medicare split. Every view is a shareable URL. |
 | **Build** | A guided chart and table builder: up to four metrics from the catalog, line / bar / table, grouped by year, by hospital, or against the peer group. Legend, table view, CSV download, and a copyable link on every result. |
 | **Correlate** | Any two catalog metrics (Financial, Utilization, Quality, Medicare lens) plotted against each other across a hospital's similar hospitals or all of California for one year: scatter, least-squares trend line, Pearson r, and Spearman rank ρ (robust to outliers). Fewer than 8 hospitals gets "Small sample size — interpret with caution"; fewer than 3, no r. Pairing years of different kinds (fiscal vs. calendar vs. CMS periods) is called out. Table view, CSV, shareable link. |
-| **Propose** | The financial case for a new technology, service, or piece of equipment. Enter capital, implementation, and yearly running costs and a useful life; pick how the benefit is estimated (**Reimbursement**: MS-DRGs × added cases × a national Medicare payment estimate, with the hospital's own Medicare cases and its peers' as context; or **Custom**: your own benefit lines). Payback, ROI, NPV, amortized and cumulative net for Conservative / Expected / Optimistic side by side (70% / 100% / 130% of the estimated benefit by default; each rate is editable), a cumulative chart, a year-by-year table, and a print-to-PDF layout. The proposal lives in the link; nothing is saved. |
+| **Propose** | The financial case for a new technology, service, or piece of equipment. Enter capital, implementation, and yearly running costs and a useful life; pick how the benefit is estimated (**Reimbursement**: MS-DRGs × added cases × a national Medicare payment estimate, with the hospital's own Medicare cases and its peers' as context; **Cost savings**: staff time, shorter stays, supplies; **Avoided penalties**: the Medicare readmission (HRRP) and hospital-acquired condition (HAC) penalties a quality initiative would avoid; or **Custom**: your own benefit lines). Payback, ROI, NPV, amortized and cumulative net for Conservative / Expected / Optimistic side by side (70% / 100% / 130% of the estimated benefit by default; each rate is editable), a cumulative chart, a year-by-year table, and a print-to-PDF layout. The proposal lives in the link; nothing is saved. |
 | **Translate** | Every field in either dataset in plain language, with why it moves. Pick a hospital to see year-over-year changes, or paste/upload a raw HCAI extract (.xlsx/.csv, including the utilization workbook) to translate its columns. Parsing happens in the browser. |
 | **Deadlines** | (Desktop sidebar and the home page; not in the phone tab bar.) Quarterly and annual financial report due dates for a hospital's fiscal year, the Annual Utilization Report (Feb 15), extension limits, off-cycle report periods, and filed/extended tracking (saved in the browser). |
 | **Ask** / **Watch** | Placeholders for natural-language queries and anomaly detection on uploaded data. |
@@ -194,7 +194,7 @@ non-blocking note, nothing more.
 **Benefit modules are plug-ins.** Each is a `ProposalModule` (`src/lib/propose/module.ts`): its inputs, how they go
 in the URL, its benefit calculation, and its editor. Register it in `src/components/propose/modules/index.ts`; if it
 needs server data, add a loader to `src/lib/propose/module-data.ts` (served at `/api/propose/<id>?facility=`). The
-engine and page don't change.
+engine and page don't change. A module's `benefit` also gets the useful life, for benefits that phase in.
 
 - **Reimbursement**: estimated payment per case = FY MS-DRG relative weight (Table 5, the 10%-capped column CMS pays
   on) × the national operating standardized amount (Table 1A labor + non-labor, full update: $6,848.98 for FY 2027).
@@ -211,7 +211,29 @@ engine and page don't change.
   mean directly (`drgs`, ranked first) and ones they touch (`related`). Adding terms means editing that file only; the
   server logs any code that isn't in the current Table 5 or any range that crosses body systems. A search with no
   inpatient DRG (MRI, CT, outpatient) explains why and points to the Custom module.
+- **Cost savings**: staff hours saved a week × loaded hourly cost × 52, patient days avoided a year × cost of a patient
+  day, and a flat supplies/other amount. The cost of a day is pre-filled with the hospital's latest HCAI average: operating
+  expense ÷ adjusted patient days (patient days × gross ÷ inpatient charges, the per-day twin of Benchmark's expense per
+  adjusted discharge), with its peer group's median beside it, and labeled as a fully loaded average that overstates what
+  a day off a stay saves. Hospitals with more than 10% of their days in long-term care units (skilled nursing, sub-acute)
+  aren't pre-filled, since those cheaper days pull the average far below an acute day; the figure is shown and the
+  proposer enters their own. Overwriting the figure goes in the link (`daycost=`); "Use HCAI" restores it.
+- **Avoided penalties**: the proposer enters a cut in readmission rate (points, per HRRP condition) or in infections (%,
+  per HAC infection measure); the module re-runs CMS's formulas (`src/lib/propose/penalty.ts`) on the hospital's own
+  published results. HRRP: min(3%, neutrality modifier × Σ DRG payment ratio × max(0, ERR − peer median ERR)) over
+  conditions with 25+ cases, on base operating DRG payments; with the published components it reproduces CMS's penalty
+  for every hospital. A cut of x points lowers the predicted rate by x (CMS's model shrinks small hospitals toward
+  average, so real ERRs move less); peer medians are held. HAC: SIRs fall by the percent entered, are rescored as
+  Winsorized z-scores, and the Total HAC Score is compared with the cutoff; it's all or nothing (1% of operating
+  payments) and only offered to hospitals penalized that year, with the distance to the cutoff shown. Penalties lag
+  performance, so each program's scoring window is phased in year by year (readmissions: from year 3, full in year 6;
+  infections: from year 2, full in year 4, taking year 1 to start on October 1) and the module gives the engine the
+  **average over the useful life**, showing the full-effect figure and the year-by-year table beside it. Lost payments for
+  avoided readmissions and care costs saved aren't counted, and the notes say so.
 - **Custom**: named lines, each quantity × rate or a flat amount a year. No data.
+
+Inputs are tagged **Public data** (with the source and year) or **Your assumption** in the editors, and the results'
+notes repeat which is which.
 
 No persistence by design (no accounts): the whole proposal, including every module's inputs, is in the URL, so
 reloading keeps it and the link can be shared. "Print or save PDF" uses the browser; print styles
@@ -219,8 +241,16 @@ reloading keeps it and the link can be shared. "Print or save PDF" uses the brow
 
 ETL: `cms-ipps` (scrapes CMS's IPPS page for the newest final rule and downloads its Table 5 and Tables 1A–1E zips;
 `--years 2026` picks another FY; checks that 1A and 1B agree) and `cms-inpatient` (the data.cms.gov catalog's newest
-CSV; CCNs mapped like Care Compare through the shared `crosswalk.match_ccns`). Needs www.cms.gov and data.cms.gov
-reachable.
+CSV; CCNs mapped like Care Compare through the shared `crosswalk.match_ccns`), and `cms-penalties`: the Provider Data
+Catalog's current HRRP (9n3s-kdb3) and HAC (yq43-i98g) hospital files, the HRRP Supplemental Data File from the same
+fiscal year's final rule page (ERRs, peer medians, DRG payment ratios, neutrality modifier), and the newest final rule's
+Impact File and Tables 1A/1B for estimated Medicare payments (transfer-adjusted cases × case mix × wage-adjusted
+standardized amount; plus IME, DSH, and outlier factors for the HAC base; capital and uncompensated care left out). CMS
+doesn't publish the HAC measures' national mean, SD, and Winsorization bounds, so the ETL recovers them from the national
+file and fails unless they reproduce every hospital's z-scores; it also fails unless the HRRP formula reproduces every
+published penalty. The hospital-level files trail the fiscal year (a year's HRRP supplemental file comes with or after
+its final rule; its HAC file the following January), so the newest complete year is used: FY 2026 as of September 2026.
+Needs www.cms.gov and data.cms.gov reachable.
 
 ## Similar hospitals (the default peer group)
 

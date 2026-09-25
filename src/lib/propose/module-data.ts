@@ -4,13 +4,19 @@ import { DEFAULT_FILTERS } from "@/lib/benchmark/filters"
 import { resolvePeerGroup } from "@/lib/benchmark/peers"
 import {
   getFacilities,
+  getFields,
   getInpatientCases,
   getInpatientCasesManifest,
   getIppsDrgs,
   getIppsManifest,
+  getManifest,
+  getPenaltyHospitals,
+  getPenaltyManifest,
 } from "@/lib/data/store"
 import { DRG_SEARCH_TERMS } from "./drg-search-terms"
+import type { PenaltyData } from "./penalty"
 import type { DrgOption, ReimbursementData } from "./reimbursement"
+import { MAX_LONG_TERM_CARE_SHARE, type SavingsData } from "./savings"
 
 // Server data for Propose's modules, served by /api/propose/<module>. A module that needs data
 // registers a loader here; one that doesn't (Custom) has nothing to add.
@@ -19,6 +25,8 @@ type Loader = (facilityId: string | null) => Promise<unknown>
 
 export const MODULE_DATA: Record<string, Loader> = {
   reimbursement: loadReimbursement,
+  savings: loadSavings,
+  penalty: loadPenalty,
 }
 
 const MDC_NAMES: Record<string, string> = {
@@ -159,5 +167,86 @@ async function loadReimbursement(facilityId: string | null): Promise<Reimburseme
     drgs,
     baseline,
     peers,
+  }
+}
+
+// -- Cost savings: cost per adjusted patient day (HCAI annual financial data) ---------------
+
+const COST_FIELDS = ["TOT_OP_EXP", "DAY_TOT", "GR_PT_REV", "GR_IP_TOT", "DAY_LTC"] as const
+
+/**
+ * Operating expense ÷ adjusted patient days, where adjusted days = patient days × gross patient
+ * revenue ÷ gross inpatient revenue: the per-day version of Benchmark's expense per adjusted
+ * discharge. By year, for years with all four fields.
+ */
+async function costPerDayByYear() {
+  const file = await getFields("hafd-selected")
+  const at = COST_FIELDS.map((f) => file.fields.indexOf(f))
+  if (at.some((i) => i < 0)) throw new Error(`hafd-selected fields.json is missing one of ${COST_FIELDS.join(", ")}`)
+  return (id: string) => {
+    const out = new Map<number, NonNullable<SavingsData["costPerDay"]>>()
+    for (const [year, row] of Object.entries(file.values[id] ?? {})) {
+      const [expense, days, gross, grossIp, ltc] = at.map((i) => row[i])
+      if (!expense || !days || !gross || !grossIp || expense <= 0 || days <= 0 || grossIp <= 0) continue
+      const adjusted = (days * gross) / grossIp
+      out.set(Number(year), {
+        year: Number(year),
+        value: Math.round(expense / adjusted),
+        operatingExpense: expense,
+        patientDays: days,
+        adjustedPatientDays: Math.round(adjusted),
+        longTermCareShare: (ltc ?? 0) / days,
+      })
+    }
+    return out
+  }
+}
+
+async function loadSavings(facilityId: string | null): Promise<SavingsData> {
+  const [facilities, byYear, manifest] = await Promise.all([getFacilities(), costPerDayByYear(), getManifest("hafd-selected")])
+  const facility = facilityId ? facilities.find((f) => f.id === facilityId) : undefined
+  const own = facility ? byYear(facility.id) : null
+  const year = own?.size ? Math.max(...own.keys()) : null
+  let peers: SavingsData["peers"] = null
+  if (facility && year != null) {
+    const group = resolvePeerGroup(facility, facilities, DEFAULT_FILTERS)
+    const values = group.peers
+      .map((p) => byYear(p.id).get(year))
+      .filter((c) => c != null && c.longTermCareShare <= MAX_LONG_TERM_CARE_SHARE)
+      .map((c) => c!.value)
+    if (values.length) peers = { description: group.description, count: values.length, median: Math.round(median(values)) }
+  }
+  return { costPerDay: year != null ? own!.get(year)! : null, peers, sourcePage: manifest.sourcePage }
+}
+
+// -- Avoided penalties: HRRP and HAC Reduction Program (cms-penalties) ------------------------
+
+async function loadPenalty(facilityId: string | null): Promise<PenaltyData> {
+  const [hospitals, manifest] = await Promise.all([getPenaltyHospitals(), getPenaltyManifest()])
+  const shared = facilityId ? manifest.sharedReporting[facilityId] : undefined
+  const h = facilityId ? hospitals[shared?.reportedWith ?? facilityId] : undefined
+  return {
+    reportedWithName: shared?.reportedWithName ?? null,
+    hrrp: {
+      ...manifest.hrrp,
+      hospital: h?.hrrp
+        ? { reduction: h.hrrp.reduction, peerGroup: h.hrrp.peerGroup, neutralityModifier: h.hrrp.neutralityModifier, conditions: h.hrrp.conditions }
+        : null,
+    },
+    hac: {
+      fiscalYear: manifest.hac.fiscalYear,
+      periods: manifest.hac.periods,
+      reduction: manifest.hac.reduction,
+      cutoff: manifest.hac.cutoff,
+      measures: manifest.hac.measures as PenaltyData["hac"]["measures"],
+      sourcePage: manifest.hac.sourcePage,
+      hospital: h?.hac && h.hac.totalScore != null ? { measures: h.hac.measures, totalScore: h.hac.totalScore, penalized: h.hac.penalized } : null,
+    },
+    payments: {
+      ...manifest.payments,
+      hospital: h?.payments
+        ? { cases: h.payments.cases, caseMixIndex: h.payments.caseMixIndex, wageIndex: h.payments.wageIndex, baseOperating: h.payments.baseOperating, operating: h.payments.operating }
+        : null,
+    },
   }
 }
