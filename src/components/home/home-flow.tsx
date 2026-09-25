@@ -20,8 +20,18 @@ import { useRef, useState } from "react"
 import { FacilityPicker, type FacilityOption } from "@/components/benchmark/facility-picker"
 import { FilterPill } from "@/components/benchmark/filter-pill"
 import { Segmented } from "@/components/shell/segmented"
-import { CATEGORIES, CATEGORY_BY_ID, FUTURE_CATEGORIES, pickableMetrics, type MetricDef } from "@/lib/data/datasets"
-import type { MetricCategory } from "@/lib/data/types"
+import {
+  CATEGORIES,
+  CATEGORY_BY_ID,
+  FUTURE_CATEGORIES,
+  pickableMetrics,
+  supportsUnits,
+  UNIT_DEFAULT_METRICS,
+  UNIT_METRIC_LABELS,
+  UNIT_METRICS,
+  type MetricDef,
+} from "@/lib/data/datasets"
+import type { FacilityUnit, MetricCategory } from "@/lib/data/types"
 import { rememberSelection, useSelection } from "@/lib/selection"
 import { cn } from "@/lib/utils"
 
@@ -32,7 +42,14 @@ const ICONS: Record<string, LucideIcon> = {
   caseMix: Layers,
 }
 
-type PeerPreview = { count: number; description: string; note: string | null; hasFinancial: boolean; hasUtilization: boolean }
+type PeerPreview = {
+  count: number
+  description: string
+  note: string | null
+  hasFinancial: boolean
+  hasUtilization: boolean
+  units: FacilityUnit[]
+}
 
 export function HomeFlow({
   facilities,
@@ -52,6 +69,7 @@ export function HomeFlow({
   const [peers, setPeers] = useState<"similar" | "statewide">("similar")
   const [metrics, setMetrics] = useState<string[] | null>(null)
   const [since, setSince] = useState<number | null>(null)
+  const [unit, setUnit] = useState<string | null>(null)
   const [refineOpen, setRefineOpen] = useState(false)
   const [preview, setPreview] = useState<PeerPreview | null>(null)
   const [previewLoading, setPreviewLoading] = useState(false)
@@ -82,10 +100,17 @@ export function HomeFlow({
   function chooseCategory(next: MetricCategory) {
     setCategory(next)
     setMetrics(null)
+    if (!supportsUnits(next)) setUnit(null)
+  }
+
+  function chooseUnit(next: string | null) {
+    setUnit(next)
+    setMetrics(null)
   }
 
   function chooseFacility(id: string) {
     setFacilityId(id)
+    setUnit(null)
     void loadPreview(id, peers)
   }
 
@@ -94,9 +119,17 @@ export function HomeFlow({
     void loadPreview(facilityId, mode)
   }
 
-  const categoryMetrics = category ? pickableMetrics(catalog, category, "all") : []
-  const chosenMetrics = metrics ?? (category ? CATEGORY_BY_ID[category].defaultMetrics : [])
-  const customMetrics = metrics != null && metrics.join(",") !== (category ? CATEGORY_BY_ID[category].defaultMetrics.join(",") : "")
+  // Under a unit, only the metrics HCAI reports by bed classification.
+  const categoryMetrics = unit
+    ? UNIT_METRICS.map((id) => ({ id, label: UNIT_METRIC_LABELS[id] }))
+    : category
+      ? pickableMetrics(catalog, category, "all")
+      : []
+  const defaultMetrics = unit ? UNIT_DEFAULT_METRICS : category ? CATEGORY_BY_ID[category].defaultMetrics : []
+  const chosenMetrics = metrics ?? defaultMetrics
+  const customMetrics = metrics != null && metrics.join(",") !== defaultMetrics.join(",")
+  const units = preview?.units ?? []
+  const unitInfo = units.find((u) => u.id === unit)
 
   function toggleMetric(id: string) {
     // Added metrics go at the end, after the standard set.
@@ -108,6 +141,7 @@ export function HomeFlow({
     if (!ready) return "/benchmark"
     const p = new URLSearchParams({ facility: facilityId })
     if (category !== "financial") p.set("view", category)
+    if (unit && supportsUnits(category)) p.set("unit", unit)
     if (customMetrics && chosenMetrics.length) p.set("metrics", chosenMetrics.join(","))
     if (since != null) p.set("since", String(since))
     if (peers === "statewide") p.set("peers", "statewide")
@@ -257,11 +291,62 @@ export function HomeFlow({
       </Step>
 
       {/* Step 3 */}
-      <Step n={3} title="Refine" optional done={false}>
+      <Step n={3} title="View by unit" optional done={unit != null}>
+        {!facility ? (
+          <p className="text-[13px] text-muted-foreground">Choose a hospital to see its units.</p>
+        ) : category && !supportsUnits(category) ? (
+          <p className="text-[13px] text-muted-foreground">
+            {category === "financial" ? "Financial" : "Quality"} data is reported for the whole hospital, so there&apos;s no
+            unit to narrow to. Utilization can be narrowed to a unit.
+          </p>
+        ) : previewLoading && !preview ? (
+          <p className="text-[13px] text-muted-foreground">Loading units…</p>
+        ) : units.length === 0 ? (
+          <p className="text-[13px] text-muted-foreground">HCAI has no bed classifications on file for this hospital.</p>
+        ) : (
+          <div className="space-y-2">
+            <div role="radiogroup" aria-label="Unit" className="flex flex-wrap gap-1.5">
+              {[{ id: null, label: "Whole hospital", beds: null as number | null }, ...units].map((u) => {
+                const on = unit === u.id
+                return (
+                  <button
+                    key={u.id ?? "all"}
+                    type="button"
+                    role="radio"
+                    aria-checked={on}
+                    onClick={() => {
+                      chooseUnit(u.id)
+                      if (u.id && !category) chooseCategory("utilization")
+                    }}
+                    className={cn(
+                      "inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] transition-[color,box-shadow] duration-200 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+                      on ? "glass-subtle ring-accent glow-soft text-foreground" : "glass-subtle text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {on && <Check className="size-3.5" />}
+                    {u.label}
+                    {u.beds != null && <span className="text-xs text-tertiary-foreground">{u.beds} beds</span>}
+                  </button>
+                )
+              })}
+            </div>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              {unitInfo
+                ? `${unitInfo.description}: utilization for these beds only, compared with similar hospitals that have the same unit.`
+                : "Skip this to see the whole hospital. Units are HCAI’s bed classifications; only ones this hospital has licensed beds in are listed."}
+              {!category && " Choosing a unit picks Utilization."}
+            </p>
+          </div>
+        )}
+      </Step>
+
+      {/* Step 4 */}
+      <Step n={4} title="Refine" optional done={false}>
         {!refineOpen ? (
           <div className="flex flex-wrap items-center gap-3 text-[13px] text-muted-foreground">
             <span>
               {peers === "similar" ? "Similar hospitals" : "All of California"} ·{" "}
+              {unitInfo ? `${unitInfo.label} unit · ` : ""}
               {customMetrics ? `${chosenMetrics.length} chosen metrics` : "standard metrics"} ·{" "}
               {since ? `since ${since}` : `${years[0]}–${years.at(-1)}`}
             </span>

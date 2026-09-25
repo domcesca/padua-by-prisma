@@ -12,12 +12,14 @@ import type {
   DatasetId,
   Dictionary,
   Facility,
+  FacilityUnit,
   FieldsFile,
   FinancialFacility,
   HcaiDatasetId,
   Manifest,
   MediCalCounty,
   MetricsFile,
+  UnitsFile,
   UtilizationFacility,
 } from "./types"
 
@@ -200,6 +202,23 @@ export function getPublishedYears(metric: MetricDef): Promise<Set<number>> {
       }
     }
     return years
+  })
+}
+
+// -- bed classifications --------------------------------------------------------
+
+export const getUnits = () => load<UnitsFile>("hau", "units.json")
+
+/** The units a hospital has had licensed beds in, in HCAI's line order, with the latest bed count. */
+export async function getFacilityUnits(facilityId: string): Promise<FacilityUnit[]> {
+  const file = await getUnits()
+  const byYear = file.values[facilityId] ?? {}
+  const years = Object.keys(byYear).map(Number).sort((a, b) => a - b)
+  return file.units.flatMap((u) => {
+    const present = years.filter((y) => byYear[y]?.[u.id])
+    if (!present.length) return []
+    const last = present.at(-1)!
+    return [{ id: u.id, label: u.label, description: u.description, beds: byYear[last][u.id].licensedBeds ?? null, firstYear: present[0], lastYear: last }]
   })
 }
 

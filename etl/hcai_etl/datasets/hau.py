@@ -90,6 +90,26 @@ SUMMED_SLOTS = {"EQUIP_VAL_TOT": r"^EQUIP_VAL_\d+$", "PROJ_EXPENDITURES_TOT": r"
 
 ANNUALIZE_TOLERANCE = 0.03
 
+# Bed classifications for the unit-level view: HCAI's 14 lines on report page 3 (lines 1-9 and 16-20),
+# which add up exactly to total licensed beds. Lines 30-31 are "of which" breakdowns of chemical
+# dependency services inside other lines, so they're left out. id -> (field prefix, census-days prefix).
+UNITS: dict[str, tuple[str, str]] = {
+    "medSurg": ("MED_SURG", "MED_SURG"),
+    "perinatal": ("PERINATAL", "PERINATAL"),
+    "pediatric": ("PEDIATRIC", "PEDIATRIC"),
+    "icu": ("IC", "IC"),
+    "ccu": ("CORONARY_CARE", "CORONARY_CARE"),
+    "acuteRespiratory": ("ACUTE_RESPIRATORY_CARE", "ACUTE_RESPIRATORY_CARE"),
+    "burn": ("BURN", "BURN"),
+    "nicu": ("IC_NEWBORN", "IC_NEWBORN"),
+    "rehab": ("REHAB_CTR", "REHAB_CTR"),
+    "chemDependency": ("CHEM_DEPEND_RECOVERY", "CHEM_DEPEND_RECOV"),
+    "psych": ("ACUTE_PSYCHIATRIC", "ACUTE_PSYCHIATRIC"),
+    "snf": ("SN", "SN"),
+    "icf": ("INTERMEDIATE_CARE", "INTERMEDIATE_CARE"),
+    "icfDd": ("INTERMEDIATE_CARE_DEV_DIS", "INTERMEDIATE_CARE_DEV_DIS"),
+}
+
 
 def _matches(col: str, patterns: list[str]) -> bool:
     return any(re.search(p, col) for p in patterns)
@@ -190,6 +210,7 @@ class HospitalUtilization(Dataset):
 
         self._write_fields(fy, numeric_fields)
         self._write_metrics_and_facilities(fy)
+        self._write_units(fy)
         write_json(
             self.out_dir / "dictionary.json",
             dictionary.export(field_order=ATTRIBUTE_FIELDS + numeric_fields),
@@ -313,6 +334,57 @@ class HospitalUtilization(Dataset):
             }
         write_json(self.out_dir / "fields.json", {"fields": numeric_fields, "meta": meta, "values": values})
 
+    # -- unit-level (bed classification) metrics ----------------------------- #
+
+    def _write_units(self, fy: pd.DataFrame) -> None:
+        """Per bed classification, the same measures as the hospital-wide utilization metrics.
+
+        A unit appears in a year only when the hospital has licensed beds in it that year.
+        """
+        values: dict[str, dict[str, dict]] = {}
+        for rec in fy.to_dict("records"):
+            units = {}
+            for unit, (prefix, days_prefix) in UNITS.items():
+                beds = _num(rec, f"{prefix}_LIC_BEDS")
+                if not beds:
+                    continue
+                days = _num(rec, f"{days_prefix}_CEN_DAYS")
+                # Length of stay follows HCAI's own ALOS denominators (critical care adds transfers out).
+                _, dens = ALOS_INPUTS[f"{days_prefix}_ALOS_CY"]
+                stays = sum(v for v in (_num(rec, d) for d in dens) if v is not None) or None
+                occupancy = _ratio(days, _num(rec, f"{prefix}_LIC_BED_DAYS"))
+                units[unit] = {
+                    "licensedBeds": _count(beds),
+                    "occupancy": round(occupancy * 100, 1) if occupancy is not None else None,
+                    "adc": _ratio(days, _period_days(rec), 1),
+                    "alos": _ratio(days, stays, 2),
+                    "discharges": _count(_num(rec, f"{prefix}_DISCHARGES")),
+                    "inpatientDays": _count(days),
+                }
+            if units:
+                values.setdefault(rec["FAC_NO"], {})[str(rec["YEAR"])] = {
+                    **units,
+                    "annualized": bool(rec["ANNUALIZED"]),
+                }
+        labels = {u: dictionary.BED_TYPES[prefix] for u, (prefix, _) in UNITS.items()}
+        write_json(
+            self.out_dir / "units.json",
+            {
+                "units": [
+                    {
+                        "id": u,
+                        "label": "Chemical Dependency Recovery" if u == "chemDependency" else labels[u][1],
+                        "description": labels[u][0],
+                        "prefix": prefix,
+                        "censusPrefix": days_prefix,
+                        "criticalCare": prefix in CRITICAL_CARE,
+                    }
+                    for u, (prefix, days_prefix) in UNITS.items()
+                ],
+                "values": values,
+            },
+        )
+
     # -- metrics + facility directory ------------------------------------ #
 
     def _write_metrics_and_facilities(self, fy: pd.DataFrame) -> None:
@@ -383,6 +455,13 @@ def _count(value: float | None) -> int | None:
     return round(value) if value is not None else None
 
 
+def _period_days(rec: dict) -> int:
+    """Days the flows cover: a full year when annualized (flows were scaled up), else the days reported."""
+    year = int(rec["YEAR"])
+    days_in_year = 366 if year % 4 == 0 and (year % 100 != 0 or year % 400 == 0) else 365
+    return days_in_year if rec["ANNUALIZED"] else int(rec["DAYS_COVERED"]) or days_in_year
+
+
 def derive_metrics(rec: dict) -> dict:
     ed = _num(rec, "ER_TRAFFIC_TOT")
     ed = ed if ed else None  # 0 visits = no ED
@@ -394,10 +473,6 @@ def derive_metrics(rec: dict) -> dict:
     diversion = _num(rec, "EMER_DEPT_HR_DIVERSION_TOT")
     if diversion is None and ed and diverted == "no":
         diversion = 0.0
-    # Flows are already scaled to a full year when annualized; otherwise divide by the days reported.
-    year = int(rec["YEAR"])
-    days_in_year = 366 if year % 4 == 0 and (year % 100 != 0 or year % 400 == 0) else 365
-    period_days = days_in_year if rec["ANNUALIZED"] else int(rec["DAYS_COVERED"]) or days_in_year
 
     return {
         "licensedBeds": _count(_num(rec, "TOT_LIC_BEDS")),
@@ -405,7 +480,7 @@ def derive_metrics(rec: dict) -> dict:
         "inpatientDays": _count(_num(rec, "TOT_CEN_DAYS")),
         "discharges": _count(_num(rec, "TOT_DISCHARGES")),
         "alos": _ratio(_num(rec, "GAC_SUBTOT_CEN_DAYS"), _num(rec, "GAC_SUBTOT_DISCHARGES"), 2),
-        "adc": _ratio(_num(rec, "GAC_SUBTOT_CEN_DAYS"), period_days, 1),
+        "adc": _ratio(_num(rec, "GAC_SUBTOT_CEN_DAYS"), _period_days(rec), 1),
         "edVisits": _count(ed),
         "edAdmitRate": _ratio(_num(rec, "ADMITTED_FROM_EMER_DEPT_TOT"), ed),
         "edHighAcuityShare": _ratio(high_acuity, released) if released else None,

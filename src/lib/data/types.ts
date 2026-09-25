@@ -235,6 +235,32 @@ export type Manifest = {
   sharedReporting?: Record<string, { ccn: string; reportedWith: string; reportedWithName: string }>
 }
 
+// -- bed classifications (data/processed/hau/units.json) --------------------------
+
+/** One of HCAI's 14 bed classifications (utilization report page 3). */
+export type UnitInfo = {
+  id: string
+  /** HCAI's name, e.g. "Intensive Care Newborn Nursery". */
+  label: string
+  /** Plain-language name, e.g. "Neonatal intensive care (NICU)". */
+  description: string
+  /** Field prefix, e.g. IC in IC_LIC_BEDS. */
+  prefix: string
+  /** Census-days field prefix (differs for chemical dependency: CHEM_DEPEND_RECOV_CEN_DAYS). */
+  censusPrefix: string
+  /** Critical care units count transfers out to general acute beds as the end of a stay. */
+  criticalCare: boolean
+}
+
+/** Unit-level metrics: facility -> year -> unit id -> metric -> value. A unit appears only in years it has licensed beds. */
+export type UnitsFile = {
+  units: UnitInfo[]
+  values: Record<string, Record<string, Record<string, Record<string, number | null>> & { annualized: boolean }>>
+}
+
+/** A unit a hospital has licensed beds in (some year), for the unit picker. */
+export type FacilityUnit = { id: string; label: string; description: string; beds: number | null; firstYear: number; lastYear: number }
+
 // -- county context (data/processed/{dhcs-medi-cal,acs-county}) ------------------
 
 /** data/processed/dhcs-medi-cal/counties.json: Medi-Cal certified eligibles (annual = monthly average). */

@@ -86,6 +86,10 @@ Utilization (`hau`):
   pediatric, ICU, CCU, acute respiratory, burn, NICU, rehab), so skilled nursing, psychiatric, and chemical-dependency
   units don't distort them. ADC = acute census days ÷ days in the period. Inpatient days, discharges, and occupancy
   are all-bed totals. The Medicare lens's length of stay comes from the financial report and includes SNF days.
+- **Units (bed classifications)** go to `units.json`: HCAI's 14 lines (1–9, 16–20), which sum exactly to total licensed
+  beds (lines 30–31 are "of which" breakdowns and are left out). A unit appears in a year only when the hospital has
+  licensed beds in it. Benchmark's Utilization topic can be narrowed to one (`?unit=icu`); peers without the unit are
+  left out of the median. Critical-care length of stay counts transfers out, per HCAI.
 - **Known gaps in HCAI's files:** births are blank from 2022 on; there's no total outpatient-visits field (the app
   takes outpatient visits from the financial report instead, labeled as fiscal-year).
 

@@ -123,6 +123,23 @@ export type MetricDef = DictionaryMetric & { category: MetricCategory; dataset: 
 /** Metrics plotted as a single number over time (payer mix is a composition). */
 export const isTrendMetric = (m: DictionaryMetric) => m.unit !== "share"
 
+// -- unit view (utilization narrowed to one bed classification) ---------------------
+
+/** Utilization metrics HCAI reports by bed classification, in picker order, with their unit-level names. */
+export const UNIT_METRIC_LABELS: Record<string, string> = {
+  occupancy: "Occupancy rate",
+  adc: "Average daily census",
+  alos: "Average length of stay",
+  discharges: "Discharges",
+  inpatientDays: "Patient days",
+  licensedBeds: "Licensed beds",
+}
+export const UNIT_METRICS = Object.keys(UNIT_METRIC_LABELS)
+export const UNIT_DEFAULT_METRICS = ["occupancy", "adc", "alos", "discharges"]
+
+/** Only utilization has unit-level data; financial and quality data are hospital-wide. */
+export const supportsUnits = (category: MetricCategory) => category === "utilization"
+
 // -- payer view (Benchmark's Medicare lens) --------------------------------------
 
 /** "all" = every payer (the default); otherwise a payer lens metrics can be narrowed to. */

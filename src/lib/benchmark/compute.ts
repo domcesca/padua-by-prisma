@@ -1,10 +1,19 @@
 import "server-only"
 
-import { applyPayerView, CATEGORY_BY_ID, type MetricDef, type PayerView } from "@/lib/data/datasets"
-import { getCommunityContext, getFacilities, getManifest, getMetricCatalog, getMetrics, getPublishedYears } from "@/lib/data/store"
-import type { CommunityContext, DatasetId, Facility, MetricCategory, MetricsFile, PayerGroup, PayerMix, PointDetail } from "@/lib/data/types"
+import {
+  applyPayerView,
+  CATEGORY_BY_ID,
+  supportsUnits,
+  UNIT_DEFAULT_METRICS,
+  UNIT_METRICS,
+  type MetricDef,
+  type PayerView,
+} from "@/lib/data/datasets"
+import { getCommunityContext, getFacilities, getFacilityUnits, getManifest, getMetricCatalog, getMetrics, getPublishedYears } from "@/lib/data/store"
+import type { CommunityContext, DatasetId, Facility, FacilityUnit, MetricCategory, MetricsFile, PayerGroup, PayerMix, PointDetail } from "@/lib/data/types"
 import type { PeerFilters } from "./filters"
 import { milesBetween, resolvePeerGroup } from "./peers"
+import { getUnitInfo, unitMetricDef, unitSource, type UnitSource } from "./units"
 
 export type SeriesPoint = {
   year: number
@@ -47,6 +56,10 @@ export type BenchmarkResult = {
   peers: PeerSummary[]
   /** metric id -> one point per year of that metric's dataset (companions included). */
   series: Record<string, SeriesPoint[]>
+  /** Bed classifications this hospital has had licensed beds in (the unit picker's options). */
+  units: FacilityUnit[]
+  /** The unit shown, when narrowed to one: its unit-specific metric definitions and how many peers have it. */
+  unit: (FacilityUnit & { peersWithUnit: { year: number; count: number }; definitions: Record<string, MetricDef> }) | null
   /** Latest acute length of stay, average daily census, and case mix index, whatever the topic. */
   snapshot: { alos: Snapshot; adc: Snapshot; caseMixIndex: Snapshot }
   /** The hospital's county: Census demographics and Medi-Cal enrollment. Context, not a benchmark. */
@@ -95,12 +108,14 @@ export async function metricSeries(
   metric: MetricDef,
   facilityId: string | null,
   peerIds: string[],
-  since: number | null = null
+  since: number | null = null,
+  /** Values from somewhere other than the metric's dataset (a unit's slice of utilization). */
+  source?: UnitSource
 ): Promise<SeriesPoint[]> {
   const [file, manifest, published] = await Promise.all([
-    getMetrics(metric.dataset),
+    source?.file ?? getMetrics(metric.dataset),
     getManifest(metric.dataset),
-    getPublishedYears(metric),
+    source?.published ?? getPublishedYears(metric),
   ])
   return manifest.years.filter((y) => since == null || y >= since).map((year) => {
     const values = peerIds
@@ -135,6 +150,7 @@ export async function computeBenchmark({
   metricIds,
   since = null,
   payer = "all",
+  unit: unitId = null,
 }: {
   facilityId: string
   filters: PeerFilters
@@ -145,6 +161,8 @@ export async function computeBenchmark({
   payer?: PayerView
   /** First year to include. */
   since?: number | null
+  /** Bed classification to narrow utilization to (all payers only); null = whole hospital. */
+  unit?: string | null
 }): Promise<BenchmarkResult | null> {
   const [facilities, catalog] = await Promise.all([getFacilities(), getMetricCatalog()])
   const facility = facilities.find((f) => f.id === facilityId)
@@ -154,12 +172,25 @@ export async function computeBenchmark({
   const peers = group.peers
   const peerIds = peers.map((p) => p.id)
 
+  const units = await getFacilityUnits(facility.id)
+  // Unit view: utilization only, all payers only, and only a unit this hospital has.
+  const unit = supportsUnits(category) && units.some((u) => u.id === unitId) ? await getUnitInfo(unitId) : null
   // The Medicare lens applies to financial and utilization metrics only.
-  const lens = category === "quality" ? "all" : payer
-  const wanted = applyPayerView(metricIds?.length ? metricIds : CATEGORY_BY_ID[category].defaultMetrics, lens, catalog)
-  const metrics = wanted
-    .map((id) => catalog.find((m) => m.id === id))
-    .filter((m): m is MetricDef => !!m && m.unit !== "share")
+  const lens = category === "quality" || unit ? "all" : payer
+  let metrics: MetricDef[]
+  let source: UnitSource | undefined
+  if (unit) {
+    const chosen = (metricIds ?? []).filter((id) => UNIT_METRICS.includes(id))
+    metrics = (chosen.length ? chosen : UNIT_DEFAULT_METRICS)
+      .map((id) => catalog.find((m) => m.id === id && m.dataset === "hau"))
+      .filter((m): m is MetricDef => !!m)
+      .map((m) => unitMetricDef(m, unit))
+    source = await unitSource(unit.id)
+  } else {
+    metrics = applyPayerView(metricIds?.length ? metricIds : CATEGORY_BY_ID[category].defaultMetrics, lens, catalog)
+      .map((id) => catalog.find((m) => m.id === id))
+      .filter((m): m is MetricDef => !!m && m.unit !== "share")
+  }
   const companions = metrics
     .map((m) => (m.companion ? catalog.find((c) => c.id === m.companion) : undefined))
     .filter((m): m is MetricDef => !!m)
@@ -167,7 +198,7 @@ export async function computeBenchmark({
   const series: Record<string, SeriesPoint[]> = {}
   await Promise.all(
     [...metrics, ...companions].map(async (m) => {
-      series[m.id] = await metricSeries(m, facility.id, peerIds, since)
+      series[m.id] = await metricSeries(m, facility.id, peerIds, since, source)
     })
   )
 
@@ -176,6 +207,14 @@ export async function computeBenchmark({
     category,
     payer: lens,
     metrics: metrics.map((m) => m.id),
+    units,
+    unit: unit
+      ? {
+          ...units.find((u) => u.id === unit.id)!,
+          peersWithUnit: peersWithUnit(source!, peerIds),
+          definitions: Object.fromEntries(metrics.map((m) => [m.id, m])),
+        }
+      : null,
     notes: category === "quality" ? await qualityNotes(facility.id) : [],
     community: await getCommunityContext(facility.county),
     snapshot: {
@@ -194,6 +233,12 @@ export async function computeBenchmark({
     series,
     payerMix: category === "financial" ? await payerMix(facility.id, peerIds) : null,
   }
+}
+
+/** Peers with this unit in the latest year any hospital reported it. */
+function peersWithUnit(source: UnitSource, peerIds: string[]) {
+  const year = Math.max(...source.published)
+  return { year, count: peerIds.filter((id) => source.file[id]?.[year]).length }
 }
 
 async function latestValue(dataset: DatasetId, key: string, facilityId: string): Promise<Snapshot> {

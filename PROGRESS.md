@@ -78,8 +78,16 @@ _Last updated 2026-09-25, mid-V4 (see §2 V4). Read this first, then `README.md`
    utilization-report discharge weights (see README). The "Case mix" home placeholder now describes a future
    conditions/procedures topic.
 4. **Hospital card** (done): licensed beds, FY end, data years, plus latest LoS, ADC (both acute) and CMI.
-5. **Unit-level drill-down**: not started — waiting on the user to confirm bed categories. The real HAU file (report
-   page 3) has: Medical/Surgical (1), Perinatal (2), Pediatric (3), Intensive Care (4), Coronary Care (5), Acute
+5. **Unit-level drill-down** (done). User decisions: HCAI's 14 categories as-is (no "Definitive Observation"); a unit is
+   offered only if the hospital has licensed beds > 0 in it; peer comparison included, limited to peers with the unit.
+   `hau` ETL writes `units.json` (per facility-year per unit: licensed beds, occupancy, ADC, ALOS with HCAI's critical-care
+   transfer denominators, discharges, patient days; campuses rolled up like everything else). Benchmark `?unit=<id>`
+   (Utilization only, all payers only; Payer toggle hidden), unit pill next to the topic, unit-specific metric
+   definitions (`src/lib/benchmark/units.ts`). Home has an optional step 3 "View by unit". Checks: unit beds sum to
+   hospital beds in every facility-year; unit ALOS matches HCAI's published ALOS in 1,166/1,172 single-campus 2024
+   cases. 105/2,621 facility-years report patient days in a category with 0 licensed beds (e.g. ICU-level days in
+   med/surg-licensed beds) — those days aren't in any unit view, by the beds > 0 rule. Not extended to Build/Correlate
+   (they're hospital-wide). HAU report page 3 has: Medical/Surgical (1), Perinatal (2), Pediatric (3), Intensive Care (4), Coronary Care (5), Acute
    Respiratory Care (6), Burn (7), Intensive Care Newborn Nursery (8), Rehabilitation Center (9), GAC subtotal (15),
    Chemical Dependency Recovery (16), Acute Psychiatric (17), Skilled Nursing (18), Intermediate Care (19), ICF-DD
    (20), Total (25), plus lines 30/31 (chemical dependency recovery hospital / acute psychiatric hospital licenses)
