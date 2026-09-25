@@ -4,7 +4,7 @@ _Last updated 2026-09-25, V6.2 (see §2 V6.0–V6.2). Read this first, then `REA
 
 ## 1. Project overview
 
-**Padua by Prisma** ("Padua" in the nav; formerly "HCAI Insights"; the repo is still `usc-hcai-insights`) is a web app from Prisma Executive, an independent consulting firm (not HCAI-, agency-, or university-affiliated), for California hospital administrators and finance leaders (CFO-level readers). It turns HCAI's public hospital financial and utilization files into peer benchmarks, a chart/table builder, a plain-language field guide, a business-case builder (Propose), and a filing calendar. There are no accounts, no database and no API keys. All data is public HCAI open data, pre-processed by a Python ETL into committed JSON.
+**Padua by Prisma** ("Padua" in the nav; formerly "HCAI Insights"; GitHub repo `domcesca/padua-by-prisma`, formerly `usc-hcai-insights`) is a web app from Prisma Executive, an independent consulting firm (not HCAI-, agency-, or university-affiliated), for California hospital administrators and finance leaders (CFO-level readers). It turns HCAI's public hospital financial and utilization files into peer benchmarks, a chart/table builder, a plain-language field guide, a business-case builder (Propose), and a filing calendar. There are no accounts, no database and no API keys. All data is public HCAI open data, pre-processed by a Python ETL into committed JSON.
 
 ## 2. What's built
 
@@ -189,8 +189,9 @@ downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and
   header. Favicons generated from it: `src/app/icon.svg` (light/dark aware), `favicon.ico`, `apple-icon.png` (the old
   Next.js default favicon is gone).
 - **Placeholder to confirm:** the attribution line at the foot of the home page (`APP_ATTRIBUTION`). No copyright text.
-- **Outside this repo (for the owner):** GitHub repo name `usc-hcai-insights`, the Vercel project name and its
-  `usc-hcai-insights*.vercel.app` URLs, and the repo's listed homepage. Nothing in the code depends on them.
+- **Outside this repo (for the owner):** the GitHub repo is now `domcesca/padua-by-prisma` (renamed by the owner; old
+  URLs redirect). Still to do there: the Vercel project name and its `usc-hcai-insights*.vercel.app` URLs, and the
+  repo's listed homepage. Nothing in the code depends on them.
 
 ## 3. Key decisions and why
 
@@ -284,7 +285,7 @@ The utilities are all in `src/app/globals.css`. **Reuse them; don't invent new o
 - **More HCAI datasets:** Quarterly Financial & Utilization and the complete Annual Disclosure set are planned but not started.
 
 ## 5. Deployment state (checked 2026-09-24)
-- **GitHub:** https://github.com/domcesca/usc-hcai-insights (public). `main` is pushed and in sync with `origin/main` at `b09ba3a`.
+- **GitHub:** https://github.com/domcesca/padua-by-prisma (public; renamed from `usc-hcai-insights` in V6.2, old URLs redirect). `main` is pushed and in sync with `origin/main` at `b09ba3a`.
 - **Vercel:** the project is connected through the GitHub integration, and pushes to `main` deploy to Production.
   - The latest deployment, for `b09ba3a`, succeeded: https://usc-hcai-insights-ahr9mluhr-dom-2e75.vercel.app.
   - **It is not publicly viewable.** Every `*.vercel.app` URL for the project redirects to Vercel SSO (Deployment Protection is on).
