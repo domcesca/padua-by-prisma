@@ -394,6 +394,10 @@ def derive_metrics(rec: dict) -> dict:
     diversion = _num(rec, "EMER_DEPT_HR_DIVERSION_TOT")
     if diversion is None and ed and diverted == "no":
         diversion = 0.0
+    # Flows are already scaled to a full year when annualized; otherwise divide by the days reported.
+    year = int(rec["YEAR"])
+    days_in_year = 366 if year % 4 == 0 and (year % 100 != 0 or year % 400 == 0) else 365
+    period_days = days_in_year if rec["ANNUALIZED"] else int(rec["DAYS_COVERED"]) or days_in_year
 
     return {
         "licensedBeds": _count(_num(rec, "TOT_LIC_BEDS")),
@@ -401,6 +405,7 @@ def derive_metrics(rec: dict) -> dict:
         "inpatientDays": _count(_num(rec, "TOT_CEN_DAYS")),
         "discharges": _count(_num(rec, "TOT_DISCHARGES")),
         "alos": _ratio(_num(rec, "GAC_SUBTOT_CEN_DAYS"), _num(rec, "GAC_SUBTOT_DISCHARGES"), 2),
+        "adc": _ratio(_num(rec, "GAC_SUBTOT_CEN_DAYS"), period_days, 1),
         "edVisits": _count(ed),
         "edAdmitRate": _ratio(_num(rec, "ADMITTED_FROM_EMER_DEPT_TOT"), ed),
         "edHighAcuityShare": _ratio(high_acuity, released) if released else None,
