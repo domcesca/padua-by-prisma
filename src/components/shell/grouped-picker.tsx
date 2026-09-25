@@ -20,6 +20,10 @@ export type PickerOption = {
   group?: string
   /** Extra text search matches on (e.g. a metric's one-line summary). */
   keywords?: string[]
+  /** Plain-language names people search by; a match on one is shown under the label ("Matches “aneurysm”"). */
+  tags?: string[]
+  /** Tags that name this option most directly; a match on one ranks just under a label match. */
+  leadTags?: string[]
 }
 
 type PickerProps = {
@@ -33,23 +37,42 @@ type PickerProps = {
   max?: number
   autoFocus?: boolean
   listClassName?: string
+  /** What to say when a search matches nothing; return null for the default. */
+  emptyText?: (query: string) => React.ReactNode
 }
 
 /** Up to this many choices show as removable chips above the search; more become a "Chosen" group. */
 const CHIP_LIMIT = 4
 const CHOSEN = "\u0000chosen"
 
-// Every search term must appear in the label, group, or keywords; label matches rank first.
+// Every search term must appear in the label, group, keywords, or tags. Label matches rank first, then an option
+// with one tag that covers the whole search (lead tags above other tags), then matches spread across fields.
 function matchScore(o: PickerOption, terms: string[]) {
   const label = o.label.toLowerCase()
-  const hay = [label, o.group ?? "", ...(o.keywords ?? [])].join(" ").toLowerCase()
+  const hay = [label, o.group ?? "", ...(o.keywords ?? []), ...(o.tags ?? [])].join(" ").toLowerCase()
   if (!terms.every((t) => hay.includes(t))) return 0
   const inLabel = terms.every((t) => label.includes(t))
-  if (label.startsWith(terms[0]) || label.includes(` ${terms[0]}`)) return inLabel ? 3 : 2
-  return inLabel ? 2 : 1
+  const score = label.startsWith(terms[0]) || label.includes(` ${terms[0]}`) ? (inLabel ? 3 : 2) : inLabel ? 2 : 1
+  if (inLabel) return score
+  const tag = matchedTag(o, terms)
+  return tag ? Math.max(score, o.leadTags?.includes(tag) ? 2.5 : 2) : score
 }
 
-export function GroupedPicker({ noun, options, selected, onChange, multiple = false, max, autoFocus, listClassName }: PickerProps) {
+/** The tag a search matched, when the label alone doesn't explain the match. */
+function matchedTag(o: PickerOption, terms: string[]) {
+  if (!o.tags?.length || terms.every((t) => o.label.toLowerCase().includes(t))) return null
+  const phrase = terms.join(" ")
+  // Lead tags first, so the reason shown is the most direct one.
+  const pool = [...(o.leadTags ?? []), ...o.tags]
+  return (
+    pool.find((t) => t === phrase) ??
+    pool.find((t) => t.startsWith(phrase)) ??
+    pool.find((t) => terms.every((term) => t.includes(term))) ??
+    null
+  )
+}
+
+export function GroupedPicker({ noun, options, selected, onChange, multiple = false, max, autoFocus, listClassName, emptyText }: PickerProps) {
   const [query, setQuery] = useState("")
   const groups = [...new Set(options.map((o) => o.group ?? ""))]
   // One group (or none) is short enough to list as is.
@@ -81,6 +104,7 @@ export function GroupedPicker({ noun, options, selected, onChange, multiple = fa
 
   const item = (o: PickerOption, indent: boolean, key = o.value) => {
     const on = selected.includes(o.value)
+    const tag = searching ? matchedTag(o, terms) : null
     return (
       <CommandItem
         key={key}
@@ -90,7 +114,10 @@ export function GroupedPicker({ noun, options, selected, onChange, multiple = fa
         onSelect={() => toggle(o.value)}
         className={cn("data-[checked=true]:*:[svg]:text-primary", indent && "pl-7")}
       >
-        <span className="min-w-0 flex-1 truncate">{o.label}</span>
+        <span className="min-w-0 flex-1">
+          <span className="line-clamp-2">{o.label}</span>
+          {tag && <span className="block truncate text-[11px] text-muted-foreground">Matches “{tag}”</span>}
+        </span>
         {o.hint && <span className="shrink-0 text-xs text-muted-foreground">{o.hint}</span>}
       </CommandItem>
     )
@@ -140,7 +167,9 @@ export function GroupedPicker({ noun, options, selected, onChange, multiple = fa
       )}
       <CommandInput placeholder={`Search ${noun}…`} value={query} onValueChange={setQuery} autoFocus={autoFocus} aria-label={`Search ${noun}`} />
       <CommandList className={cn("mt-1 max-h-72", listClassName)}>
-        {searching && shownGroups.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">No {noun} match.</p>}
+        {searching && shownGroups.length === 0 && (
+          <p className="px-3 py-6 text-center text-sm text-muted-foreground">{emptyText?.(query) ?? `No ${noun} match.`}</p>
+        )}
         {multiple && !searching && chosen.length > CHIP_LIMIT && (
           <CommandGroup className="p-0.5">
             {header(CHOSEN, "Chosen", null, chosen.length)}

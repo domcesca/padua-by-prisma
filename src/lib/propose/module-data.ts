@@ -9,6 +9,7 @@ import {
   getIppsDrgs,
   getIppsManifest,
 } from "@/lib/data/store"
+import { DRG_SEARCH_TERMS } from "./drg-search-terms"
 import type { DrgOption, ReimbursementData } from "./reimbursement"
 
 // Server data for Propose's modules, served by /api/propose/<module>. A module that needs data
@@ -68,10 +69,41 @@ function median(values: number[]) {
   return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2
 }
 
+/**
+ * Plain-language terms per DRG code, from drg-search-terms.ts. `leadTerms` are the ones whose entry lists the DRG under
+ * `drgs` (not `related`); the picker ranks those matches higher. Refs that match no DRG, and ranges that cross body
+ * systems (usually a range sweeping in a neighbor), are logged, not fatal.
+ */
+export function drgTerms(drgs: { code: string; mdc: string | null }[]) {
+  const codes = drgs.map((d) => d.code)
+  const mdcOf = new Map(drgs.map((d) => [d.code, d.mdc]))
+  const all = new Map<string, Set<string>>(codes.map((c) => [c, new Set()]))
+  const lead = new Map<string, Set<string>>(codes.map((c) => [c, new Set()]))
+  const unmatched: string[] = []
+  const mixed: string[] = []
+  for (const entry of DRG_SEARCH_TERMS) {
+    const refs = [...entry.drgs.map((ref) => ({ ref, isLead: true })), ...(entry.related ?? []).map((ref) => ({ ref, isLead: false }))]
+    for (const { ref, isLead } of refs) {
+      const [from, to = from] = ref.split("-")
+      const hits = codes.filter((c) => c >= from && c <= to)
+      if (!hits.length) unmatched.push(`${ref} (${entry.terms[0]})`)
+      if (new Set(hits.map((c) => mdcOf.get(c))).size > 1) mixed.push(`${ref} (${entry.terms[0]})`)
+      for (const code of hits) {
+        entry.terms.forEach((t) => all.get(code)!.add(t))
+        if (isLead) entry.terms.forEach((t) => lead.get(code)!.add(t))
+      }
+    }
+  }
+  if (unmatched.length) console.warn(`DRG search terms match no FY table DRG: ${unmatched.join(", ")}`)
+  if (mixed.length) console.warn(`DRG search term ranges span more than one body system: ${mixed.join(", ")}`)
+  return (code: string) => ({ terms: [...(all.get(code) ?? [])], leadTerms: [...(lead.get(code) ?? [])] })
+}
+
 let drgOptions: Promise<DrgOption[]> | null = null
 function getDrgOptions() {
-  drgOptions ??= getIppsDrgs().then((drgs) =>
-    drgs.map((d) => ({
+  drgOptions ??= getIppsDrgs().then((drgs) => {
+    const terms = drgTerms(drgs)
+    return drgs.map((d) => ({
       code: d.code,
       label: sentenceCase(d.title),
       weight: d.weight,
@@ -79,8 +111,9 @@ function getDrgOptions() {
       mdc: d.mdc,
       mdcName: d.mdc ? (MDC_NAMES[d.mdc] ?? `MDC ${d.mdc}`) : NO_MDC,
       gmlos: d.gmlos,
+      ...terms(d.code),
     }))
-  )
+  })
   drgOptions.catch(() => (drgOptions = null))
   return drgOptions
 }

@@ -1,6 +1,6 @@
 # PROGRESS — handoff for the next session
 
-_Last updated 2026-09-25, V6.0 (see §2 V6.0). Read this first, then `README.md` (run/refresh/deploy commands) and `AGENTS.md` (this is Next.js 16 — check `node_modules/next/dist/docs/` before writing Next code)._
+_Last updated 2026-09-25, V6.1 (see §2 V6.0 and V6.1). Read this first, then `README.md` (run/refresh/deploy commands) and `AGENTS.md` (this is Next.js 16 — check `node_modules/next/dist/docs/` before writing Next code)._
 
 ## 1. Project overview
 
@@ -155,6 +155,24 @@ downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and
   PDF output reviewed. No horizontal overflow at 375px.
 - **Deferred to V6.5:** two more modules, slider sensitivity. Not done: hospital-specific payment (wage index,
   DSH/IME), ramp-up years, payer mix.
+
+### V6.1 (plain-language DRG search; findability only, no calculation changes)
+- **Body system browse:** Table 5's MDC is present for 760 of 766 DRGs (981–989, "procedures unrelated to principal
+  diagnosis", have none by CMS design and are grouped as such). A "Body system" `FilterPill` next to "Add DRGs" narrows
+  the picker to one MDC (with counts); search still works inside it. Local UI state, not in the URL.
+- **Search terms:** `src/lib/propose/drg-search-terms.ts`, 85 entries / 342 terms covering neuro, cardiac, vascular,
+  ortho/spine, oncology, GI, respiratory, imaging/interventional, robotic surgery, sepsis/critical care, plus kidney,
+  urology, women's, behavioral, trauma, transplant. 479 of 766 DRGs carry at least one term. `drgs` (direct) vs
+  `related` (touched) decides ranking; e.g. "tavr" puts 266–267 above open valve surgery 216–221.
+  `drgTerms` in `module-data.ts` resolves codes/ranges against the live table, logging unknown codes and ranges that
+  span MDCs (that check caught two of my own range mistakes: 447–451 swept in 449, 820–850 swept in 831–833).
+- **Imaging:** scans aren't DRGs (outpatient APCs). "Imaging and interventional" maps interventional/hybrid-OR terms;
+  `DRG_SEARCH_NOTES` answers MRI/CT/PET/outpatient searches with an explanation and a pointer to Custom.
+- **Shared picker:** `PickerOption` gained optional `tags` / `leadTags` (searchable; a tag match shows "Matches
+  “aneurysm”" and ranks under label matches, lead tags above other tags) and `GroupedPicker` an `emptyText`. Metric
+  pickers set neither, so their ranking is unchanged (Build "stay" checked). Labels wrap to two lines instead of
+  truncating, for long DRG titles on phones.
+- Also fixed: a blank proposal showed payback "Immediate" (0 cost, 0 benefit); it shows "—" until something is entered.
 
 ## 3. Key decisions and why
 

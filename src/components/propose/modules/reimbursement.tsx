@@ -1,13 +1,15 @@
 "use client"
 
 import { Info, Receipt, X } from "lucide-react"
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 
+import { FilterPill } from "@/components/benchmark/filter-pill"
 import { PickerPill } from "@/components/shell/grouped-picker"
 import { Segmented } from "@/components/shell/segmented"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { formatInt, formatUsd } from "@/lib/format"
 import { defineModule, type BenefitLine, type ModuleEditorProps } from "@/lib/propose/module"
+import { DRG_SEARCH_NOTES } from "@/lib/propose/drg-search-terms"
 import { estimatedPayment, type ReimbursementData } from "@/lib/propose/reimbursement"
 import { NumberField } from "../number-field"
 
@@ -57,17 +59,42 @@ function compute(s: State, data: ReimbursementData | null): Computed[] {
 const casesText = (n: number) => `${n.toLocaleString("en-US", { maximumFractionDigits: 1 })} ${n === 1 ? "case" : "cases"}`
 
 function Editor({ state, onChange, data, context }: ModuleEditorProps<State, ReimbursementData>) {
+  // Browse by body system (CMS's Major Diagnostic Category), then search within it or across all of them.
+  const [system, setSystem] = useState("all")
+  const systems = useMemo(() => {
+    const counts = new Map<string, { label: string; mdc: string | null; count: number }>()
+    for (const d of data?.drgs ?? []) {
+      const key = d.mdc ?? "none"
+      const entry = counts.get(key) ?? { label: d.mdcName, mdc: d.mdc, count: 0 }
+      entry.count++
+      counts.set(key, entry)
+    }
+    return counts
+  }, [data])
   const options = useMemo(
     () =>
-      data?.drgs.map((d) => ({
-        value: d.code,
-        label: `${d.code} · ${d.label}`,
-        hint: formatUsd(estimatedPayment(d.weight, data.rate), { compact: true }),
-        group: d.mdcName,
-        keywords: [d.type === "SURG" ? "surgical" : "medical"],
-      })) ?? [],
-    [data]
+      data?.drgs
+        .filter((d) => system === "all" || (d.mdc ?? "none") === system)
+        .map((d) => ({
+          value: d.code,
+          label: `${d.code} · ${d.label}`,
+          hint: formatUsd(estimatedPayment(d.weight, data.rate), { compact: true }),
+          group: d.mdcName,
+          keywords: [d.type === "SURG" ? "surgical" : "medical", ...(d.mdc ? [`mdc ${d.mdc}`] : [])],
+          tags: d.terms,
+          leadTags: d.leadTerms,
+        })) ?? [],
+    [data, system]
   )
+  const systemName = system === "all" ? null : (systems.get(system)?.label ?? null)
+  const emptyText = (query: string) => {
+    const q = query.trim().toLowerCase()
+    const note = DRG_SEARCH_NOTES.find((n) => n.terms.some((t) => t === q || (q.length >= 3 && t.startsWith(q))))?.note
+    if (note) return note
+    if (systemName) return `No DRGs in ${systemName} match. Try all body systems.`
+    return "No DRGs match. Try a condition or procedure, e.g. “stroke”, “joint replacement”, or “sepsis”."
+  }
+
   if (!data) {
     return (
       <div className="space-y-3" aria-busy>
@@ -94,6 +121,23 @@ function Editor({ state, onChange, data, context }: ModuleEditorProps<State, Rei
       </p>
 
       <div className="flex flex-wrap items-center gap-2">
+        <FilterPill
+          label="Body system"
+          summary={systemName ?? "All body systems"}
+          active={systemName != null}
+          options={[
+            { value: "all", label: "All body systems", hint: String(data.drgs.length) },
+            ...[...systems].map(([key, s]) => ({
+              value: key,
+              label: s.label,
+              hint: `${s.mdc && s.mdc !== "PRE" ? `MDC ${s.mdc} · ` : ""}${s.count}`,
+            })),
+          ]}
+          selected={[system]}
+          onChange={([v]) => setSystem(v ?? "all")}
+          searchable
+          wide
+        />
         <PickerPill
           noun="DRGs"
           label="Add DRGs"
@@ -110,6 +154,7 @@ function Editor({ state, onChange, data, context }: ModuleEditorProps<State, Rei
           multiple
           max={MAX_DRGS}
           wide
+          emptyText={emptyText}
         />
         {context.facilityId && (
           <p className="text-xs text-muted-foreground">
@@ -122,7 +167,7 @@ function Editor({ state, onChange, data, context }: ModuleEditorProps<State, Rei
 
       {rows.length === 0 ? (
         <p className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-[13px] text-muted-foreground">
-          No DRGs yet. Search by name or number, e.g. “knee”, “sepsis”, or “470”.
+          No DRGs yet. Pick a body system, or search in plain words (e.g. “aneurysm”, “joint replacement”, “sepsis”) or by DRG number.
         </p>
       ) : (
         <ul className="space-y-2.5">

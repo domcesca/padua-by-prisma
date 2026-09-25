@@ -9,6 +9,10 @@ export type DrgOption = {
   mdcName: string
   /** Geometric mean length of stay, days. */
   gmlos: number | null
+  /** Plain-language search terms (drg-search-terms.ts). */
+  terms: string[]
+  /** The subset of terms this DRG is the first match for. */
+  leadTerms: string[]
 }
 
 export type ReimbursementData = {

@@ -201,6 +201,13 @@ engine and page don't change.
   by-provider-and-service file; CMS hides counts under 11). The hospital's Benchmark peer group's median for each DRG
   is shown as context. An optional "cost of caring for the added patients" (% of payment) turns revenue into margin;
   at 0 the result counts revenue, and the page says so.
+- **Finding DRGs** (for people who don't speak billing): a **Body system** filter (CMS's Major Diagnostic Category,
+  from Table 5) narrows the picker, and search matches DRG code, title, body system, and **plain-language terms** from
+  `src/lib/propose/drg-search-terms.ts`: "aneurysm" → intracranial vascular procedures, "tavr" → endovascular valve
+  replacement, "robotic" → the inpatient DRGs where robotic approaches are common. Each entry lists the DRGs its terms
+  mean directly (`drgs`, ranked first) and ones they touch (`related`). Adding terms means editing that file only; the
+  server logs any code that isn't in the current Table 5 or any range that crosses body systems. A search with no
+  inpatient DRG (MRI, CT, outpatient) explains why and points to the Custom module.
 - **Custom**: named lines, each quantity × rate or a flat amount a year. No data.
 
 No persistence by design (no accounts): the whole proposal, including every module's inputs, is in the URL, so

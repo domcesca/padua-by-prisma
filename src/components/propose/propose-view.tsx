@@ -238,7 +238,7 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
 
         <div className="grid gap-3 md:grid-cols-3 print:grid-cols-3">
           {projections.map((p) => (
-            <ScenarioCard key={p.scenario} p={p} life={spec.costs.life} focused={p.scenario === focus} onFocus={() => setFocus(p.scenario)} />
+            <ScenarioCard key={p.scenario} p={p} life={spec.costs.life} blank={!benefit.annual && !hasCost} focused={p.scenario === focus} onFocus={() => setFocus(p.scenario)} />
           ))}
         </div>
 
@@ -308,7 +308,20 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
   )
 }
 
-function ScenarioCard({ p, life, focused, onFocus }: { p: Projection; life: number; focused: boolean; onFocus: () => void }) {
+function ScenarioCard({
+  p,
+  life,
+  blank,
+  focused,
+  onFocus,
+}: {
+  p: Projection
+  life: number
+  /** Nothing entered yet: no payback to speak of. */
+  blank: boolean
+  focused: boolean
+  onFocus: () => void
+}) {
   return (
     <button
       type="button"
@@ -327,7 +340,7 @@ function ScenarioCard({ p, life, focused, onFocus }: { p: Projection; life: numb
       </span>
       <span>
         <span className="block text-xs text-muted-foreground">Payback</span>
-        <span className="num block text-[26px] leading-tight font-semibold tracking-tight">{formatPayback(p.paybackYears, life)}</span>
+        <span className="num block text-[26px] leading-tight font-semibold tracking-tight">{blank ? "—" : formatPayback(p.paybackYears, life)}</span>
       </span>
       <dl className="num grid grid-cols-2 gap-x-3 gap-y-1.5 text-[13px]">
         <Stat label="ROI" value={p.roi == null ? "—" : formatPercent(p.roi, 0)} tone={p.roi} />
