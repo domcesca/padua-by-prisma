@@ -10,10 +10,14 @@ import {
   getIppsDrgs,
   getIppsManifest,
   getManifest,
+  getOppsApcs,
+  getOppsManifest,
+  getOutpatientServices,
   getPenaltyHospitals,
   getPenaltyManifest,
 } from "@/lib/data/store"
-import { DRG_SEARCH_TERMS } from "./drg-search-terms"
+import { SEARCH_TERMS } from "./search-terms"
+import type { ApcOption, OutpatientData } from "./outpatient"
 import type { PenaltyData } from "./penalty"
 import type { DrgOption, ReimbursementData } from "./reimbursement"
 import { MAX_LONG_TERM_CARE_SHARE, type SavingsData } from "./savings"
@@ -25,6 +29,7 @@ type Loader = (facilityId: string | null) => Promise<unknown>
 
 export const MODULE_DATA: Record<string, Loader> = {
   reimbursement: loadReimbursement,
+  outpatient: loadOutpatient,
   savings: loadSavings,
   penalty: loadPenalty,
 }
@@ -78,34 +83,39 @@ function median(values: number[]) {
 }
 
 /**
- * Plain-language terms per DRG code, from drg-search-terms.ts. `leadTerms` are the ones whose entry lists the DRG under
- * `drgs` (not `related`); the picker ranks those matches higher. Refs that match no DRG, and ranges that cross body
- * systems (usually a range sweeping in a neighbor), are logged, not fatal.
+ * Plain-language terms per code, from search-terms.ts: DRGs (`drgs`/`related`) or APCs (`apcs`/`relatedApcs`).
+ * `leadTerms` are the ones whose entry lists the code as a direct match; the picker ranks those higher. Refs that match
+ * no code, and ranges that cross groups (usually a range sweeping in a neighbor), are logged, not fatal.
  */
-export function drgTerms(drgs: { code: string; mdc: string | null }[]) {
-  const codes = drgs.map((d) => d.code)
-  const mdcOf = new Map(drgs.map((d) => [d.code, d.mdc]))
+function codeTerms(items: { code: string; group: string | null }[], kind: "drg" | "apc") {
+  const codes = items.map((d) => d.code)
+  const groupOf = new Map(items.map((d) => [d.code, d.group]))
   const all = new Map<string, Set<string>>(codes.map((c) => [c, new Set()]))
   const lead = new Map<string, Set<string>>(codes.map((c) => [c, new Set()]))
   const unmatched: string[] = []
   const mixed: string[] = []
-  for (const entry of DRG_SEARCH_TERMS) {
-    const refs = [...entry.drgs.map((ref) => ({ ref, isLead: true })), ...(entry.related ?? []).map((ref) => ({ ref, isLead: false }))]
+  for (const entry of SEARCH_TERMS) {
+    const [direct, related] = kind === "drg" ? [entry.drgs, entry.related] : [entry.apcs, entry.relatedApcs]
+    const refs = [...(direct ?? []).map((ref) => ({ ref, isLead: true })), ...(related ?? []).map((ref) => ({ ref, isLead: false }))]
     for (const { ref, isLead } of refs) {
       const [from, to = from] = ref.split("-")
-      const hits = codes.filter((c) => c >= from && c <= to)
+      const hits = codes.filter((c) => c.length === from.length && c >= from && c <= to)
       if (!hits.length) unmatched.push(`${ref} (${entry.terms[0]})`)
-      if (new Set(hits.map((c) => mdcOf.get(c))).size > 1) mixed.push(`${ref} (${entry.terms[0]})`)
+      if (new Set(hits.map((c) => groupOf.get(c))).size > 1) mixed.push(`${ref} (${entry.terms[0]})`)
       for (const code of hits) {
         entry.terms.forEach((t) => all.get(code)!.add(t))
         if (isLead) entry.terms.forEach((t) => lead.get(code)!.add(t))
       }
     }
   }
-  if (unmatched.length) console.warn(`DRG search terms match no FY table DRG: ${unmatched.join(", ")}`)
-  if (mixed.length) console.warn(`DRG search term ranges span more than one body system: ${mixed.join(", ")}`)
+  const noun = kind === "drg" ? "DRG" : "APC"
+  if (unmatched.length) console.warn(`${noun} search terms match no code in the current table: ${unmatched.join(", ")}`)
+  if (mixed.length) console.warn(`${noun} search term ranges span more than one group: ${mixed.join(", ")}`)
   return (code: string) => ({ terms: [...(all.get(code) ?? [])], leadTerms: [...(lead.get(code) ?? [])] })
 }
+
+/** Plain-language terms per DRG code; ranges are checked against body systems (MDC). */
+export const drgTerms = (drgs: { code: string; mdc: string | null }[]) => codeTerms(drgs.map((d) => ({ code: d.code, group: d.mdc })), "drg")
 
 let drgOptions: Promise<DrgOption[]> | null = null
 function getDrgOptions() {
@@ -248,5 +258,68 @@ async function loadPenalty(facilityId: string | null): Promise<PenaltyData> {
         ? { cases: h.payments.cases, caseMixIndex: h.payments.caseMixIndex, wageIndex: h.payments.wageIndex, baseOperating: h.payments.baseOperating, operating: h.payments.operating }
         : null,
     },
+  }
+}
+
+// -- Outpatient reimbursement: OPPS APCs (cms-opps) ---------------------------------------------------------------------
+
+/** Picker groups for APCs, by code. */
+function apcGroup(code: string) {
+  const n = Number(code)
+  const within = (...ranges: [number, number][]) => ranges.some(([a, b]) => n >= a && n <= b)
+  if (n < 2000) return "New technology (by cost level)"
+  if (within([5012, 5012], [5021, 5045], [8011, 8011])) return "Visits, emergency, and observation"
+  if (within([5521, 5524], [5571, 5573], [5591, 5594], [8004, 8008])) return "Imaging"
+  if (within([5611, 5627], [5661, 5661])) return "Radiation oncology"
+  if (within([5671, 5674], [5721, 5724], [5741, 5743])) return "Diagnostic tests and pathology"
+  if (within([5691, 5694])) return "Drug administration and infusion"
+  if (within([5771, 5771], [5781, 5811])) return "Therapy, rehab, and respiratory"
+  if (within([5821, 5823], [5851, 5864], [8010, 8010])) return "Behavioral health"
+  if (within([5051, 5061], [6000, 6002])) return "Wound care and skin"
+  if (within([5241, 5244], [5401, 5401], [5871, 5881])) return "Other services"
+  return "Surgery and procedures"
+}
+
+let apcOptions: Promise<ApcOption[]> | null = null
+function getApcOptions() {
+  apcOptions ??= getOppsApcs().then((apcs) => {
+    const withGroups = apcs.map((a) => ({ ...a, group: apcGroup(a.code) }))
+    const terms = codeTerms(withGroups, "apc")
+    return withGroups.map((a) => ({ code: a.code, title: a.title, si: a.si, rate: a.rate, group: a.group, ...terms(a.code) }))
+  })
+  apcOptions.catch(() => (apcOptions = null))
+  return apcOptions
+}
+
+async function loadOutpatient(facilityId: string | null): Promise<OutpatientData> {
+  const [manifest, apcs, services, facilities] = await Promise.all([getOppsManifest(), getApcOptions(), getOutpatientServices(), getFacilities()])
+  const year = manifest.services.year
+  const facility = facilityId ? facilities.find((f) => f.id === facilityId) : undefined
+  let baseline: OutpatientData["baseline"] = null
+  let peers: OutpatientData["peers"] = null
+  if (facility) {
+    const shared = manifest.services.sharedReporting[facility.id]
+    const own = services[shared?.reportedWith ?? facility.id]?.[year]
+    if (own) baseline = { year, services: own, sourcePage: manifest.services.sourcePage, reportedWithName: shared?.reportedWithName ?? null }
+    const group = resolvePeerGroup(facility, facilities, DEFAULT_FILTERS)
+    const peerServices = group.peers.map((p) => services[p.id]?.[year]).filter((c): c is Record<string, number> => !!c)
+    if (peerServices.length) {
+      const byApc: NonNullable<OutpatientData["peers"]> = { description: group.description, count: peerServices.length, services: {} }
+      for (const code of new Set(peerServices.flatMap((c) => Object.keys(c)))) {
+        const values = peerServices.map((c) => c[code]).filter((n): n is number => n != null)
+        byApc.services[code] = { reporting: values.length, median: median(values) }
+      }
+      peers = byApc
+    }
+  }
+  return {
+    calendarYear: manifest.calendarYear,
+    quarter: manifest.quarter,
+    sourcePage: manifest.sourcePage,
+    conversionFactor: manifest.conversionFactor,
+    apcs,
+    baselineApcs: manifest.services.apcs,
+    baseline,
+    peers,
   }
 }

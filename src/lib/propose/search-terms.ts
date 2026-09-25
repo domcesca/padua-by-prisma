@@ -1,30 +1,37 @@
-// Plain-language search terms for Propose's DRG picker. CMS titles use billing language ("intracranial vascular
-// procedures with principal diagnosis hemorrhage"); administrators search for "aneurysm". Each entry maps the words
-// people use to the MS-DRGs those cases usually group to. The picker matches a search against DRG code, title, body
-// system (MDC), and these terms, and says which term matched.
+// Plain-language search terms for Propose's code pickers: MS-DRGs (inpatient) and APCs (outpatient). CMS titles use
+// billing language ("intracranial vascular procedures with principal diagnosis hemorrhage", "Level 3 Imaging without
+// Contrast"); administrators search for "aneurysm" or "ct scan". Each entry maps the words people use to the codes
+// those cases usually group to. A picker matches a search against code, title, group, and these terms, and says which
+// term matched.
 //
-// To add terms: add an entry (or words to an existing one). `drgs` are the DRGs the terms mean most directly and rank
-// first; `related` ones are found too but rank lower (e.g. "tavr" → endovascular valve DRGs, with open valve surgery
-// related). Both take single codes ("189") or inclusive ranges ("020-027"); a range covers every code CMS publishes in
-// it, so check it doesn't sweep in a neighbor from another service line. Codes that aren't in the
-// current Table 5 are ignored and logged on the server (see module-data.ts), so a DRG renumbering shows up there.
-// Nothing else needs to change.
+// To add terms: add an entry (or words to an existing one). `drgs` / `apcs` are the codes the terms mean most directly
+// and rank first; `related` / `relatedApcs` are found too but rank lower (e.g. "tavr" → endovascular valve DRGs, with
+// open valve surgery related). An entry can list DRGs, APCs, or both. All take single codes ("189", "5012") or inclusive
+// ranges ("020-027", "5521-5524"); a range covers every code CMS publishes in it, so check it doesn't sweep in a
+// neighbor from another service line. Codes that aren't in the current tables are ignored and logged on the server
+// (see module-data.ts), so a renumbering shows up there. Nothing else needs to change.
 //
-// This is a starting set, not a grouper: the DRG a case lands in depends on its coding. Mappings point at the DRGs a
-// proposal of that kind would typically affect.
+// This is a starting set, not a grouper: the DRG or APC a case lands in depends on its coding. Outpatient especially:
+// APCs are levels ("Level 1–4 Imaging without Contrast"), and which level a given scan or procedure falls in is set by
+// its CPT code, which this app doesn't carry (CPT is licensed by the AMA). So outpatient terms point at the family of
+// APCs a service can land in, and the proposer confirms the level with their coding team.
 
-export type DrgSearchTerm = {
+export type SearchTerm = {
   /** For people editing this file; not shown. */
   category: string
   /** Lowercase words and phrases people search for. */
   terms: string[]
   /** The DRGs these terms mean most directly; they rank first. */
-  drgs: string[]
+  drgs?: string[]
   /** DRGs the terms also touch (complications, the open-surgery alternative, …); they're found but rank lower. */
   related?: string[]
+  /** The APCs these terms mean most directly; they rank first. */
+  apcs?: string[]
+  /** APCs the terms also touch; found but ranked lower. */
+  relatedApcs?: string[]
 }
 
-export const DRG_SEARCH_TERMS: DrgSearchTerm[] = [
+export const SEARCH_TERMS: SearchTerm[] = [
   // -- Neuro -----------------------------------------------------------------------------------------------------------
   {
     category: "Neuro",
@@ -255,6 +262,113 @@ export const DRG_SEARCH_TERMS: DrgSearchTerm[] = [
   { category: "Behavioral health", terms: ["detox", "substance use", "addiction", "withdrawal"], drgs: ["894-897"] },
   { category: "Trauma", terms: ["trauma", "trauma center"], drgs: ["955-965", "901-909", "913-914"] },
   { category: "Transplant", terms: ["transplant", "organ transplant"], drgs: ["001-002", "005-008", "010", "014", "016-017", "019", "650-652"] },
+
+  // -- Outpatient (APCs) --------------------------------------------------------------------------------------------------
+  // Visits
+  {
+    category: "Outpatient visits",
+    terms: ["emergency", "emergency department", "emergency room", "ed visit", "er visit", "ed volume"],
+    apcs: ["5021-5025"],
+    relatedApcs: ["5031-5035", "5041"],
+  },
+  { category: "Outpatient visits", terms: ["freestanding ed", "type b ed", "urgent care"], apcs: ["5031-5035"] },
+  { category: "Outpatient visits", terms: ["critical care", "trauma activation", "trauma response"], apcs: ["5041", "5045"] },
+  {
+    category: "Outpatient visits",
+    terms: ["clinic visit", "office visit", "outpatient visit", "hospital clinic", "e/m", "evaluation and management", "telehealth"],
+    apcs: ["5012"],
+  },
+  { category: "Outpatient visits", terms: ["observation", "obs stay", "observation unit"], apcs: ["8011"] },
+  // Imaging: APC levels are shared across modalities; the level comes from the CPT code.
+  { category: "Imaging", terms: ["x-ray", "xray", "radiograph", "plain film", "fluoroscopy"], apcs: ["5521-5522"] },
+  {
+    category: "Imaging",
+    terms: ["ct", "ct scan", "cat scan", "computed tomography", "ct scanner", "cta", "ct angiography", "photon-counting ct"],
+    apcs: ["5521-5524", "5571-5573"],
+    relatedApcs: ["8005-8006"],
+  },
+  {
+    category: "Imaging",
+    terms: ["mri", "mra", "magnetic resonance", "mri scanner", "mr imaging"],
+    apcs: ["5522-5524", "5571-5573"],
+    relatedApcs: ["8007-8008"],
+  },
+  { category: "Imaging", terms: ["ultrasound", "sonography", "doppler", "vascular ultrasound", "point of care ultrasound"], apcs: ["5521-5524"], relatedApcs: ["8004"] },
+  { category: "Imaging", terms: ["echo", "echocardiogram", "echocardiography", "tte", "tee"], apcs: ["5522-5524", "5571-5572"] },
+  {
+    category: "Imaging",
+    terms: ["nuclear medicine", "pet", "pet-ct", "pet scan", "spect", "nuclear stress test", "bone scan", "myocardial perfusion"],
+    apcs: ["5591-5594"],
+  },
+  {
+    category: "Imaging",
+    terms: ["imaging", "radiology", "diagnostic imaging", "scanner", "imaging center", "radiology ai", "imaging ai", "computer-aided detection"],
+    apcs: ["5521-5524", "5571-5573"],
+    relatedApcs: ["5591-5594", "8004-8008"],
+  },
+  {
+    category: "New technology",
+    terms: ["new technology", "category iii", "emerging technology", "artificial intelligence", "ai analysis", "ffr-ct", "plaque analysis", "software as a service"],
+    apcs: ["1491-1999"],
+  },
+  // Diagnostics, oncology, infusion
+  {
+    category: "Diagnostics",
+    terms: ["sleep study", "polysomnography", "eeg", "emg", "stress test", "ekg", "ecg", "holter", "cardiac monitor", "pulmonary function", "diagnostic test"],
+    apcs: ["5721-5724"],
+  },
+  { category: "Diagnostics", terms: ["pathology", "digital pathology", "biopsy reading", "cytology"], apcs: ["5671-5674"] },
+  { category: "Diagnostics", terms: ["device check", "pacemaker interrogation", "device interrogation", "remote monitoring"], apcs: ["5741-5743"] },
+  {
+    category: "Oncology",
+    terms: ["radiation therapy", "radiation oncology", "radiotherapy", "imrt", "sbrt", "srs", "proton therapy", "linac", "linear accelerator", "brachytherapy"],
+    apcs: ["5611-5613", "5621-5627"],
+    relatedApcs: ["5661"],
+  },
+  { category: "Oncology", terms: ["infusion", "infusion center", "chemotherapy", "chemo", "iv therapy", "injection", "biologic infusion"], apcs: ["5691-5694"] },
+  // Procedures
+  { category: "Procedures", terms: ["colonoscopy", "lower gi", "sigmoidoscopy", "colon cancer screening"], apcs: ["5311-5313"] },
+  { category: "Procedures", terms: ["endoscopy", "egd", "upper endoscopy", "ercp", "gi lab", "endoscopy suite"], apcs: ["5301-5303", "5331"], relatedApcs: ["5311-5313"] },
+  { category: "Procedures", terms: ["bronchoscopy", "airway endoscopy", "ebus", "navigational bronchoscopy", "robotic bronchoscopy"], apcs: ["5151-5155"] },
+  {
+    category: "Procedures",
+    terms: ["cardiac catheterization", "cath lab", "heart cath", "outpatient pci", "angioplasty", "peripheral vascular intervention"],
+    apcs: ["5191-5194"],
+    relatedApcs: ["5181-5184"],
+  },
+  { category: "Procedures", terms: ["ablation", "afib ablation", "cardiac ablation", "electrophysiology", "ep study", "ep lab"], apcs: ["5211-5213"] },
+  { category: "Procedures", terms: ["pacemaker", "leadless pacemaker", "loop recorder"], apcs: ["5221-5224"] },
+  { category: "Procedures", terms: ["icd", "defibrillator", "implantable defibrillator"], apcs: ["5231-5232"] },
+  { category: "Procedures", terms: ["cataract", "eye surgery", "ophthalmology", "glaucoma surgery", "retina", "intraocular"], apcs: ["5491-5496"], relatedApcs: ["5481", "5501-5504"] },
+  {
+    category: "Procedures",
+    terms: ["arthroscopy", "outpatient orthopedics", "knee arthroscopy", "acl", "rotator cuff", "carpal tunnel", "hand surgery"],
+    apcs: ["5112-5117"],
+    relatedApcs: ["5111"],
+  },
+  { category: "Procedures", terms: ["outpatient joint replacement", "outpatient knee replacement", "outpatient hip replacement"], apcs: ["5115-5117"] },
+  { category: "Procedures", terms: ["pain management", "epidural", "nerve block", "spinal injection", "radiofrequency ablation"], apcs: ["5441-5443"], relatedApcs: ["5431-5433"] },
+  { category: "Procedures", terms: ["spinal cord stimulator", "neurostimulator", "sacral nerve stimulation", "vagus nerve stimulator"], apcs: ["5461-5465"] },
+  { category: "Procedures", terms: ["urology", "cystoscopy", "prostate", "lithotripsy", "kidney stones", "turp"], apcs: ["5371-5378"] },
+  { category: "Procedures", terms: ["gynecology", "hysteroscopy", "gyn surgery"], apcs: ["5411-5416"] },
+  { category: "Procedures", terms: ["laparoscopy", "hernia", "gallbladder", "cholecystectomy", "general surgery", "robotic surgery"], apcs: ["5361-5362"], relatedApcs: ["5341-5342"] },
+  { category: "Procedures", terms: ["breast surgery", "lumpectomy", "breast biopsy", "sentinel node"], apcs: ["5091-5094"] },
+  { category: "Procedures", terms: ["vascular surgery", "vein ablation", "varicose veins", "dialysis access", "av fistula"], apcs: ["5181-5184"] },
+  { category: "Procedures", terms: ["ent", "sinus surgery", "tonsillectomy", "cochlear implant", "ear surgery"], apcs: ["5161-5166"] },
+  { category: "Procedures", terms: ["biopsy", "excision", "incision and drainage", "skin lesion"], apcs: ["5071-5073"], relatedApcs: ["5051-5055"] },
+  // Therapy, rehab, other services
+  { category: "Wound care", terms: ["wound care", "wound center", "debridement", "skin substitute", "skin graft"], apcs: ["5051-5055", "6000-6002"] },
+  { category: "Wound care", terms: ["hyperbaric", "hbot", "hyperbaric oxygen"], apcs: ["5061"] },
+  { category: "Rehab", terms: ["cardiac rehab", "cardiac rehabilitation"], apcs: ["5771"] },
+  { category: "Rehab", terms: ["pulmonary rehab", "pulmonary rehabilitation", "respiratory therapy"], apcs: ["5791"] },
+  {
+    category: "Behavioral health",
+    terms: ["intensive outpatient", "iop", "partial hospitalization", "php", "outpatient behavioral health", "outpatient mental health"],
+    apcs: ["5861-5864"],
+    relatedApcs: ["8010", "5821-5823"],
+  },
+  { category: "Kidney", terms: ["outpatient dialysis"], apcs: ["5401"] },
+  { category: "Blood", terms: ["apheresis", "plasma exchange", "transfusion"], apcs: ["5241-5244"] },
 ]
 
 /**
@@ -264,10 +378,30 @@ export const DRG_SEARCH_TERMS: DrgSearchTerm[] = [
 export const DRG_SEARCH_NOTES: { terms: string[]; note: string }[] = [
   {
     terms: ["mri", "ct scan", "ct scanner", "pet", "pet-ct", "imaging", "x-ray", "mammography", "ultrasound", "scanner"],
-    note: "Scans themselves are mostly paid as outpatient services (APCs), not by DRG. Use the Custom module for scan volume, or search the conditions the scans serve (e.g. “stroke”, “cancer”).",
+    note: "Scans themselves are mostly paid as outpatient services (APCs), not by DRG. Use Outpatient reimbursement for scan volume, or search the conditions the scans serve (e.g. “stroke”, “cancer”).",
   },
   {
     terms: ["outpatient", "clinic", "ambulatory", "infusion center", "urgent care", "telehealth"],
-    note: "Outpatient services aren’t paid by DRG. Use the Custom module for visit or procedure volume.",
+    note: "Outpatient services aren’t paid by DRG. Use Outpatient reimbursement for visit or procedure volume.",
+  },
+]
+
+/** Searches with no outpatient APC, where saying why beats "no results". */
+export const APC_SEARCH_NOTES: { terms: string[]; note: string }[] = [
+  {
+    terms: ["mammography", "mammogram", "tomosynthesis", "breast screening", "screening mammography"],
+    note: "Mammography is paid on the Physician Fee Schedule even in hospital outpatient departments, not by APC. Use the Custom module with your fee schedule rate.",
+  },
+  {
+    terms: ["lab", "laboratory", "lab test", "blood test", "clinical lab"],
+    note: "Outpatient lab tests are paid on the Clinical Laboratory Fee Schedule, not by APC. Use the Custom module with your lab rates.",
+  },
+  {
+    terms: ["physical therapy", "occupational therapy", "speech therapy", "pt", "ot"],
+    note: "Outpatient therapy is paid on the Physician Fee Schedule, not by APC. Use the Custom module.",
+  },
+  {
+    terms: ["cpt", "hcpcs"],
+    note: "This picker lists CMS’s payment groups (APCs), not CPT codes: CPT is licensed by the AMA. Search the service in plain words, or by APC number, and confirm the level with your coding team.",
   },
 ]
