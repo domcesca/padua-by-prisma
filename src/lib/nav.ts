@@ -1,6 +1,7 @@
 import {
   BarChart3,
   BookOpenText,
+  Calculator,
   CalendarClock,
   ChartColumnBig,
   ChartScatter,
@@ -42,6 +43,12 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Correlate",
     description: "See whether two measures move together",
     icon: ChartScatter,
+  },
+  {
+    href: "/propose",
+    label: "Propose",
+    description: "Build the business case for a new initiative",
+    icon: Calculator,
   },
   {
     href: "/translate",

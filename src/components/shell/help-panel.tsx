@@ -86,7 +86,7 @@ export function HelpPanel() {
         data-tour="help"
         aria-label="Help and glossary"
         className={cn(
-          "glass-strong fixed right-4 z-40 flex size-11 items-center justify-center rounded-full text-muted-foreground shadow-lg transition-[color,box-shadow] duration-200",
+          "glass-strong fixed right-4 z-40 flex size-11 print:hidden items-center justify-center rounded-full text-muted-foreground shadow-lg transition-[color,box-shadow] duration-200",
           "bottom-[calc(4.5rem+env(safe-area-inset-bottom))] md:right-6 md:bottom-6",
           "hover:glow-soft hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none data-[popup-open]:glow-soft data-[popup-open]:text-foreground"
         )}

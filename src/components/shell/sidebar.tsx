@@ -13,7 +13,7 @@ export function Sidebar() {
   const selection = useSelection()
 
   return (
-    <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar backdrop-blur-2xl backdrop-saturate-150 md:flex">
+    <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar backdrop-blur-2xl backdrop-saturate-150 md:flex print:hidden">
       <div className="px-5 pt-6 pb-5">
         <Link
           href="/"

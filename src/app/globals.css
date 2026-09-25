@@ -411,3 +411,61 @@
 .recharts-surface:focus {
   outline: none;
 }
+
+/* Printing (Propose's "Print or save PDF"): always light, flat surfaces, no app chrome. */
+@media print {
+  @page {
+    margin: 14mm 12mm;
+  }
+  :root,
+  .dark {
+    color-scheme: light;
+    --background: #ffffff;
+    --foreground: #1d1d1f;
+    --card: #ffffff;
+    --card-foreground: #1d1d1f;
+    --popover: #ffffff;
+    --popover-foreground: #1d1d1f;
+    --primary: #0071e3;
+    --muted: #f0f0f3;
+    --muted-foreground: #55555a;
+    --tertiary-foreground: #6e6e73;
+    --destructive: #d70015;
+    --warning: #c93400;
+    --border: rgb(0 0 0 / 0.14);
+    --chart-1: #0071e3;
+    --chart-2: #86868b;
+    --series-1: #0071e3;
+    --series-2: #eb6834;
+    --series-3: #1baf7a;
+    --glass-fill: #ffffff;
+    --glass-fill-strong: #ffffff;
+    --glass-fill-subtle: #ffffff;
+    --glass-highlight: 0 0 #0000;
+    --glass-edge: rgb(0 0 0 / 0.14);
+    --glass-shadow: 0 0 #0000;
+    --glass-sheen: none;
+    --glow: 0 0 #0000;
+    --glow-soft: 0 0 #0000;
+    --extra-glow: 0 0 #0000;
+    --ambient: none;
+  }
+  body {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  main {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+  .glass,
+  .glass-strong,
+  .glass-subtle,
+  .widget {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+  .ring-accent::after {
+    display: none;
+  }
+}
