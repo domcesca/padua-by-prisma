@@ -254,6 +254,13 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
           </p>
         )}
 
+        {benefit.caution && (
+          <p className="flex items-start gap-2 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-[13px] leading-relaxed print:break-inside-avoid">
+            <TriangleAlert className="mt-0.5 size-3.5 shrink-0 text-warning" aria-hidden />
+            <span>{benefit.caution}</span>
+          </p>
+        )}
+
         {/* Each scenario's rate sits over its card. */}
         <div className="print:hidden">
           <div className="grid gap-3 sm:grid-cols-3">

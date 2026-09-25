@@ -222,7 +222,8 @@ engine and page don't change. A module's `benefit` also gets the useful life, fo
   CMS serves the OPPS addenda and PFS RVU files under the AMA's CPT license (internal, non-commercial use only; no
   redistribution or derivative works), so Padua carries no CPT content: the ETL takes Addendum A only, keeps APC-level
   fields, and fails if the file ever contains CPT-like columns or titles. APCs are levels ("Level 3 Imaging without
-  Contrast"), so terms point at the family and the page asks the proposer to confirm the level with their coding team.
+  Contrast"), so terms point at the family. A "confirm each APC level with your coding team" caution sits above the APC list, at the
+  top of the results (a module can set `caution` on its benefit; it prints too), and on each APC line in "What went in".
   The baseline (data.cms.gov "Medicare Outpatient Hospitals – by Provider and Service") covers only the 72
   comprehensive APCs (procedures, observation); imaging, ED, and clinic APCs have no per-hospital counts, and the page
   says so. Professional claims are published per clinician (NPI), with no clean hospital link, so there's no physician

@@ -1,6 +1,6 @@
 "use client"
 
-import { Info, Stethoscope, X } from "lucide-react"
+import { Info, Stethoscope, TriangleAlert, X } from "lucide-react"
 import { useMemo, useState } from "react"
 
 import { FilterPill } from "@/components/benchmark/filter-pill"
@@ -48,6 +48,10 @@ const SCOPE_NOTES: Record<RevenueScope, string> = {
   both: "Counts hospital and physician payments, as when the hospital employs or bills for the physicians.",
   professional: "Counts physician (professional) payments only; the hospital’s facility payment isn’t included.",
 }
+
+/** APC levels are set by CPT codes this app can't carry; the proposer has to confirm them. Shown wherever the numbers are. */
+const LEVEL_CAUTION =
+  "Confirm each APC level with your coding or revenue integrity team before relying on this estimate. APCs come in levels (e.g. Level 2 vs Level 3 Imaging without Contrast) paid at very different rates, and the level a service lands in is set by its billing code, which Padua can’t check."
 
 const includesFacility = (s: RevenueScope) => s !== "professional"
 const includesPro = (s: RevenueScope) => s !== "facility"
@@ -212,6 +216,13 @@ function Editor({ state, onChange, data, context }: ModuleEditorProps<State, Out
           emptyText={emptyText}
         />
       </div>
+
+      {rows.length > 0 && (
+        <p className="flex items-start gap-2 rounded-xl border border-warning/40 bg-warning/10 px-3 py-2.5 text-xs leading-relaxed">
+          <TriangleAlert className="mt-0.5 size-3.5 shrink-0 text-warning" aria-hidden />
+          <span>{LEVEL_CAUTION}</span>
+        </p>
+      )}
 
       {rows.length === 0 ? (
         <p className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-[13px] text-muted-foreground">
@@ -398,9 +409,9 @@ export const outpatientModule = defineModule<State, OutpatientData>({
     const lines: BenefitLine[] = []
     for (const r of rows) {
       if (includesFacility(s.scope))
-        lines.push({ label: `APC ${r.code} · ${r.title}${s.scope === "both" ? " (hospital)" : ""}`, detail: `${servicesText(r.added)} × ${formatUsd(r.rate)}`, amount: r.facility })
+        lines.push({ label: `APC ${r.code} · ${r.title}${s.scope === "both" ? " (hospital)" : ""}`, detail: `${servicesText(r.added)} × ${formatUsd(r.rate)} · level to confirm with coding`, amount: r.facility })
       if (includesPro(s.scope))
-        lines.push({ label: `APC ${r.code} · ${r.title} (physician)`, detail: `${servicesText(r.added)} × ${formatUsd(r.pro)}, proposer’s figure`, amount: r.professional })
+        lines.push({ label: `APC ${r.code} · ${r.title} (physician)`, detail: `${servicesText(r.added)} × ${formatUsd(r.pro)}, proposer’s figure · level to confirm with coding`, amount: r.professional })
     }
     const revenue = rows.reduce((t, r) => t + r.facility + r.professional, 0)
     if (s.careCost > 0 && revenue) lines.push({ label: "Cost of providing the added services", detail: `${s.careCost}% of payment`, amount: (-revenue * s.careCost) / 100 })
@@ -408,7 +419,7 @@ export const outpatientModule = defineModule<State, OutpatientData>({
     const notes = [SCOPE_NOTES[s.scope]]
     if (includesFacility(s.scope))
       notes.push(
-        `Hospital payment per service = the APC’s CY ${data.calendarYear} national unadjusted OPPS rate (Addendum A, ${data.quarter}). A national Medicare estimate, not this hospital’s actual reimbursement: wage index, multiple-procedure discounts, packaging, outliers, and payer mix aren’t applied. Which APC level a service lands in depends on its billing code.`
+        `Hospital payment per service = the APC’s CY ${data.calendarYear} national unadjusted OPPS rate (Addendum A, ${data.quarter}). A national Medicare estimate, not this hospital’s actual reimbursement: wage index, multiple-procedure discounts, packaging, outliers, and payer mix aren’t applied.`
       )
     if (includesPro(s.scope))
       notes.push("Physician payments per service are the proposer’s figures; the hospital collects them only if it employs or bills for the physicians.")
@@ -421,6 +432,7 @@ export const outpatientModule = defineModule<State, OutpatientData>({
       annual: lines.reduce((t, l) => t + l.amount, 0),
       lines,
       notes,
+      caution: rows.length ? LEVEL_CAUTION : undefined,
       incomplete: !rows.length
         ? "Pick at least one APC."
         : !rows.some((r) => r.added)

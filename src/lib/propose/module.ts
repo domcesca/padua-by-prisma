@@ -22,6 +22,8 @@ export type Benefit = {
   notes: string[]
   /** What's still missing before the estimate means anything, if anything. */
   incomplete?: string
+  /** A limitation the reader must see before acting on the numbers; shown at the top of the results (and in print). */
+  caution?: string
 }
 
 export type ModuleContext = {
