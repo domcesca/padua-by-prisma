@@ -82,6 +82,7 @@ export function hrefWithSelection(href: string, selection: Selection | null) {
       if (selection.category !== "financial") params.set("category", selection.category)
       break
     case "/deadlines":
+    case "/correlate":
       break
     default:
       return href

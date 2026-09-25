@@ -7,7 +7,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 
-type Option = { value: string; label: string; hint?: string }
+type Option = { value: string; label: string; hint?: string; /** Options sharing a group are listed under it as a heading. */ group?: string }
 
 const pillClass = (active: boolean) =>
   cn(
@@ -31,6 +31,7 @@ export function FilterPill({
   quickActions,
   footer,
   active: activeOverride,
+  wide = false,
 }: {
   label: string
   /** Text shown in the pill when something is selected. */
@@ -44,6 +45,8 @@ export function FilterPill({
   footer?: React.ReactNode
   /** Force the highlighted style on/off (e.g. a non-default value that still shows a summary). */
   active?: boolean
+  /** A wider list, for long option labels. */
+  wide?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const active = activeOverride ?? summary != null
@@ -61,10 +64,10 @@ export function FilterPill({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger className={pillClass(active)} aria-label={`${label}: ${summary ?? "any"}`}>
         <span className={cn(summary != null && "sr-only")}>{label}</span>
-        {summary != null && <span className={cn("max-w-44 truncate", active && "font-medium")}>{summary}</span>}
+        {summary != null && <span className={cn(wide ? "max-w-72" : "max-w-44", "truncate", active && "font-medium")}>{summary}</span>}
         <ChevronDown className="size-3.5 opacity-60" />
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-64 p-0">
+      <PopoverContent align="start" className={cn("p-0", wide ? "w-80" : "w-64")}>
         <Command>
           {searchable && <CommandInput placeholder={`Search ${label.toLowerCase()}…`} />}
           <CommandList>
@@ -94,20 +97,24 @@ export function FilterPill({
                 <CommandSeparator />
               </>
             )}
-            <CommandGroup>
-              {options.map((o) => (
-                <CommandItem
-                  key={o.value}
-                  value={`${o.label} ${o.value}`}
-                  data-checked={selected.includes(o.value)}
-                  onSelect={() => toggle(o.value)}
-                  className="data-[checked=true]:*:[svg]:text-primary"
-                >
-                  <span className="flex-1 truncate">{o.label}</span>
-                  {o.hint && <span className="text-xs text-muted-foreground">{o.hint}</span>}
-                </CommandItem>
-              ))}
-            </CommandGroup>
+            {[...new Set(options.map((o) => o.group))].map((group) => (
+              <CommandGroup key={group ?? ""} heading={group}>
+                {options
+                  .filter((o) => o.group === group)
+                  .map((o) => (
+                    <CommandItem
+                      key={o.value}
+                      value={`${o.label} ${o.group ?? ""} ${o.value}`}
+                      data-checked={selected.includes(o.value)}
+                      onSelect={() => toggle(o.value)}
+                      className="data-[checked=true]:*:[svg]:text-primary"
+                    >
+                      <span className="flex-1 truncate">{o.label}</span>
+                      {o.hint && <span className="text-xs text-muted-foreground">{o.hint}</span>}
+                    </CommandItem>
+                  ))}
+              </CommandGroup>
+            ))}
           </CommandList>
           {footer && <div className="border-t border-border p-2">{footer}</div>}
         </Command>

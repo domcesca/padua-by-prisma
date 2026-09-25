@@ -1,6 +1,6 @@
 # PROGRESS — handoff for the next session
 
-_Last updated 2026-09-25, mid-V4 (see §2 V4; V3's Correlate tab is still not built). Read this first, then `README.md` (run/refresh/deploy commands) and `AGENTS.md` (this is Next.js 16 — check `node_modules/next/dist/docs/` before writing Next code)._
+_Last updated 2026-09-25, mid-V4 (see §2 V4). Read this first, then `README.md` (run/refresh/deploy commands) and `AGENTS.md` (this is Next.js 16 — check `node_modules/next/dist/docs/` before writing Next code)._
 
 ## 1. Project overview
 
@@ -62,7 +62,10 @@ _Last updated 2026-09-25, mid-V4 (see §2 V4; V3's Correlate tab is still not bu
    income, poverty, and uninsured match Census's independent profile tables (DP03/DP05) for LA, SF, Humboldt, and
    Imperial. DHCS enrollment runs well above ACS self-reported Medicaid (15.0M vs ~10.6M statewide; LA 42% vs 30%) —
    known survey undercount; the panel labels the Census bar self-reported and explains the gap.
-4. **Correlate tab**: not started (build last, per the user).
+4. **Correlate tab** (done, built at the start of V4): `/correlate`, `src/lib/correlate/{spec,run}.ts`,
+   `/api/correlate`. Pairs values by year number across datasets (and says so when year kinds differ). Default year =
+   newest with ≥80% of the best coverage. r, slope and Spearman ρ verified against scipy. Small-sample note below 8
+   hospitals (`SMALL_SAMPLE`); no r below 3.
 
 ### V4 (in progress)
 1. **Length of stay / average daily census** (done). All-payer LoS already existed as `alos` ("Average length of stay

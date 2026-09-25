@@ -6,6 +6,7 @@ import {
   BookOpenText,
   CalendarClock,
   ChartColumnBig,
+  ChartScatter,
   Check,
   HeartPulse,
   Landmark,
@@ -362,6 +363,9 @@ export function HomeFlow({
             onClick={remember}
           >
             Build a chart
+          </SecondaryLink>
+          <SecondaryLink href={withFacility("/correlate")} icon={ChartScatter} enabled={facilityId != null} onClick={remember}>
+            Correlate two measures
           </SecondaryLink>
           <SecondaryLink
             href={withFacility("/translate", { source: category === "utilization" ? "utilization" : "financial" })}
