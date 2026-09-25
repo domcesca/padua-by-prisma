@@ -3,6 +3,7 @@
 import { ChevronRight, Loader2 } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 
+import { PickerPill } from "@/components/shell/grouped-picker"
 import { Segmented } from "@/components/shell/segmented"
 import type { BenchmarkResult } from "@/lib/benchmark/compute"
 import { DEFAULT_FILTERS, filtersToParams, OWNERSHIP_LABEL, type PeerFilters } from "@/lib/benchmark/filters"
@@ -22,6 +23,7 @@ import {
   type MetricDef,
   type PayerView,
 } from "@/lib/data/datasets"
+import { metricPickerOptions } from "@/lib/data/metric-options"
 import type { MetricCategory, PayerGroup } from "@/lib/data/types"
 import { rememberSelection } from "@/lib/selection"
 import { cn } from "@/lib/utils"
@@ -82,10 +84,11 @@ export function BenchmarkView({
   // Under a unit, only what HCAI reports by bed classification.
   const metricOptions = view.unit
     ? UNIT_METRICS.map((id) => ({ value: id, label: UNIT_METRIC_LABELS[id] }))
-    : categoryMetrics.map((m) => {
-        if (view.payer === "all" || m.lens) return { value: m.id, label: m.label }
+    : metricPickerOptions(categoryMetrics, { acrossCategories: false }).map((o) => {
+        const m = metaById[o.value]
+        if (view.payer === "all" || m.lens) return o
         const lensId = applyPayerView([m.id], view.payer, catalog)[0]
-        return { value: m.id, label: lensId !== m.id ? metaById[lensId].label : `${m.label} (all payers)` }
+        return { ...o, label: lensId !== m.id ? metaById[lensId].label : `${m.label} (all payers)` }
       })
 
   async function apply(patch: Partial<State>) {
@@ -167,7 +170,8 @@ export function BenchmarkView({
             options={CATEGORIES.map((c) => ({ value: c.id, label: c.label }))}
           />
           {supportsUnits(view.category) && units.length > 0 && (
-            <FilterPill
+            <PickerPill
+              noun="units"
               label="Unit"
               summary={unitInfo ? unitInfo.label : "Whole hospital"}
               active={!!unitInfo}
@@ -192,14 +196,15 @@ export function BenchmarkView({
               options={PAYER_VIEWS.map((p) => ({ value: p.value, label: p.label }))}
             />
           )}
-          <FilterPill
+          <PickerPill
+            noun="metrics"
             label="Metrics"
             summary={isDefaultMetrics ? null : `${shownMetrics.length} metric${shownMetrics.length === 1 ? "" : "s"}`}
             options={metricOptions}
             selected={shownMetrics}
             onChange={setMetrics}
             multiple
-            quickActions={isDefaultMetrics ? undefined : [{ label: "Back to the standard set", onSelect: () => setMetrics([]) }]}
+            actions={isDefaultMetrics ? undefined : [{ label: "Back to the standard set", onSelect: () => setMetrics([]) }]}
           />
           <FilterPill
             label="Years"

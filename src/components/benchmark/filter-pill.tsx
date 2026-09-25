@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils"
 
 type Option = { value: string; label: string; hint?: string; /** Options sharing a group are listed under it as a heading. */ group?: string }
 
-const pillClass = (active: boolean) =>
+export const pillClass = (active: boolean) =>
   cn(
     "inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] whitespace-nowrap transition-[background-color,box-shadow] duration-200",
     "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",

@@ -19,6 +19,7 @@ import { useRef, useState } from "react"
 
 import { FacilityPicker, type FacilityOption } from "@/components/benchmark/facility-picker"
 import { FilterPill } from "@/components/benchmark/filter-pill"
+import { GroupedPicker } from "@/components/shell/grouped-picker"
 import { Segmented } from "@/components/shell/segmented"
 import {
   CATEGORIES,
@@ -31,6 +32,7 @@ import {
   UNIT_METRICS,
   type MetricDef,
 } from "@/lib/data/datasets"
+import { metricPickerOptions } from "@/lib/data/metric-options"
 import type { FacilityUnit, MetricCategory } from "@/lib/data/types"
 import { rememberSelection, useSelection } from "@/lib/selection"
 import { cn } from "@/lib/utils"
@@ -119,20 +121,15 @@ export function HomeFlow({
 
   // Under a unit, only the metrics HCAI reports by bed classification.
   const categoryMetrics = unit
-    ? UNIT_METRICS.map((id) => ({ id, label: UNIT_METRIC_LABELS[id] }))
+    ? UNIT_METRICS.map((id) => ({ value: id, label: UNIT_METRIC_LABELS[id] }))
     : category
-      ? pickableMetrics(catalog, category, "all")
+      ? metricPickerOptions(pickableMetrics(catalog, category, "all"), { acrossCategories: false })
       : []
   const defaultMetrics = unit ? UNIT_DEFAULT_METRICS : category ? CATEGORY_BY_ID[category].defaultMetrics : []
   const chosenMetrics = metrics ?? defaultMetrics
   const customMetrics = metrics != null && metrics.join(",") !== defaultMetrics.join(",")
   const units = preview?.units ?? []
   const unitInfo = units.find((u) => u.id === unit)
-
-  function toggleMetric(id: string) {
-    // Added metrics go at the end, after the standard set.
-    setMetrics(chosenMetrics.includes(id) ? chosenMetrics.filter((m) => m !== id) : [...chosenMetrics, id])
-  }
 
   const ready = category != null && facilityId != null
   const benchmarkHref = (() => {
@@ -363,27 +360,16 @@ export function HomeFlow({
 
             <p className="text-[13px] font-medium md:pt-1">Metrics</p>
             {category ? (
-              <div className="flex flex-wrap gap-1.5">
-                {categoryMetrics.map((m) => {
-                  const on = chosenMetrics.includes(m.id)
-                  return (
-                    <button
-                      key={m.id}
-                      type="button"
-                      aria-pressed={on}
-                      onClick={() => toggleMetric(m.id)}
-                      className={cn(
-                        "inline-flex h-8 items-center gap-1 rounded-full px-3 text-[13px] transition-[color,box-shadow] duration-200 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
-                        on
-                          ? "glass-subtle ring-accent glow-soft text-foreground"
-                          : "glass-subtle text-muted-foreground hover:text-foreground"
-                      )}
-                    >
-                      {on && <Check className="size-3.5" />}
-                      {m.label}
-                    </button>
-                  )
-                })}
+              <div className="glass-subtle max-w-md rounded-2xl p-1.5">
+                <GroupedPicker
+                  key={`${category}-${unit ?? ""}`}
+                  noun="metrics"
+                  options={categoryMetrics}
+                  selected={chosenMetrics}
+                  onChange={setMetrics}
+                  multiple
+                  listClassName="max-h-60"
+                />
               </div>
             ) : (
               <p className="text-[13px] text-muted-foreground">Choose a topic first.</p>
