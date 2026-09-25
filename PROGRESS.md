@@ -232,6 +232,13 @@ downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and
 - **Baseline:** comprehensive APCs only (72), 2024; 22 hospitals have every count suppressed and show "fewer than 11".
   No per-hospital baseline for imaging/ED/clinic APCs or for professional services (published per clinician only).
 
+### UI touch-ups (after V6.6)
+- **Benchmark spacing:** the loading bar between the filters and the hospital card had `-my-3`, which cancelled the
+  24px section gap (leaving ~2px). It's now absolutely positioned inside the filter block, so the gap is back.
+- **Nav lockup:** "Padua" with "by Prisma" small, medium weight, in the accent color on the same line, and the tagline "Healthcare Data,
+  Decoded" below in muted text (not the accent). Phone header: "Padua by Prisma" on one line, no tagline (no room).
+  `APP_TAGLINE` is the new tagline; the home page eyebrow keeps its descriptive line as `APP_SUMMARY`.
+
 ## 3. Key decisions and why
 
 ### Peer groups: a proxy, not a PSA/SSA

@@ -21,7 +21,7 @@ import { FacilityPicker, type FacilityOption } from "@/components/benchmark/faci
 import { FilterPill } from "@/components/benchmark/filter-pill"
 import { GroupedPicker } from "@/components/shell/grouped-picker"
 import { Segmented } from "@/components/shell/segmented"
-import { APP_ATTRIBUTION, APP_FULL_NAME, APP_TAGLINE } from "@/lib/brand"
+import { APP_ATTRIBUTION, APP_FULL_NAME, APP_SUMMARY } from "@/lib/brand"
 import {
   CATEGORIES,
   CATEGORY_BY_ID,
@@ -159,7 +159,7 @@ export function HomeFlow({
       {/* Hero */}
       <header className="space-y-3 pt-2 md:pt-6">
         <p className="text-[13px] font-medium text-muted-foreground">
-          {APP_FULL_NAME} · {APP_TAGLINE}
+          {APP_FULL_NAME} · {APP_SUMMARY}
         </p>
         <h1 className="text-[34px] leading-[1.1] font-semibold tracking-tight sm:text-[44px]">What do you want to look at?</h1>
         <p className="max-w-2xl text-[17px] leading-relaxed text-muted-foreground">

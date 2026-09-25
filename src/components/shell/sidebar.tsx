@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 
 import { isActivePath, NAV_ITEMS } from "@/lib/nav"
 import { hrefWithSelection, useSelection } from "@/lib/selection"
-import { APP_FULL_NAME, APP_NAME } from "@/lib/brand"
+import { APP_BYLINE, APP_FULL_NAME, APP_NAME, APP_TAGLINE } from "@/lib/brand"
 import { cn } from "@/lib/utils"
 import { PaduaMark } from "./padua-mark"
 import { ThemeToggle } from "./theme-toggle"
@@ -23,9 +23,11 @@ export function Sidebar() {
           className="flex items-center gap-2.5 rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
         >
           <PaduaMark size={30} />
-          <span>
-            <span className="block text-[17px] leading-tight font-semibold tracking-tight">{APP_NAME}</span>
-            <span className="block text-xs text-muted-foreground">{APP_FULL_NAME}</span>
+          <span className="min-w-0">
+            <span className="block text-[17px] leading-tight font-semibold tracking-tight whitespace-nowrap">
+              {APP_NAME} <span className="text-[12px] font-medium tracking-normal text-primary">{APP_BYLINE}</span>
+            </span>
+            <span className="block text-xs font-normal text-muted-foreground">{APP_TAGLINE}</span>
           </span>
         </Link>
       </div>
