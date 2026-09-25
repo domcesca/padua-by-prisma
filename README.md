@@ -6,9 +6,10 @@ plain-language field guide, and a reporting calendar.
 
 | Tab | What it does |
 | --- | --- |
-| **Home** | The front door. Pick a topic (Financials or Utilization; Quality and Case mix are reserved for later), pick a hospital, optionally refine the peer group, metrics, and years, and land in Benchmark pre-loaded. The chosen hospital follows you to every tab. |
-| **Benchmark** | A hospital against its peer group on financial metrics (operating margin, days cash on hand, cost and revenue per adjusted discharge, payer mix) or utilization metrics (occupancy, ALOS, ED visits and flow, surgeries, cath volume). Default peers are **similar hospitals** (see below); switch to all of California or set filters yourself. Every view is a shareable URL. |
+| **Home** | The front door. Pick a hospital, pick a topic (Financials, Utilization, or Quality; Case mix is reserved for later), optionally refine the peer group, metrics, and years, and land in Benchmark pre-loaded. The chosen hospital follows you to every tab. |
+| **Benchmark** | A hospital against its peer group on financial metrics (operating margin, days cash on hand, cost and revenue per adjusted discharge, payer mix) utilization metrics (occupancy, ALOS, ED visits and flow, surgeries, cath volume), or quality (CMS readmissions, mortality, patient experience, star ratings; CDPH infection ratios). A collapsible panel shows the county's Census and Medi-Cal context. Default peers are **similar hospitals** (see below); switch to all of California or set filters yourself. A **Payer view** toggle (All payers / Medicare) narrows the metrics to Medicare where HCAI reports a Medicare split. Every view is a shareable URL. |
 | **Build** | A guided chart and table builder: up to four metrics from the catalog, line / bar / table, grouped by year, by hospital, or against the peer group. Legend, table view, CSV download, and a copyable link on every result. |
+| **Correlate** | Any two catalog metrics (Financial, Utilization, Quality, Medicare lens) plotted against each other across a hospital's similar hospitals or all of California for one year: scatter, least-squares trend line, Pearson r, and Spearman rank ρ (robust to outliers). Fewer than 8 hospitals gets "Small sample size — interpret with caution"; fewer than 3, no r. Pairing years of different kinds (fiscal vs. calendar vs. CMS periods) is called out. Table view, CSV, shareable link. |
 | **Translate** | Every field in either dataset in plain language, with why it moves. Pick a hospital to see year-over-year changes, or paste/upload a raw HCAI extract (.xlsx/.csv, including the utilization workbook) to translate its columns. Parsing happens in the browser. |
 | **Deadlines** | Quarterly and annual financial report due dates for a hospital's fiscal year, the Annual Utilization Report (Feb 15), extension limits, off-cycle report periods, and filed/extended tracking (saved in the browser). |
 | **Ask** / **Watch** | Placeholders for natural-language queries and anomaly detection on uploaded data. |
@@ -17,6 +18,11 @@ Data, calendar/report years 2019–2024:
 
 - [HCAI Hospital Annual Financial Data – Selected Data & Pivot Tables](https://data.chhs.ca.gov/dataset/hospital-annual-financial-data-selected-data-pivot-tables)
 - [HCAI Hospital Annual Utilization Report & Pivot Tables](https://data.chhs.ca.gov/dataset/hospital-annual-utilization-report)
+- [HCAI Case Mix Index](https://data.chhs.ca.gov/dataset/case-mix-index) (federal fiscal years 2019–2025)
+- [CMS Care Compare – Hospitals](https://data.cms.gov/provider-data/topics/hospitals) (archived snapshots, 2019–2026)
+- [CDPH Healthcare-Associated Infections](https://www.cdph.ca.gov/Programs/CHCQ/HAI/Pages/HAIreport.aspx) (CLABSI, C. diff, MRSA, VRE; 2019–2025)
+- [DHCS Medi-Cal Certified Eligibles by month](https://data.chhs.ca.gov/dataset/medi-cal-certified-eligibles-with-demographics-by-month) and the [Census ACS 5-year API](https://www.census.gov/data/developers/data-sets/acs-5year.html) (county context)
+- [CDPH Licensed and Certified Healthcare Facility Listing](https://data.chhs.ca.gov/dataset/healthcare-facility-locations) and [crosswalk](https://data.chhs.ca.gov/dataset/licensed-facility-crosswalk) (to match CMS and CDPH IDs to HCAI)
 
 ## Running locally
 
@@ -50,7 +56,8 @@ Each dataset writes `data/processed/<id>/`:
 - `dictionary.json`: plain-language data dictionary and metric definitions (from `etl/hcai_etl/dictionary/<id>.py`)
 - `manifest.json`: source files, years, and processing notes
 
-Commit the regenerated files and redeploy.
+Commit the regenerated files and redeploy. Build the HCAI datasets (`hafd-selected`, `hau`) before `case-mix-index`,
+`cms-care-compare` and `cdph-hai`, which map onto their facility list (the default order does this).
 
 ### How the ETL handles HCAI's quirks
 
@@ -72,9 +79,18 @@ Utilization (`hau`):
   The ETL combines every campus into the parent facility on the same `LICENSE_NO`, so "a hospital" means the same
   thing in both datasets. Campus names are kept and shown.
 - **Rates are recomputed** from combined totals: occupancy = census days ÷ licensed bed days; ALOS = census days ÷
-  discharges (critical care adds transfers out), per HCAI's instructions.
+  discharges (critical care and skilled nursing add transfers out), matching HCAI's published figures.
 - **Workbook layout.** Data is on the "Page 1-6" sheet with four metadata rows (description, Page, Column, Line) under
   the header; both the ETL and browser uploads skip them.
+- **Length of stay and average daily census are acute-only** (general acute bed lines 1–9: med/surg, perinatal,
+  pediatric, ICU, CCU, acute respiratory, burn, NICU, rehab), so skilled nursing, psychiatric, and chemical-dependency
+  units don't distort them. ADC = acute census days ÷ days in the period. Inpatient days, discharges, and occupancy
+  are all-bed totals. The Medicare lens's length of stay comes from the financial report and includes SNF days.
+- **Units (bed classifications)** go to `units.json`: HCAI's 14 lines (1–9, 16–20), which sum exactly to total licensed
+  beds (lines 30–31 are "of which" breakdowns and are left out). A unit appears in a year only when the hospital has
+  licensed beds in it. Benchmark's Utilization topic can be narrowed to one (`?unit=icu`); peers without the unit are
+  left out of the median. Critical-care and skilled-nursing length of stay count transfers out to general acute beds,
+  as HCAI's published figures do.
 - **Known gaps in HCAI's files:** births are blank from 2022 on; there's no total outpatient-visits field (the app
   takes outpatient visits from the financial report instead, labeled as fiscal-year).
 
@@ -83,8 +99,80 @@ Utilization (`hau`):
 Subclass `hcai_etl.core.Dataset` in `etl/hcai_etl/datasets/`, implement `resources()` / `load()` / `build()`, add a
 dictionary module (with `category` on each metric), register it in `datasets/__init__.py`, and add its id to
 `DATASET_IDS` in `src/lib/data/store.ts` and `DATASETS` in `src/lib/data/datasets.ts`. Its metrics then appear in
-Benchmark, Build, and Translate. Planned: Quarterly Financial & Utilization, Annual Disclosure complete set, Case Mix
-Index.
+Benchmark, Build, and Translate. Planned: Quarterly Financial & Utilization, Annual Disclosure complete set.
+
+Case mix index (`case-mix-index`):
+
+- **Federal fiscal years** (October–September), filed under the year they end, and tagged on the card.
+- **IDs:** the workbook's `oshpd_id` drops the `106` prefix and a leading zero (`10735` → `106010735`).
+- **Campuses:** HCAI calculates CMI per facility, so the license's CMI is its campuses' CMIs weighted by their
+  utilization-report discharges (19 hospitals; the card says which campuses). Single-facility values are HCAI's own,
+  unchanged. State hospitals (DSH) and Porterville have no CMI.
+
+## Quality (Benchmark's third topic)
+
+Two non-HCAI sources, mapped onto HCAI facility numbers:
+
+- **CMS Care Compare** (`cms-care-compare`): readmissions, mortality, PSI 90, patient experience (HCAHPS), ED time
+  and sepsis bundle, and the overall star rating. Care Compare only publishes the current quarter, so the ETL reads
+  CMS's archived snapshots (the last one of each year, plus the newest) and files each value under the year its
+  measurement period **ends**; the card shows the period ("Jul 2023–Jun 2025"). Periods run up to three years and
+  overlap. CMS left January–June 2020 out of its claims measures, so no period ends in 2020, and it withheld pneumonia
+  results for the period ending June 2021. The retired claims-based hospital-wide readmission measure and its "hybrid"
+  replacement are separate metrics. Missing values carry CMS's footnote reason ("too few cases to report").
+- **CDPH healthcare-associated infections** (`cdph-hai`): CLABSI, C. diff, and MRSA as the SIR (observed ÷ predicted,
+  with the 95% CI and CDPH's better/same/worse call) plus the raw rate on the same card; VRE as a rate only, because
+  no national risk adjustment exists for it (CDPH compares it with the mean for the same hospital type). Rates follow
+  CDPH: CLABSI per 1,000 central-line days, the rest per 10,000 patient days. Rehabilitation units, which report
+  under their hospital's ID, are excluded. 2020 was published in two halves and is combined; many hospitals have
+  July–December only.
+
+**Facility matching** (`etl/hcai_etl/crosswalk.py`): CDPH uses its own ELMS facility IDs and CMS uses the Medicare CCN.
+CDPH's Licensed and Certified Healthcare Facility Listing (plus its ELMS–OSHPD crosswalk for closed facilities) has
+ELMS ID, CCN, license number, and HCAI ID side by side. Campuses reported separately roll up to the licensed hospital,
+like utilization. CCNs retired after an ownership change are matched on ZIP plus a close name (listed in the manifest).
+Where one CCN covers several licensed hospitals (Alameda Health System's Highland and San Leandro; Emanate), CMS's
+combined score goes to the hospital CMS names and the other hospital says so. Coverage: 286 of 288 comparable general
+acute hospitals reporting in 2024 have infection data.
+
+**"Not yet reported"**: a card never shows an empty chart. Years the source hasn't published are named under the
+chart; a hospital with no value gets "Not reported for this hospital" with the source's reason.
+
+## Community context (Benchmark panel)
+
+A collapsible panel under the hospital summary shows the hospital's **county**: population, median household
+income, age 65+, poverty, health coverage (Census ACS 5-year), and Medi-Cal enrollment with its share of residents
+and the share also on Medicare (DHCS certified eligibles, averaged over the year's months; recent months are
+preliminary). It's context, not a benchmark, and the county isn't the hospital's service area.
+
+- `dhcs-medi-cal`: file-based like the other sources (CHHS "Medi-Cal Certified Eligibles … by Month", dual-status table).
+- `acs-county`: the one API source. Needs a free Census key at **ETL time only**: copy `.env.example` to `.env` and
+  set `CENSUS_API_KEY`, or export it, then `python -m hcai_etl acs-county`. It picks the newest 5-year release that has
+  every variable and writes `data/processed/acs-county/`; the key is never cached or written out. Until that runs,
+  the panel shows Medi-Cal only.
+
+## Medicare lens (Benchmark's Payer view)
+
+Built from the Medicare columns HCAI already publishes in the financial report (`*_MCAR_TR` traditional Medicare,
+`*_MCAR_MC` Medicare Advantage), so years and definitions match the all-payer view. The CMS public-use files are not
+used (they cover traditional Medicare only, by calendar year, and need a CCN crosswalk).
+
+- Each Medicare metric in `etl/hcai_etl/dictionary/hafd_selected.py` (`MEDICARE_METRICS`) has `lens: "medicare"` and
+  `allPayer: <metric id>`, the metric it replaces. `applyPayerView` in `src/lib/data/datasets.ts` does the swap.
+  Metrics with no Medicare split (days cash on hand, ED visits, occupancy, surgeries, …) stay all-payer and get an
+  "All payers" tag on the card.
+- **Medicare margin and cost per adjusted discharge are estimates**, tagged "Estimate" on the card. HCAI doesn't
+  report expense by payer, so Medicare's cost is its gross charges × the hospital's cost-to-charge ratio
+  (`TOT_OP_EXP ÷ (GR_PT_REV + OTH_OP_REV)`), the AHA payment-to-cost method. The median for comparable general
+  hospitals is about −29% to −35% (payment-to-cost 0.74–0.78). That is far below MedPAC's Medicare margin (−13%
+  nationally in 2023) **by design**: MedPAC counts only Medicare-allowable costs and traditional Medicare, while the
+  AHA method counts all operating expense and includes Medicare Advantage. On the AHA method Medicare paid 82 cents
+  per dollar nationally in 2022, and the California Hospital Association cites about 75 cents for California.
+  Allocating by charges doesn't inflate Medicare's share: Medicare's share of gross charges (~44%) is below its share
+  of patient days (~47–49%) and discharges (~47%). A days-based split would make the margin more negative.
+- Medicare volumes (discharges, days, length of stay, outpatient visits) come from the financial report, so they're
+  fiscal-year and include long-term care units. Cards say so.
+- Medicare Advantage share (MA discharges ÷ all Medicare discharges) is available under the Medicare view and in Build.
 
 ## Similar hospitals (the default peer group)
 
@@ -141,7 +229,7 @@ Apple-style restraint with a "Liquid Glass" layer (utilities in `src/app/globals
 
 Import the repo in Vercel with the defaults (framework: Next.js). `next.config.ts` uses `outputFileTracingIncludes`
 to bundle `data/processed/**/*.json` into the server functions, and API responses are CDN-cached for a day.
-No environment variables are needed.
+The app needs no environment variables (`CENSUS_API_KEY` is only for the ETL).
 
 ## Caveats worth knowing
 

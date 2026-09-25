@@ -1,11 +1,14 @@
 // Shapes of the processed files written by the Python ETL (etl/hcai_etl).
 // Keep in sync with etl/hcai_etl/datasets/{hafd_selected,hau}.py.
 
-/** Output folder / id of each ETL dataset under data/processed. */
-export type DatasetId = "hafd-selected" | "hau"
+/** HCAI's own datasets: facility directories and raw fields (Translate) come from these. */
+export type HcaiDatasetId = "hafd-selected" | "hau"
+
+/** Output folder / id of each ETL dataset under data/processed. The non-HCAI ones map onto HCAI facility numbers. */
+export type DatasetId = HcaiDatasetId | "case-mix-index" | "cdph-hai" | "cms-care-compare"
 
 /** What the user picks on the home page; each metric belongs to one. */
-export type MetricCategory = "financial" | "utilization"
+export type MetricCategory = "financial" | "utilization" | "quality"
 
 export type Ownership = "nonprofit" | "investor" | "district" | "government" | "state" | "other"
 
@@ -91,8 +94,30 @@ export type FacilityYearMetrics = {
   status: string | null
 }
 
+/** Context for one published value (quality data): its period, significance, and caveats. */
+export type PointDetail = {
+  /** Measurement period, e.g. "Jul 2022–Jun 2025", when it isn't the calendar year. */
+  period?: string
+  /** Statistically better / no different / worse than the metric's comparison point (see comparedTo). */
+  compared?: "better" | "same" | "worse"
+  /** 95% confidence interval. */
+  ci?: [number, number]
+  /** Cases or surveys behind the value. */
+  n?: number
+  observed?: number
+  predicted?: number
+  /** Why the value is missing or should be read with care (source footnotes, partial years). */
+  note?: string
+}
+
 /** Any dataset's metrics row: metric key -> value, plus coverage flags. */
-export type MetricsRow = Record<string, unknown> & { days: number; annualized: boolean; status: string | null }
+export type MetricsRow = Record<string, unknown> & {
+  days?: number
+  annualized: boolean
+  status: string | null
+  /** Quality datasets: per-metric detail. */
+  detail?: Record<string, PointDetail>
+}
 
 /** facilityId -> year -> metrics */
 export type MetricsFile<Row = MetricsRow> = Record<string, Record<string, Row>>
@@ -147,7 +172,8 @@ export type DictionaryField = {
   payer?: string
 }
 
-export type MetricUnit = "ratio" | "days" | "pct" | "count" | "share" | "usd"
+/** number: a plain decimal (SIRs, rates, minutes, stars); unitLabel says what it counts. */
+export type MetricUnit = "ratio" | "days" | "pct" | "count" | "share" | "usd" | "number"
 
 export type DictionaryMetric = {
   id: string
@@ -163,7 +189,28 @@ export type DictionaryMetric = {
   higherIsBetter: boolean | null
   drivers: string[]
   caution?: string
+  /** Set on a payer-specific version of a metric (the Benchmark "Payer view"). */
+  lens?: PayerLens
+  /** The all-payer metric this one stands in for under its lens, if any. */
+  allPayer?: string
+  /** Sub-heading within a category (quality: Readmissions, Infections, ...). */
+  group?: string
+  /** Unit wording for "number" metrics, e.g. "per 1,000 central-line days". */
+  unitLabel?: string
+  /** A value worth a reference line, e.g. 1 for ratios to expected (SIR, PSI 90). */
+  reference?: number
+  /** What `PointDetail.compared` is relative to, e.g. "the national rate". */
+  comparedTo?: string
+  /** A metric shown alongside this one on the same card (an infection SIR's raw rate). */
+  companion?: string
+  /** Set on a companion: the metric whose card it appears on. */
+  companionOf?: string
+  /** Modeled rather than reported (e.g. Medicare cost allocated from charges); flagged in the UI. */
+  estimate?: boolean
 }
+
+/** Payer views a metric can be narrowed to. */
+export type PayerLens = "medicare"
 
 export type Dictionary = {
   dataset: DatasetId
@@ -179,7 +226,68 @@ export type Manifest = {
   title: string
   sourcePage: string
   years: number[]
-  sources: { year: number; name: string; url: string; preliminary?: boolean }[]
+  sources: { year?: number; name: string; url: string; preliminary?: boolean }[]
   generatedAt: string
   notes: string[]
+  /** Care Compare: the usual measurement period per metric and year. */
+  periods?: Record<string, Record<string, string>>
+  /** Care Compare: hospitals CMS reports together with another under one CCN. */
+  sharedReporting?: Record<string, { ccn: string; reportedWith: string; reportedWithName: string }>
+}
+
+// -- bed classifications (data/processed/hau/units.json) --------------------------
+
+/** One of HCAI's 14 bed classifications (utilization report page 3). */
+export type UnitInfo = {
+  id: string
+  /** HCAI's name, e.g. "Intensive Care Newborn Nursery". */
+  label: string
+  /** Plain-language name, e.g. "Neonatal intensive care (NICU)". */
+  description: string
+  /** Field prefix, e.g. IC in IC_LIC_BEDS. */
+  prefix: string
+  /** Census-days field prefix (differs for chemical dependency: CHEM_DEPEND_RECOV_CEN_DAYS). */
+  censusPrefix: string
+  /** Critical care units count transfers out to general acute beds as the end of a stay. */
+  criticalCare: boolean
+  /** A stay ends at a discharge or a transfer out to a general acute bed (critical care and skilled nursing). */
+  countsTransfers: boolean
+}
+
+/** Unit-level metrics: facility -> year -> unit id -> metric -> value. A unit appears only in years it has licensed beds. */
+export type UnitsFile = {
+  units: UnitInfo[]
+  values: Record<string, Record<string, Record<string, Record<string, number | null>> & { annualized: boolean }>>
+}
+
+/** A unit a hospital has licensed beds in (some year), for the unit picker. */
+export type FacilityUnit = { id: string; label: string; description: string; beds: number | null; firstYear: number; lastYear: number }
+
+// -- county context (data/processed/{dhcs-medi-cal,acs-county}) ------------------
+
+/** data/processed/dhcs-medi-cal/counties.json: Medi-Cal certified eligibles (annual = monthly average). */
+export type MediCalCounty = {
+  years: Record<string, { eligibles: number; dual: number | null; months: number; preliminary: boolean }>
+  latest: { month: string; eligibles: number; dual: number | null; preliminary: boolean }
+}
+
+/** data/processed/acs-county/counties.json: Census ACS 5-year estimates. Coverage percents overlap. */
+export type AcsCounty = {
+  fips: string
+  population: number | null
+  medianHouseholdIncome: number | null
+  medianAge: number | null
+  pctAge65Plus: number | null
+  pctBelowPoverty: number | null
+  pctUninsured: number | null
+  pctPrivate: number | null
+  pctMedicare: number | null
+  pctMedicaid: number | null
+}
+
+/** Context for the county a hospital is in. Either source may be missing (not yet loaded). */
+export type CommunityContext = {
+  county: string
+  acs: (AcsCounty & { vintage: string }) | null
+  mediCal: (MediCalCounty["latest"] & { year: number; annual: MediCalCounty["years"][string] | null }) | null
 }

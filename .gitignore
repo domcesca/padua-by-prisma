@@ -45,3 +45,4 @@ next-env.d.ts
 __pycache__/
 *.pyc
 data/raw/
+!.env.example

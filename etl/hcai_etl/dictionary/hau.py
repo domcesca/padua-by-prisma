@@ -197,7 +197,7 @@ def _bed_grid() -> dict[str, dict]:
             summary = template.format(
                 label=label,
                 lower=lower,
-                transfers=" (+ transfers out)" if prefix in CRITICAL_CARE else "",
+                transfers=" (+ transfers out)" if prefix in CRITICAL_CARE | {"SN"} else "",
             )
             if prefix == "SN" and suffix == "_INTRA_TRANSFERS":
                 summary = "Patients moved from skilled nursing back to a general acute bed."
@@ -485,6 +485,23 @@ METRICS: dict[str, dict] = {
         "higherIsBetter": None,
         "caution": "Not adjusted for case mix: trauma and tertiary centers keep sicker patients longer.",
         "drivers": SECTIONS["alos"]["drivers"],
+    },
+    "adc": {
+        "category": "utilization",
+        "label": "Average daily census (acute)",
+        "unit": "number",
+        "unitLabel": "patients",
+        "decimals": 1,
+        "summary": "Patients in general acute beds on an average day: acute patient days ÷ days in the year.",
+        "formula": "GAC_SUBTOT_CEN_DAYS ÷ days in the reporting period",
+        "inputs": ["GAC_SUBTOT_CEN_DAYS"],
+        "higherIsBetter": None,
+        "caution": "Acute beds only, like length of stay: skilled nursing, psychiatric, and chemical dependency days are left out, so it's lower than total patient days ÷ 365 at hospitals with those units.",
+        "drivers": [
+            "Admissions × length of stay: either one moving shifts the census.",
+            "Discharge delays for patients waiting on skilled nursing or psychiatric placement.",
+            "Units opening, closing, or converting.",
+        ],
     },
     "edVisits": {
         "category": "utilization",

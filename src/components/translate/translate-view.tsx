@@ -10,7 +10,7 @@ import { FacilityPicker, type FacilityOption } from "@/components/benchmark/faci
 import { FilterPill } from "@/components/benchmark/filter-pill"
 import { Segmented } from "@/components/shell/segmented"
 import { DATASET_SLUG, DATASETS, parseDatasetSlug } from "@/lib/data/datasets"
-import type { DatasetId, Dictionary, DictionaryField, DictionaryMetric, FieldYearMeta } from "@/lib/data/types"
+import type { Dictionary, DictionaryField, DictionaryMetric, FieldYearMeta, HcaiDatasetId } from "@/lib/data/types"
 import { normalizeColumn, type Extract } from "@/lib/translate/columns"
 import { rememberSelection } from "@/lib/selection"
 import { cn } from "@/lib/utils"
@@ -36,7 +36,7 @@ export function TranslateView({
   initialFacilityData,
   initialFocus,
 }: {
-  dataset: DatasetId
+  dataset: HcaiDatasetId
   dictionary: Dictionary
   /** The other dataset's field codes, to spot an extract uploaded under the wrong source. */
   otherSource: { slug: string; codes: string[] }

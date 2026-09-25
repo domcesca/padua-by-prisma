@@ -27,7 +27,7 @@ const BAND = "var(--chart-2)"
 /** Volumes and rates read best from zero; margins and unit costs read best zoomed in. */
 function includesZero(metric: DictionaryMetric) {
   if (metric.id === "operatingMargin") return false
-  return metric.unit === "count" || metric.unit === "pct" || metric.unit === "ratio"
+  return metric.unit === "count" || metric.unit === "pct" || metric.unit === "ratio" || metric.unit === "number"
 }
 
 export function TrendChart({ metric, points }: { metric: DictionaryMetric; points: SeriesPoint[] }) {
@@ -35,8 +35,9 @@ export function TrendChart({ metric, points }: { metric: DictionaryMetric; point
     ...p,
     band: p.p25 != null && p.p75 != null ? [p.p25, p.p75] : null,
   }))
-  const ticks = niceTicks(
-    points.flatMap((p) => [p.value, p.median, p.p25, p.p75]).filter((v): v is number => v != null),
+  // Star ratings live on a fixed 1–5 scale.
+  const ticks = metric.unitLabel?.startsWith("stars") ? [0, 1, 2, 3, 4, 5] : niceTicks(
+    [...points.flatMap((p) => [p.value, p.median, p.p25, p.p75]), metric.reference].filter((v): v is number => v != null),
     includesZero(metric)
   )
   const showZero = ticks[0] < 0 && ticks.at(-1)! > 0
@@ -65,6 +66,15 @@ export function TrendChart({ metric, points }: { metric: DictionaryMetric; point
             allowDataOverflow
           />
           {showZero && <ReferenceLine y={0} stroke="var(--muted-foreground)" strokeOpacity={0.5} />}
+          {metric.reference != null && (
+            <ReferenceLine
+              y={metric.reference}
+              stroke="var(--muted-foreground)"
+              strokeOpacity={0.6}
+              strokeDasharray="3 3"
+              label={{ value: "Expected", position: "insideTopRight", fontSize: 10, fill: "var(--muted-foreground)" }}
+            />
+          )}
           <Tooltip
             cursor={{ stroke: "var(--muted-foreground)", strokeOpacity: 0.4, strokeWidth: 1 }}
             content={({ active, payload }) => <ChartTooltip active={active} payload={payload} metric={metric} />}
@@ -121,7 +131,7 @@ function ChartTooltip({
   if (!row) return null
   return (
     <div className="min-w-48 glass-strong rounded-xl px-3 py-2.5 text-xs">
-      <p className="mb-1.5 font-medium">{row.year}</p>
+      <p className="mb-1.5 font-medium">{row.detail?.period ?? row.year}</p>
       <dl className="space-y-1">
         <TooltipRow swatch={<span className="size-2 rounded-full bg-(--chart-1)" />} label="This hospital">
           {formatMetric(metric, row.value)}

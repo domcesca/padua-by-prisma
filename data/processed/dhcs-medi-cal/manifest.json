@@ -1,0 +1,32 @@
+{
+  "id": "dhcs-medi-cal",
+  "title": "DHCS Medi-Cal Certified Eligibles by County",
+  "sourcePage": "https://data.chhs.ca.gov/dataset/medi-cal-certified-eligibles-with-demographics-by-month",
+  "package": {
+    "title": "Medi-Cal Certified Eligibles Data by Month with Demographics",
+    "metadata_modified": "2026-09-11T20:50:00.660108"
+  },
+  "years": [
+    2019,
+    2020,
+    2021,
+    2022,
+    2023,
+    2024,
+    2025,
+    2026
+  ],
+  "latestMonth": "2026-08",
+  "sources": [
+    {
+      "name": "By Medicare Dual Status, Certified Eligibles",
+      "url": "https://data.chhs.ca.gov/dataset/8c897320-ba87-4574-bc37-bae974191c35/resource/9ade93e4-0676-4117-adbe-a53378d7fe84/download/t6_eligibility_by_medicare_dual_status_201001_202609.csv"
+    }
+  ],
+  "generatedAt": "2026-09-25T04:30:33Z",
+  "notes": [
+    "Certified eligibles: people DHCS has determined eligible for Medi-Cal in the month.",
+    "Annual figures average the year's monthly counts. Recent months are preliminary and get revised as late eligibility determinations post.",
+    "Dual = also enrolled in Medicare."
+  ]
+}

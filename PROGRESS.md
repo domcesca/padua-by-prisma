@@ -1,6 +1,6 @@
 # PROGRESS — handoff for the next session
 
-_Last updated 2026-09-24, after V2 (commit `b09ba3a`). Read this first, then `README.md` (run/refresh/deploy commands) and `AGENTS.md` (this is Next.js 16 — check `node_modules/next/dist/docs/` before writing Next code)._
+_Last updated 2026-09-25, mid-V4 (see §2 V4). Read this first, then `README.md` (run/refresh/deploy commands) and `AGENTS.md` (this is Next.js 16 — check `node_modules/next/dist/docs/` before writing Next code)._
 
 ## 1. Project overview
 
@@ -42,6 +42,63 @@ _Last updated 2026-09-24, after V2 (commit `b09ba3a`). Read this first, then `RE
 - **Unaudited financial years.** Recent financial years include "In Process" (unaudited) reports.
 - **Build warning.** Turbopack warns about a stray `C:\Users\domin\package-lock.json` outside the repo. It's harmless, and the file hasn't been removed.
 - **No automated tests.** Verification so far has been typecheck, lint, `next build`, and manual/browser checks at desktop and 375px widths in both themes.
+
+### V3 (in progress)
+1. **Medicare lens** (done): a "Payer view" toggle (All payers / Medicare, `?payer=medicare`) on Benchmark for
+   Financials and Utilization, built from HCAI's own Medicare columns (the user chose this over the CMS public-use
+   file; CMS payment per discharge may be added later as an extra metric). Medicare margin uses the AHA
+   payment-to-cost method (cost-to-charge ratio = TOT_OP_EXP ÷ (GR_PT_REV + OTH_OP_REV)); median −29% to −35%,
+   checked against AHA (82¢ per dollar nationally, 2022) and CHA (~75¢ in California). It's far below MedPAC (−13%)
+   by design; the popup says so. Charge-based allocation doesn't inflate Medicare's share (charge share ~44% <
+   days share ~47–49%).
+2. **Quality topic** (done): see README "Quality". CMS Care Compare (archived snapshots) + CDPH HAI. **CDPH's
+   Facility_ID is NOT the HCAI ID** (ELMS ID, e.g. 930000004); mapped via CDPH's facility listing + ELMS–OSHPD
+   crosswalk (`etl/hcai_etl/crosswalk.py`), 286/288 comparable general hospitals matched. **VRE has no SIR** in the
+   source (no national risk adjustment) — rate only, as the user agreed for missing years. VRE is still published
+   through 2025. Rates follow CDPH units (CLABSI per 1,000 line days, others per 10,000 patient days).
+3. **Community context** (done): Medi-Cal enrollment (DHCS) and Census ACS 2020–2024 5-year, fetched from the
+   live API with the user's `CENSUS_API_KEY` (never written to disk). Verified: 58 counties, no nulls, county
+   populations sum exactly to the API's state total (39,287,377), and population, median age, % 65+, median household
+   income, poverty, and uninsured match Census's independent profile tables (DP03/DP05) for LA, SF, Humboldt, and
+   Imperial. DHCS enrollment runs well above ACS self-reported Medicaid (15.0M vs ~10.6M statewide; LA 42% vs 30%) —
+   known survey undercount; the panel labels the Census bar self-reported and explains the gap.
+4. **Correlate tab** (done, built at the start of V4): `/correlate`, `src/lib/correlate/{spec,run}.ts`,
+   `/api/correlate`. Pairs values by year number across datasets (and says so when year kinds differ). Default year =
+   newest with ≥80% of the best coverage. r, slope and Spearman ρ verified against scipy. Small-sample note below 8
+   hospitals (`SMALL_SAMPLE`); no r below 3.
+
+### V4 (in progress)
+1. **Length of stay / average daily census** (done). All-payer LoS already existed as `alos` ("Average length of stay
+   (acute)", GAC lines 1–9). Added `adc` = acute census days ÷ days in the period (`hau`). Both acute-only; note that
+   inpatient days, discharges and occupancy are all-bed totals, not acute-only. Medicare-lens LoS (financial report)
+   still includes SNF days.
+2. **Home page reorder** (done): hospital first, then topic.
+3. **Case mix index** (done): pulled directly from CHHS (`case-mix-index` package) — the user didn't need to supply a
+   file. Federal fiscal years 2019–2025, category Utilization. Per-facility in the source, so campuses are combined by
+   utilization-report discharge weights (see README). The "Case mix" home placeholder now describes a future
+   conditions/procedures topic.
+4. **Hospital card** (done): licensed beds, FY end, data years, plus latest LoS, ADC (both acute) and CMI.
+5. **Unit-level drill-down** (done). User decisions: HCAI's 14 categories as-is (no "Definitive Observation"); a unit is
+   offered only if the hospital has licensed beds > 0 in it; peer comparison included, limited to peers with the unit.
+   `hau` ETL writes `units.json` (per facility-year per unit: licensed beds, occupancy, ADC, ALOS with HCAI's critical-care
+   transfer denominators, discharges, patient days; campuses rolled up like everything else). Benchmark `?unit=<id>`
+   (Utilization only, all payers only; Payer toggle hidden), unit pill next to the topic, unit-specific metric
+   definitions (`src/lib/benchmark/units.ts`). Home has an optional step 3 "View by unit". Checks: unit beds sum to
+   hospital beds in every facility-year; unit ALOS matches HCAI's published ALOS in all 7,194 single-report,
+   single-campus unit-years 2019–2024 (the 4 differences left are years a second campus was rolled into the license,
+   where HCAI's figure is the parent campus only). Getting there fixed a V2 bug: skilled nursing ALOS must count
+   SN_INTRA_TRANSFERS like critical care (HCAI's SN_ALOS_CY matches that for 89/89 SNF units in 2023 and 2024);
+   the ETL had counted discharges only. Hospital-wide metrics were unaffected; fields.json SN_ALOS_CY (Translate) changed. 105/2,621 facility-years report patient days in a category with 0 licensed beds (e.g. ICU-level days in
+   med/surg-licensed beds) — those days aren't in any unit view, by the beds > 0 rule. Not extended to Build/Correlate
+   (they're hospital-wide). HAU report page 3 has: Medical/Surgical (1), Perinatal (2), Pediatric (3), Intensive Care (4), Coronary Care (5), Acute
+   Respiratory Care (6), Burn (7), Intensive Care Newborn Nursery (8), Rehabilitation Center (9), GAC subtotal (15),
+   Chemical Dependency Recovery (16), Acute Psychiatric (17), Skilled Nursing (18), Intermediate Care (19), ICF-DD
+   (20), Total (25), plus lines 30/31 (chemical dependency recovery hospital / acute psychiatric hospital licenses)
+   and newborn-nursery census days (35). There is **no "Definitive Observation" line**. Each has licensed beds, bed
+   days, discharges, census days (critical care also intra-hospital transfers). Raw files are cached in `data/raw/hau`.
+
+Cloud sessions need data.cms.gov, data.chhs.ca.gov and api.census.gov allowed (the user added them); CHHS
+downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and aha.org were not.
 
 ## 3. Key decisions and why
 
@@ -130,9 +187,9 @@ The utilities are all in `src/app/globals.css`. **Reuse them; don't invent new o
 ## 4. Deferred or not built
 - **Ask** (natural-language queries): placeholder only. The intended design is NL → `ReportSpec` → the existing Build runner.
 - **Watch** (anomaly detection on uploaded data): placeholder only.
-- **Quality and Case mix** topics: shown as "coming later" on the home page (`FUTURE_CATEGORIES` in `datasets.ts`).
+- **Case mix** topic (conditions/procedures treated): shown as "coming later" on the home page (`FUTURE_CATEGORIES` in `datasets.ts`). The CMI itself is built (Utilization).
 - **Other**: no accounts, saved reports, server-side uploads or database.
-- **More HCAI datasets:** Quarterly Financial & Utilization, the complete Annual Disclosure set and the Case Mix Index are planned but not started.
+- **More HCAI datasets:** Quarterly Financial & Utilization and the complete Annual Disclosure set are planned but not started.
 
 ## 5. Deployment state (checked 2026-09-24)
 - **GitHub:** https://github.com/domcesca/usc-hcai-insights (public). `main` is pushed and in sync with `origin/main` at `b09ba3a`.

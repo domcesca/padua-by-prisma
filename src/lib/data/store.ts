@@ -5,15 +5,21 @@ import path from "node:path"
 
 import type { FacilityOption } from "@/components/benchmark/facility-picker"
 
-import { isTrendMetric, type MetricDef } from "./datasets"
+import { HCAI_DATASETS, isTrendMetric, type MetricDef } from "./datasets"
 import type {
+  AcsCounty,
+  CommunityContext,
   DatasetId,
   Dictionary,
   Facility,
+  FacilityUnit,
   FieldsFile,
   FinancialFacility,
+  HcaiDatasetId,
   Manifest,
+  MediCalCounty,
   MetricsFile,
+  UnitsFile,
   UtilizationFacility,
 } from "./types"
 
@@ -32,7 +38,9 @@ import type {
 
 const PROCESSED_DIR = path.join(process.cwd(), "data", "processed")
 
-export const DATASET_IDS: DatasetId[] = ["hafd-selected", "hau"]
+export const DATASET_IDS: DatasetId[] = ["hafd-selected", "hau", "case-mix-index", "cms-care-compare", "cdph-hai"]
+
+const CATEGORY_ORDER = { financial: 0, utilization: 1, quality: 2 } as const
 
 const cache = new Map<string, Promise<unknown>>()
 
@@ -54,7 +62,7 @@ function load<T>(dataset: DatasetId, file: string): Promise<T> {
 }
 
 export const getMetrics = (dataset: DatasetId) => load<MetricsFile>(dataset, "metrics.json")
-export const getFields = (dataset: DatasetId) => load<FieldsFile>(dataset, "fields.json")
+export const getFields = (dataset: HcaiDatasetId) => load<FieldsFile>(dataset, "fields.json")
 export const getDictionary = (dataset: DatasetId) => load<Dictionary>(dataset, "dictionary.json")
 export const getManifest = (dataset: DatasetId) => load<Manifest>(dataset, "manifest.json")
 
@@ -163,7 +171,7 @@ export function getMetricCatalog(): Promise<MetricDef[]> {
       d.metrics
         .filter((m) => m.category != null)
         .map((m) => ({ ...m, category: m.category!, dataset: d.dataset }) as MetricDef)
-    ).sort((a, b) => (a.category === b.category ? 0 : a.category === "financial" ? -1 : 1))
+    ).sort((a, b) => CATEGORY_ORDER[a.category] - CATEGORY_ORDER[b.category])
   })
 }
 
@@ -171,16 +179,53 @@ export async function getTrendMetrics() {
   return (await getMetricCatalog()).filter(isTrendMetric)
 }
 
-/** Latest year across all datasets. */
+/** Latest year HCAI has reported (financial or utilization); a hospital that stopped before it is flagged. */
 export async function getLatestYear() {
-  const manifests = await Promise.all(DATASET_IDS.map(getManifest))
+  const manifests = await Promise.all(HCAI_DATASETS.map(getManifest))
   return Math.max(...manifests.map((m) => m.years.at(-1) ?? 0))
+}
+
+/** Every year any dataset covers, ascending. */
+export async function getAllYears() {
+  const manifests = await Promise.all(DATASET_IDS.map(getManifest))
+  return [...new Set(manifests.flatMap((m) => m.years))].sort((a, b) => a - b)
+}
+
+/** Years in which a metric has a value for at least one hospital (i.e. its source published it). */
+export function getPublishedYears(metric: MetricDef): Promise<Set<number>> {
+  return memo(`published/${metric.dataset}/${metric.id}`, async () => {
+    const file = await getMetrics(metric.dataset)
+    const years = new Set<number>()
+    for (const byYear of Object.values(file)) {
+      for (const [year, row] of Object.entries(byYear)) {
+        if (typeof row[metric.id] === "number") years.add(Number(year))
+      }
+    }
+    return years
+  })
+}
+
+// -- bed classifications --------------------------------------------------------
+
+export const getUnits = () => load<UnitsFile>("hau", "units.json")
+
+/** The units a hospital has had licensed beds in, in HCAI's line order, with the latest bed count. */
+export async function getFacilityUnits(facilityId: string): Promise<FacilityUnit[]> {
+  const file = await getUnits()
+  const byYear = file.values[facilityId] ?? {}
+  const years = Object.keys(byYear).map(Number).sort((a, b) => a - b)
+  return file.units.flatMap((u) => {
+    const present = years.filter((y) => byYear[y]?.[u.id])
+    if (!present.length) return []
+    const last = present.at(-1)!
+    return [{ id: u.id, label: u.label, description: u.description, beds: byYear[last][u.id].licensedBeds ?? null, firstYear: present[0], lastYear: last }]
+  })
 }
 
 // -- raw fields (Translate) -----------------------------------------------------
 
 /** Raw field values for one facility, keyed by year then field code. */
-export async function getFacilityFieldValues(dataset: DatasetId, id: string) {
+export async function getFacilityFieldValues(dataset: HcaiDatasetId, id: string) {
   const file = await getFields(dataset)
   const byYear = file.values[id]
   if (!byYear) return null
@@ -189,4 +234,39 @@ export async function getFacilityFieldValues(dataset: DatasetId, id: string) {
     values[year] = Object.fromEntries(file.fields.map((code, i) => [code, row[i]]))
   }
   return { values, meta: file.meta[id] ?? {} }
+}
+
+// -- county context -------------------------------------------------------------
+
+/** A county-level context file, or null when that source hasn't been processed (e.g. no Census key yet). */
+function loadOptional<T>(dir: string, file: string): Promise<T | null> {
+  return memo(`${dir}/${file}`, () =>
+    readFile(path.join(PROCESSED_DIR, dir, file), "utf8")
+      .then((text) => JSON.parse(text) as T)
+      .catch((e: NodeJS.ErrnoException) => {
+        if (e.code === "ENOENT") return null
+        throw e
+      })
+  )
+}
+
+/** Census and Medi-Cal context for a county (HCAI county names, e.g. "Los Angeles"). */
+export async function getCommunityContext(county: string | null): Promise<CommunityContext | null> {
+  if (!county) return null
+  const [acs, acsManifest, mediCal] = await Promise.all([
+    loadOptional<Record<string, AcsCounty>>("acs-county", "counties.json"),
+    loadOptional<{ vintage: string }>("acs-county", "manifest.json"),
+    loadOptional<Record<string, MediCalCounty>>("dhcs-medi-cal", "counties.json"),
+  ])
+  const a = acs?.[county]
+  const m = mediCal?.[county]
+  if (!a && !m) return null
+  // The latest full year of Medi-Cal enrollment, falling back to the newest partial one.
+  const years = m ? Object.keys(m.years).map(Number).sort((x, y) => x - y) : []
+  const fullYear = [...years].reverse().find((y) => m!.years[y].months === 12) ?? years.at(-1)
+  return {
+    county,
+    acs: a ? { ...a, vintage: acsManifest?.vintage ?? "" } : null,
+    mediCal: m && fullYear != null ? { ...m.latest, year: fullYear, annual: m.years[fullYear] ?? null } : null,
+  }
 }

@@ -867,6 +867,177 @@ METRICS: dict[str, dict] = {
     },
 }
 
+# Medicare lens: the same measures narrowed to Medicare (traditional + Medicare
+# Advantage) from HCAI's own payer columns, so years and definitions match the
+# all-payer view. `lens` marks them; `allPayer` names the metric each one
+# replaces when the Benchmark "Payer view" is set to Medicare.
+_MCAR_TR_MC = "MCAR_TR + MCAR_MC"
+_MCAR_COST_CAUTION = (
+    "Estimated, and more negative than MedPAC's figures by design. HCAI doesn't report expenses by payer, so Medicare's "
+    "cost is its gross charges times the hospital's cost-to-charge ratio (the AHA payment-to-cost method). MedPAC's "
+    "Medicare margin (−13% nationally in 2023) counts only Medicare-allowable costs from cost reports and only traditional "
+    "Medicare. The AHA method counts all operating expense and includes Medicare Advantage: nationally it put Medicare "
+    "at 82 cents per dollar of cost in 2022 (a margin near −22%), and California hospitals run lower, near 75 cents "
+    "(about −33%). Compare hospitals with each other here, not with MedPAC or the Medicare cost report (CMS-2552)."
+)
+MEDICARE_METRICS: dict[str, dict] = {
+    "medicareMargin": {
+        "category": "financial",
+        "estimate": True,
+        "lens": "medicare",
+        "allPayer": "operatingMargin",
+        "label": "Medicare margin",
+        "unit": "ratio",
+        "summary": "Estimated profit or loss per dollar of Medicare net patient revenue, with Medicare's cost estimated from its charges and the hospital's cost-to-charge ratio.",
+        "formula": f"(NETRV_MCAR − GR_MCAR × TOT_OP_EXP ÷ (GR_PT_REV + OTH_OP_REV)) ÷ NETRV_MCAR, where MCAR = {_MCAR_TR_MC} and GR = GR_IP_ + GR_OP_",
+        "inputs": ["NETRV_MCAR_TR", "NETRV_MCAR_MC", "TOT_OP_EXP", "OTH_OP_REV", "GR_IP_MCAR_TR", "GR_IP_MCAR_MC", "GR_OP_MCAR_TR", "GR_OP_MCAR_MC", "GR_PT_REV"],
+        "higherIsBetter": True,
+        "caution": _MCAR_COST_CAUTION,
+        "drivers": [
+            "Annual Medicare payment updates (IPPS and OPPS) versus local wage and supply inflation.",
+            "Case mix: sicker Medicare patients bring higher DRG payments.",
+            "Medicare Advantage contract terms, and denials or downgrades by MA plans.",
+            "Cost per case: length of stay, staffing, and supply use.",
+        ],
+    },
+    "medicareRevenuePerAdjDischarge": {
+        "category": "financial",
+        "lens": "medicare",
+        "allPayer": "revenuePerAdjDischarge",
+        "label": "Medicare revenue per adjusted discharge",
+        "unit": "usd",
+        "summary": "Medicare net patient revenue per Medicare inpatient stay, scaled up for Medicare outpatient work.",
+        "formula": f"NETRV_MCAR ÷ (DIS_MCAR × GR_MCAR ÷ GR_IP_MCAR), where MCAR = {_MCAR_TR_MC}",
+        "inputs": ["NETRV_MCAR_TR", "NETRV_MCAR_MC", "DIS_MCAR_TR", "DIS_MCAR_MC", "GR_IP_MCAR_TR", "GR_IP_MCAR_MC", "GR_OP_MCAR_TR", "GR_OP_MCAR_MC"],
+        "higherIsBetter": True,
+        "drivers": [
+            "Annual Medicare rate updates and the hospital's wage index.",
+            "Case mix index of Medicare patients.",
+            "Add-on payments: disproportionate share (DSH), uncompensated care, and graduate medical education.",
+            "Medicare Advantage rates, which are negotiated and can sit above or below traditional Medicare.",
+        ],
+    },
+    "medicareCostPerAdjDischarge": {
+        "category": "financial",
+        "estimate": True,
+        "lens": "medicare",
+        "allPayer": "expensePerAdjDischarge",
+        "label": "Medicare cost per adjusted discharge",
+        "unit": "usd",
+        "summary": "Estimated cost of caring for Medicare patients, per Medicare adjusted discharge.",
+        "formula": f"(GR_MCAR × TOT_OP_EXP ÷ (GR_PT_REV + OTH_OP_REV)) ÷ (DIS_MCAR × GR_MCAR ÷ GR_IP_MCAR), where MCAR = {_MCAR_TR_MC}",
+        "inputs": ["TOT_OP_EXP", "OTH_OP_REV", "GR_PT_REV", "DIS_MCAR_TR", "DIS_MCAR_MC", "GR_IP_MCAR_TR", "GR_IP_MCAR_MC", "GR_OP_MCAR_TR", "GR_OP_MCAR_MC"],
+        "higherIsBetter": False,
+        "caution": _MCAR_COST_CAUTION,
+        "drivers": [
+            "Length of stay of Medicare patients.",
+            "Labor costs, contract labor, and supply prices.",
+            "Charge-master changes, which shift how expense is allocated between payers.",
+        ],
+    },
+    "medicareNetRevenue": {
+        "category": "financial",
+        "lens": "medicare",
+        "allPayer": "netPatientRevenue",
+        "label": "Medicare net patient revenue",
+        "unit": "usd",
+        "summary": "What the hospital expects to collect from traditional Medicare and Medicare Advantage plans, after contractual discounts.",
+        "formula": "NETRV_MCAR_TR + NETRV_MCAR_MC",
+        "inputs": ["NETRV_MCAR_TR", "NETRV_MCAR_MC"],
+        "higherIsBetter": None,
+        "drivers": [
+            "Medicare volume and case mix.",
+            "Annual Medicare payment updates.",
+            "Prior-year cost report settlements, which can land in a later year.",
+        ],
+    },
+    "medicareAdvantageShare": {
+        "category": "financial",
+        "lens": "medicare",
+        "label": "Medicare Advantage share",
+        "unit": "ratio",
+        "summary": "Share of the hospital's Medicare discharges covered by a Medicare Advantage (managed care) plan rather than traditional Medicare.",
+        "formula": "DIS_MCAR_MC ÷ (DIS_MCAR_TR + DIS_MCAR_MC)",
+        "inputs": ["DIS_MCAR_TR", "DIS_MCAR_MC"],
+        "higherIsBetter": None,
+        "drivers": [
+            "Medicare Advantage enrollment in the hospital's market, which has risen steadily in California.",
+            "Which MA plans the hospital is in network with.",
+            "Prior authorization and denial practices that steer MA patients elsewhere.",
+        ],
+    },
+    "medicareDischarges": {
+        "category": "utilization",
+        "lens": "medicare",
+        "allPayer": "discharges",
+        "label": "Medicare discharges",
+        "unit": "count",
+        "summary": "Inpatient stays covered by traditional Medicare or Medicare Advantage in the hospital's fiscal year.",
+        "formula": "DIS_MCAR_TR + DIS_MCAR_MC",
+        "inputs": ["DIS_MCAR_TR", "DIS_MCAR_MC"],
+        "higherIsBetter": None,
+        "caution": "From the financial report, so counted by fiscal year rather than the calendar years of the utilization report. Includes every inpatient unit, long-term care included.",
+        "drivers": [
+            "Aging of the local population and Medicare enrollment.",
+            "The two-midnight rule and observation stays, which move Medicare patients between inpatient and outpatient.",
+            "Service line growth or closures (cardiac, orthopedics, oncology).",
+        ],
+    },
+    "medicareInpatientDays": {
+        "category": "utilization",
+        "lens": "medicare",
+        "allPayer": "inpatientDays",
+        "label": "Medicare inpatient days",
+        "unit": "count",
+        "summary": "Inpatient days for Medicare patients (traditional and Medicare Advantage) in the hospital's fiscal year.",
+        "formula": "DAY_MCAR_TR + DAY_MCAR_MC",
+        "inputs": ["DAY_MCAR_TR", "DAY_MCAR_MC"],
+        "higherIsBetter": None,
+        "caution": "From the financial report (fiscal year). Includes long-term care and skilled nursing days, which the utilization report counts separately.",
+        "drivers": [
+            "Medicare discharges and length of stay.",
+            "Discharge delays to skilled nursing facilities.",
+            "Distinct-part skilled nursing or sub-acute units.",
+        ],
+    },
+    "medicareAlos": {
+        "category": "utilization",
+        "lens": "medicare",
+        "allPayer": "alos",
+        "label": "Medicare average length of stay",
+        "unit": "days",
+        "decimals": 1,
+        "summary": "Average days a Medicare patient stays, across every inpatient unit.",
+        "formula": "(DAY_MCAR_TR + DAY_MCAR_MC) ÷ (DIS_MCAR_TR + DIS_MCAR_MC)",
+        "inputs": ["DAY_MCAR_TR", "DAY_MCAR_MC", "DIS_MCAR_TR", "DIS_MCAR_MC"],
+        "higherIsBetter": None,
+        "caution": "Includes long-term care and skilled nursing days, so hospitals with those units run much higher than their acute-care length of stay. The all-payer view is acute care only.",
+        "drivers": [
+            "Discharge delays to skilled nursing and home health.",
+            "Case mix: older, sicker patients stay longer.",
+            "Long-term care or sub-acute units in the hospital.",
+        ],
+    },
+    "medicareOutpatientVisits": {
+        "category": "utilization",
+        "lens": "medicare",
+        "allPayer": "outpatientVisits",
+        "label": "Medicare outpatient visits",
+        "unit": "count",
+        "summary": "Outpatient visits by Medicare patients (traditional and Medicare Advantage) in the hospital's fiscal year.",
+        "formula": "VIS_MCAR_TR + VIS_MCAR_MC",
+        "inputs": ["VIS_MCAR_TR", "VIS_MCAR_MC"],
+        "higherIsBetter": None,
+        "caution": "Counted by fiscal year. Hospitals count visits differently, so compare trends more than levels.",
+        "drivers": [
+            "Shift of procedures from inpatient to outpatient (CMS removing procedures from the inpatient-only list).",
+            "Observation stays, which count as outpatient under Medicare.",
+            "Outpatient clinic and imaging growth.",
+        ],
+    },
+}
+METRICS.update(MEDICARE_METRICS)
+
 PAYER_GROUPS = {
     "medicare": {"label": "Medicare", "includes": ["MCAR_TR", "MCAR_MC"]},
     "medical": {"label": "Medi-Cal", "includes": ["MCAL_TR", "MCAL_MC"]},

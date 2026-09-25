@@ -7,7 +7,7 @@ import { computeBenchmark } from "@/lib/benchmark/compute"
 import { parseFilters } from "@/lib/benchmark/filters"
 import { metricsFor, parseView } from "@/lib/benchmark/view"
 import { DATASETS } from "@/lib/data/datasets"
-import { getDictionary, getFacilities, getLatestYear, getManifest, getMetricCatalog, toFacilityOption } from "@/lib/data/store"
+import { DATASET_IDS, getDictionary, getFacilities, getLatestYear, getManifest, getMetricCatalog, toFacilityOption } from "@/lib/data/store"
 
 export const metadata: Metadata = { title: "Benchmark" }
 
@@ -29,9 +29,9 @@ export default async function BenchmarkPage({ searchParams }: PageProps<"/benchm
     getDictionary("hafd-selected"),
     getMetricCatalog(),
     getLatestYear(),
-    Promise.all([getManifest("hafd-selected"), getManifest("hau")]),
+    Promise.all(DATASET_IDS.map(getManifest)),
     facilityId
-      ? computeBenchmark({ facilityId, filters, category: view.category, metricIds: metricsFor(view), since: view.since })
+      ? computeBenchmark({ facilityId, filters, category: view.category, metricIds: metricsFor(view), since: view.since, payer: view.payer, unit: view.unit })
       : Promise.resolve(null),
   ])
 
@@ -50,7 +50,7 @@ export default async function BenchmarkPage({ searchParams }: PageProps<"/benchm
     <div className="space-y-8">
       <PageHeader
         title="Benchmark"
-        description="See how a California hospital compares with similar hospitals on its finances and its volumes."
+        description="See how a California hospital compares with similar hospitals on its finances, volumes, and quality."
       />
       <BenchmarkView
         facilities={options}
@@ -84,7 +84,8 @@ function DataNote({ manifests }: { manifests: Awaited<ReturnType<typeof getManif
       ))}
       <p>
         Hospitals with partial-year or multiple reports are combined and annualized. Utilization for campuses that share a
-        license is combined into the licensed hospital, matching the financial report. Recent financial years include reports
+        license is combined into the licensed hospital, matching the financial report. CMS and CDPH identify hospitals by
+        their own IDs; those are matched to HCAI facilities with CDPH’s licensed facility crosswalk. Recent financial years include reports
         HCAI hasn’t finished auditing. Data processed{" "}
         {new Date(generatedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}.
       </p>

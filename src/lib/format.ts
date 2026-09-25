@@ -43,6 +43,11 @@ export function formatMetric(metric: MetricFormat, value: number | null | undefi
     }
     case "usd":
       return formatUsd(value, { compact: short || Math.abs(value) >= 1_000_000 })
+    case "number": {
+      // SIRs, rates, stars, minutes: fixed decimals so peers line up; ticks trim trailing zeros.
+      const digits = metric.decimals ?? 2
+      return value.toLocaleString("en-US", { minimumFractionDigits: short ? 0 : digits, maximumFractionDigits: digits })
+    }
     default:
       return short ? formatNumberCompact(value) : int.format(value)
   }

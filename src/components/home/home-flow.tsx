@@ -6,6 +6,7 @@ import {
   BookOpenText,
   CalendarClock,
   ChartColumnBig,
+  ChartScatter,
   Check,
   HeartPulse,
   Landmark,
@@ -19,8 +20,18 @@ import { useRef, useState } from "react"
 import { FacilityPicker, type FacilityOption } from "@/components/benchmark/facility-picker"
 import { FilterPill } from "@/components/benchmark/filter-pill"
 import { Segmented } from "@/components/shell/segmented"
-import { CATEGORIES, CATEGORY_BY_ID, FUTURE_CATEGORIES, type MetricDef } from "@/lib/data/datasets"
-import type { MetricCategory } from "@/lib/data/types"
+import {
+  CATEGORIES,
+  CATEGORY_BY_ID,
+  FUTURE_CATEGORIES,
+  pickableMetrics,
+  supportsUnits,
+  UNIT_DEFAULT_METRICS,
+  UNIT_METRIC_LABELS,
+  UNIT_METRICS,
+  type MetricDef,
+} from "@/lib/data/datasets"
+import type { FacilityUnit, MetricCategory } from "@/lib/data/types"
 import { rememberSelection, useSelection } from "@/lib/selection"
 import { cn } from "@/lib/utils"
 
@@ -31,7 +42,14 @@ const ICONS: Record<string, LucideIcon> = {
   caseMix: Layers,
 }
 
-type PeerPreview = { count: number; description: string; note: string | null; hasFinancial: boolean; hasUtilization: boolean }
+type PeerPreview = {
+  count: number
+  description: string
+  note: string | null
+  hasFinancial: boolean
+  hasUtilization: boolean
+  units: FacilityUnit[]
+}
 
 export function HomeFlow({
   facilities,
@@ -51,6 +69,7 @@ export function HomeFlow({
   const [peers, setPeers] = useState<"similar" | "statewide">("similar")
   const [metrics, setMetrics] = useState<string[] | null>(null)
   const [since, setSince] = useState<number | null>(null)
+  const [unit, setUnit] = useState<string | null>(null)
   const [refineOpen, setRefineOpen] = useState(false)
   const [preview, setPreview] = useState<PeerPreview | null>(null)
   const [previewLoading, setPreviewLoading] = useState(false)
@@ -81,10 +100,17 @@ export function HomeFlow({
   function chooseCategory(next: MetricCategory) {
     setCategory(next)
     setMetrics(null)
+    if (!supportsUnits(next)) setUnit(null)
+  }
+
+  function chooseUnit(next: string | null) {
+    setUnit(next)
+    setMetrics(null)
   }
 
   function chooseFacility(id: string) {
     setFacilityId(id)
+    setUnit(null)
     void loadPreview(id, peers)
   }
 
@@ -93,9 +119,17 @@ export function HomeFlow({
     void loadPreview(facilityId, mode)
   }
 
-  const categoryMetrics = category ? catalog.filter((m) => m.category === category && m.unit !== "share") : []
-  const chosenMetrics = metrics ?? (category ? CATEGORY_BY_ID[category].defaultMetrics : [])
-  const customMetrics = metrics != null && metrics.join(",") !== (category ? CATEGORY_BY_ID[category].defaultMetrics.join(",") : "")
+  // Under a unit, only the metrics HCAI reports by bed classification.
+  const categoryMetrics = unit
+    ? UNIT_METRICS.map((id) => ({ id, label: UNIT_METRIC_LABELS[id] }))
+    : category
+      ? pickableMetrics(catalog, category, "all")
+      : []
+  const defaultMetrics = unit ? UNIT_DEFAULT_METRICS : category ? CATEGORY_BY_ID[category].defaultMetrics : []
+  const chosenMetrics = metrics ?? defaultMetrics
+  const customMetrics = metrics != null && metrics.join(",") !== defaultMetrics.join(",")
+  const units = preview?.units ?? []
+  const unitInfo = units.find((u) => u.id === unit)
 
   function toggleMetric(id: string) {
     // Added metrics go at the end, after the standard set.
@@ -106,7 +140,8 @@ export function HomeFlow({
   const benchmarkHref = (() => {
     if (!ready) return "/benchmark"
     const p = new URLSearchParams({ facility: facilityId })
-    if (category === "utilization") p.set("view", "utilization")
+    if (category !== "financial") p.set("view", category)
+    if (unit && supportsUnits(category)) p.set("unit", unit)
     if (customMetrics && chosenMetrics.length) p.set("metrics", chosenMetrics.join(","))
     if (since != null) p.set("since", String(since))
     if (peers === "statewide") p.set("peers", "statewide")
@@ -115,7 +150,11 @@ export function HomeFlow({
   const withFacility = (href: string, extra: Record<string, string> = {}) =>
     facilityId ? `${href}?${new URLSearchParams({ ...extra, facility: facilityId })}` : href
   const noDataForCategory =
-    preview && category ? (category === "financial" ? !preview.hasFinancial : !preview.hasUtilization) : false
+    preview && category && category !== "quality"
+      ? category === "financial"
+        ? !preview.hasFinancial
+        : !preview.hasUtilization
+      : false
 
   const remember = () => ready && rememberSelection({ facilityId, category })
 
@@ -126,12 +165,12 @@ export function HomeFlow({
         <p className="text-[13px] font-medium text-muted-foreground">HCAI Insights · California hospital data, made usable</p>
         <h1 className="text-[34px] leading-[1.1] font-semibold tracking-tight sm:text-[44px]">What do you want to look at?</h1>
         <p className="max-w-2xl text-[17px] leading-relaxed text-muted-foreground">
-          Pick a topic and a hospital. You&apos;ll see it next to similar California hospitals, using HCAI&apos;s public
-          financial and utilization reports.
+          Pick a hospital, then a topic. You&apos;ll see it next to similar California hospitals, using HCAI&apos;s public
+          financial and utilization reports and CMS and CDPH quality data.
         </p>
         {resume && (
           <Link
-            href={`/benchmark?${new URLSearchParams({ facility: resume.id, ...(selection?.category === "utilization" ? { view: "utilization" } : {}) })}`}
+            href={`/benchmark?${new URLSearchParams({ facility: resume.id, ...(selection && selection.category !== "financial" ? { view: selection.category } : {}) })}`}
             className="glass fade-up inline-flex max-w-full items-center gap-2 rounded-full px-4 py-2 text-[13px] transition-shadow duration-200 hover:glow-soft focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
           >
             <span className="text-muted-foreground">Pick up where you left off:</span>
@@ -144,7 +183,47 @@ export function HomeFlow({
       </header>
 
       {/* Step 1 */}
-      <Step n={1} title="Choose a topic" done={category != null}>
+      <Step n={1} title="Which hospital?" done={facilityId != null}>
+        <div className="max-w-2xl space-y-3">
+          <FacilityPicker facilities={facilities} value={facilityId} onChange={chooseFacility} latestYear={latestYear} />
+          {!facilityId && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-tertiary-foreground">Or try</span>
+              {suggestions.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => chooseFacility(s.id)}
+                  className="glass-subtle rounded-full px-3 py-1.5 text-[13px] transition-colors hover:bg-white/80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none dark:hover:bg-white/10"
+                >
+                  {s.name}
+                </button>
+              ))}
+            </div>
+          )}
+          {facility && (
+            <p className="fade-up text-[13px] text-muted-foreground" aria-live="polite">
+              {previewLoading && !preview ? (
+                <span className="flex max-w-xs flex-col gap-1.5">
+                  <span className="inline-flex items-center gap-1.5">
+                    <Loader2 className="size-3.5 animate-spin" /> Finding similar hospitals…
+                  </span>
+                  <span className="loading-bar" />
+                </span>
+              ) : preview ? (
+                <>
+                  Will compare with <span className="font-medium text-foreground">{preview.count}</span>{" "}
+                  {peers === "similar" ? "similar hospitals" : "hospitals"}:{" "}
+                  {preview.description.charAt(0).toLowerCase() + preview.description.slice(1)}.
+                </>
+              ) : null}
+            </p>
+          )}
+        </div>
+      </Step>
+
+      {/* Step 2 */}
+      <Step n={2} title="Choose a topic" done={category != null}>
         <div role="radiogroup" aria-label="Topic" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {CATEGORIES.map((c) => {
             const Icon = ICONS[c.id]
@@ -204,60 +283,70 @@ export function HomeFlow({
             )
           })}
         </div>
-      </Step>
-
-      {/* Step 2 */}
-      <Step n={2} title="Which hospital?" done={facilityId != null}>
-        <div className="max-w-2xl space-y-3">
-          <FacilityPicker facilities={facilities} value={facilityId} onChange={chooseFacility} latestYear={latestYear} />
-          {!facilityId && (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs text-tertiary-foreground">Or try</span>
-              {suggestions.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => chooseFacility(s.id)}
-                  className="glass-subtle rounded-full px-3 py-1.5 text-[13px] transition-colors hover:bg-white/80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none dark:hover:bg-white/10"
-                >
-                  {s.name}
-                </button>
-              ))}
-            </div>
-          )}
-          {facility && (
-            <p className="fade-up text-[13px] text-muted-foreground" aria-live="polite">
-              {previewLoading && !preview ? (
-                <span className="flex max-w-xs flex-col gap-1.5">
-                  <span className="inline-flex items-center gap-1.5">
-                    <Loader2 className="size-3.5 animate-spin" /> Finding similar hospitals…
-                  </span>
-                  <span className="loading-bar" />
-                </span>
-              ) : preview ? (
-                <>
-                  Will compare with <span className="font-medium text-foreground">{preview.count}</span>{" "}
-                  {peers === "similar" ? "similar hospitals" : "hospitals"}:{" "}
-                  {preview.description.charAt(0).toLowerCase() + preview.description.slice(1)}.
-                  {noDataForCategory && (
-                    <span className="text-warning">
-                      {" "}
-                      HCAI has no {category === "financial" ? "financial" : "utilization"} data for this hospital.
-                    </span>
-                  )}
-                </>
-              ) : null}
-            </p>
-          )}
-        </div>
+        {noDataForCategory && facility && (
+          <p className="fade-up mt-3 text-[13px] text-warning" aria-live="polite">
+            HCAI has no {category === "financial" ? "financial" : "utilization"} data for {facility.name}.
+          </p>
+        )}
       </Step>
 
       {/* Step 3 */}
-      <Step n={3} title="Refine" optional done={false}>
+      <Step n={3} title="View by unit" optional done={unit != null}>
+        {!facility ? (
+          <p className="text-[13px] text-muted-foreground">Choose a hospital to see its units.</p>
+        ) : category && !supportsUnits(category) ? (
+          <p className="text-[13px] text-muted-foreground">
+            {category === "financial" ? "Financial" : "Quality"} data is reported for the whole hospital, so there&apos;s no
+            unit to narrow to. Utilization can be narrowed to a unit.
+          </p>
+        ) : previewLoading && !preview ? (
+          <p className="text-[13px] text-muted-foreground">Loading units…</p>
+        ) : units.length === 0 ? (
+          <p className="text-[13px] text-muted-foreground">HCAI has no bed classifications on file for this hospital.</p>
+        ) : (
+          <div className="space-y-2">
+            <div role="radiogroup" aria-label="Unit" className="flex flex-wrap gap-1.5">
+              {[{ id: null, label: "Whole hospital", beds: null as number | null }, ...units].map((u) => {
+                const on = unit === u.id
+                return (
+                  <button
+                    key={u.id ?? "all"}
+                    type="button"
+                    role="radio"
+                    aria-checked={on}
+                    onClick={() => {
+                      chooseUnit(u.id)
+                      if (u.id && !category) chooseCategory("utilization")
+                    }}
+                    className={cn(
+                      "inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] transition-[color,box-shadow] duration-200 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+                      on ? "glass-subtle ring-accent glow-soft text-foreground" : "glass-subtle text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {on && <Check className="size-3.5" />}
+                    {u.label}
+                    {u.beds != null && <span className="text-xs text-tertiary-foreground">{u.beds} beds</span>}
+                  </button>
+                )
+              })}
+            </div>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              {unitInfo
+                ? `${unitInfo.description}: utilization for these beds only, compared with similar hospitals that have the same unit.`
+                : "Skip this to see the whole hospital. Units are HCAI’s bed classifications; only ones this hospital has licensed beds in are listed."}
+              {!category && " Choosing a unit picks Utilization."}
+            </p>
+          </div>
+        )}
+      </Step>
+
+      {/* Step 4 */}
+      <Step n={4} title="Refine" optional done={false}>
         {!refineOpen ? (
           <div className="flex flex-wrap items-center gap-3 text-[13px] text-muted-foreground">
             <span>
               {peers === "similar" ? "Similar hospitals" : "All of California"} ·{" "}
+              {unitInfo ? `${unitInfo.label} unit · ` : ""}
               {customMetrics ? `${chosenMetrics.length} chosen metrics` : "standard metrics"} ·{" "}
               {since ? `since ${since}` : `${years[0]}–${years.at(-1)}`}
             </span>
@@ -348,20 +437,23 @@ export function HomeFlow({
             ready ? "btn-accent active:scale-[0.98]" : "glass-subtle cursor-not-allowed text-muted-foreground"
           )}
         >
-          {ready ? `Compare ${facility!.name}` : "Choose a topic and a hospital"}
+          {ready ? `Compare ${facility!.name}` : "Choose a hospital and a topic"}
           <ArrowRight className="size-4" />
         </Link>
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px]">
           <SecondaryLink
-            href={withFacility("/build", category === "utilization" ? { category: "utilization" } : {})}
+            href={withFacility("/build", category && category !== "financial" ? { category } : {})}
             icon={ChartColumnBig}
             enabled={ready}
             onClick={remember}
           >
             Build a chart
           </SecondaryLink>
+          <SecondaryLink href={withFacility("/correlate")} icon={ChartScatter} enabled={facilityId != null} onClick={remember}>
+            Correlate two measures
+          </SecondaryLink>
           <SecondaryLink
-            href={withFacility("/translate", { source: category ?? "financial" })}
+            href={withFacility("/translate", { source: category === "utilization" ? "utilization" : "financial" })}
             icon={BookOpenText}
             enabled={ready}
             onClick={remember}

@@ -7,10 +7,25 @@ import { Segmented } from "@/components/shell/segmented"
 import type { BenchmarkResult } from "@/lib/benchmark/compute"
 import { DEFAULT_FILTERS, filtersToParams, OWNERSHIP_LABEL, type PeerFilters } from "@/lib/benchmark/filters"
 import { metricsFor, viewToParams, type BenchmarkViewState } from "@/lib/benchmark/view"
-import { CATEGORIES, CATEGORY_BY_ID, DATASETS, type MetricDef } from "@/lib/data/datasets"
+import {
+  applyPayerView,
+  CATEGORIES,
+  CATEGORY_BY_ID,
+  DATASETS,
+  PAYER_VIEWS,
+  pickableMetrics,
+  PRIMARY_DATASET,
+  supportsUnits,
+  UNIT_DEFAULT_METRICS,
+  UNIT_METRIC_LABELS,
+  UNIT_METRICS,
+  type MetricDef,
+  type PayerView,
+} from "@/lib/data/datasets"
 import type { MetricCategory, PayerGroup } from "@/lib/data/types"
 import { rememberSelection } from "@/lib/selection"
 import { cn } from "@/lib/utils"
+import { CommunityPanel } from "./community-panel"
 import { FacilityPicker, type FacilityOption } from "./facility-picker"
 import { FilterPill } from "./filter-pill"
 import { MetricCard } from "./metric-card"
@@ -61,8 +76,17 @@ export function BenchmarkView({
   }, [facilityId, view.category])
   const metaById = Object.fromEntries(catalog.map((m) => [m.id, m]))
   const facility = facilityId ? (facilities.find((f) => f.id === facilityId) ?? null) : null
-  const categoryMetrics = catalog.filter((m) => m.category === view.category && m.unit !== "share")
+  const categoryMetrics = pickableMetrics(catalog, view.category, view.payer)
   const shownMetrics = metricsFor(view).filter((id) => metaById[id]?.category === view.category)
+  // Under a payer lens the picker keeps the all-payer ids but names what will be shown.
+  // Under a unit, only what HCAI reports by bed classification.
+  const metricOptions = view.unit
+    ? UNIT_METRICS.map((id) => ({ value: id, label: UNIT_METRIC_LABELS[id] }))
+    : categoryMetrics.map((m) => {
+        if (view.payer === "all" || m.lens) return { value: m.id, label: m.label }
+        const lensId = applyPayerView([m.id], view.payer, catalog)[0]
+        return { value: m.id, label: lensId !== m.id ? metaById[lensId].label : `${m.label} (all payers)` }
+      })
 
   async function apply(patch: Partial<State>) {
     const next = { ...state, ...patch }
@@ -85,7 +109,13 @@ export function BenchmarkView({
     try {
       const res = await fetch(`/api/benchmark?${apiParams}`, { signal: controller.signal })
       if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? res.statusText)
-      setResult((await res.json()) as BenchmarkResult)
+      const body = (await res.json()) as BenchmarkResult
+      // A unit this hospital doesn't have (e.g. after switching hospitals): show the whole hospital instead.
+      if (next.view.unit && !body.unit) {
+        void apply({ ...next, view: { ...next.view, unit: null } })
+        return
+      }
+      setResult(body)
     } catch (e) {
       if ((e as Error).name !== "AbortError") setError("Couldn’t load the comparison. Try again in a moment.")
     } finally {
@@ -93,15 +123,32 @@ export function BenchmarkView({
     }
   }
 
-  const setCategory = (category: MetricCategory) => apply({ view: { ...view, category, metrics: null } })
+  const setCategory = (category: MetricCategory) =>
+    apply({ view: { ...view, category, metrics: null, unit: supportsUnits(category) ? view.unit : null } })
+  const setUnit = (unit: string | null) => apply({ view: { ...view, unit, payer: unit ? "all" : view.payer } })
+  const setPayer = (payer: PayerView) => apply({ view: { ...view, payer } })
   const setMetrics = (metrics: string[]) => {
-    const valid = metrics.filter((id) => metaById[id]?.category === view.category)
+    const valid = metrics.filter((id) => metaById[id]?.category === view.category && (!view.unit || UNIT_METRICS.includes(id)))
     return apply({ view: { ...view, metrics: valid.length ? valid : null } })
   }
 
-  const shown = result && result.facility.id === facilityId && result.category === view.category ? result : null
+  const shown =
+    result &&
+    result.facility.id === facilityId &&
+    result.category === view.category &&
+    result.payer === (view.category === "quality" ? "all" : view.payer) &&
+    (result.unit?.id ?? null) === view.unit
+      ? result
+      : null
+  const primaryDataset = PRIMARY_DATASET[view.category]
+  const quality = view.category === "quality"
+  const payerInfo = PAYER_VIEWS.find((p) => p.value === view.payer)!
   const categoryInfo = CATEGORY_BY_ID[view.category]
-  const isDefaultMetrics = !view.metrics || view.metrics.join(",") === categoryInfo.defaultMetrics.join(",")
+  const defaultMetrics = view.unit ? UNIT_DEFAULT_METRICS : categoryInfo.defaultMetrics
+  const isDefaultMetrics = !view.metrics || shownMetrics.join(",") === defaultMetrics.join(",")
+  // The hospital's units come with each result; keep offering them while the next one loads.
+  const units = result && result.facility.id === facilityId ? result.units : []
+  const unitInfo = units.find((u) => u.id === view.unit)
 
   return (
     <div className="space-y-6">
@@ -119,10 +166,36 @@ export function BenchmarkView({
             onChange={setCategory}
             options={CATEGORIES.map((c) => ({ value: c.id, label: c.label }))}
           />
+          {supportsUnits(view.category) && units.length > 0 && (
+            <FilterPill
+              label="Unit"
+              summary={unitInfo ? unitInfo.label : "Whole hospital"}
+              active={!!unitInfo}
+              options={[
+                { value: "all", label: "Whole hospital" },
+                ...units.map((u) => ({
+                  value: u.id,
+                  label: u.label,
+                  hint: u.lastYear < (result?.facility.utilizationYears.at(-1) ?? u.lastYear) ? `through ${u.lastYear}` : u.beds != null ? `${u.beds} beds` : undefined,
+                })),
+              ]}
+              selected={[view.unit ?? "all"]}
+              onChange={([v]) => setUnit(v === "all" ? null : v)}
+              wide
+            />
+          )}
+          {!quality && !view.unit && (
+            <Segmented
+              label="Payer view"
+              value={view.payer}
+              onChange={setPayer}
+              options={PAYER_VIEWS.map((p) => ({ value: p.value, label: p.label }))}
+            />
+          )}
           <FilterPill
             label="Metrics"
             summary={isDefaultMetrics ? null : `${shownMetrics.length} metric${shownMetrics.length === 1 ? "" : "s"}`}
-            options={categoryMetrics.map((m) => ({ value: m.id, label: m.label }))}
+            options={metricOptions}
             selected={shownMetrics}
             onChange={setMetrics}
             multiple
@@ -176,6 +249,7 @@ export function BenchmarkView({
       {shown && (
         <div className={cn("space-y-6 transition-opacity duration-200", loading && "opacity-60")}>
           <FacilitySummary result={shown} lastYear={facility?.lastYear ?? latestYear} />
+          {shown.community && <CommunityPanel context={shown.community} />}
 
           {shown.peers.length === 0 ? (
             <div className="glass rounded-2xl p-8 text-center">
@@ -186,17 +260,42 @@ export function BenchmarkView({
             <>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <TrendLegend />
-                <p className="text-xs text-tertiary-foreground">
-                  {view.category === "utilization" ? DATASETS.hau.yearNote : DATASETS["hafd-selected"].yearNote}
+                <p className="max-w-xl text-xs text-tertiary-foreground sm:text-right">
+                  {quality
+                    ? "Care Compare measures are filed under the year their measurement period ends (periods span one to three years and overlap); infection data is by calendar year."
+                    : shown.unit
+                      ? `${DATASETS.hau.yearNote} ${shown.unit.label} beds only; peers without this unit are left out of the median.`
+                      : view.payer === "all"
+                        ? DATASETS[primaryDataset!].yearNote
+                        : `${payerInfo.label}: ${payerInfo.description} Measures HCAI doesn’t split by payer stay all-payer and are marked.`}
                 </p>
               </div>
-              {shownMetrics.length === 0 ? (
+              {shown.metrics.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Choose at least one metric.</p>
               ) : (
                 <div className="grid gap-4 md:grid-cols-2">
-                  {shownMetrics.map((id) =>
-                    shown.series[id] ? <MetricCard key={id} meta={metaById[id]} points={shown.series[id]} /> : null
-                  )}
+                  {orderByGroup(shown.metrics, metaById).map((id) => {
+                    // Under a unit, the unit's own definitions (same ids, unit-specific fields and wording).
+                    const meta = shown.unit?.definitions[id] ?? metaById[id]
+                    if (!meta || !shown.series[id]) return null
+                    const companion = meta.companion && shown.series[meta.companion] ? meta.companion : null
+                    return (
+                      <MetricCard
+                        key={id}
+                        meta={meta}
+                        points={shown.series[id]}
+                        companion={companion ? { meta: metaById[companion], points: shown.series[companion] } : undefined}
+                        tags={[
+                          shown.unit ? shown.unit.label : null,
+                          quality ? (meta.group ?? null) : null,
+                          quality ? DATASETS[meta.dataset].shortLabel : null,
+                          meta.estimate ? "Estimate" : null,
+                          !quality && view.payer !== "all" && !meta.lens ? "All payers" : null,
+                          primaryDataset && meta.dataset !== primaryDataset ? DATASETS[meta.dataset].yearTag : null,
+                        ].filter((t): t is string => t != null)}
+                      />
+                    )
+                  })}
                 </div>
               )}
               {shown.payerMix && metaById.payerMix && (
@@ -213,6 +312,7 @@ export function BenchmarkView({
 
 function FacilitySummary({ result, lastYear }: { result: BenchmarkResult; lastYear: number }) {
   const f = result.facility
+  const snapshot = result.snapshot
   const facts = [
     f.city && f.county ? `${f.city}, ${f.county} County` : f.county,
     OWNERSHIP_LABEL[f.ownership],
@@ -221,7 +321,12 @@ function FacilitySummary({ result, lastYear }: { result: BenchmarkResult; lastYe
     f.traumaLevel ? `Trauma level ${f.traumaLevel}` : null,
     f.owner && f.owner.toLowerCase() !== f.hcaiName.toLowerCase() ? `Operated by ${titleCase(f.owner)}` : null,
   ].filter(Boolean)
-  const dataYears = result.category === "utilization" ? f.utilizationYears : f.financialYears
+  const dataYears =
+    result.category === "quality"
+      ? qualityYears(result)
+      : result.category === "utilization"
+        ? f.utilizationYears
+        : f.financialYears
   const noData = dataYears.length === 0
   const similar = result.filters.mode === "similar"
 
@@ -239,13 +344,30 @@ function FacilitySummary({ result, lastYear }: { result: BenchmarkResult; lastYe
             under the same license.
           </p>
         )}
-        {lastYear < latestOf(result) && <p className="text-[13px] text-muted-foreground">Last reported in {lastYear}.</p>}
-        {noData && (
+        {result.unit && (
           <p className="rounded-xl bg-black/4 px-3.5 py-2.5 text-[13px] leading-relaxed text-muted-foreground dark:bg-white/6">
-            HCAI has no {result.category === "utilization" ? "utilization" : "financial"} data for this hospital in these
-            years.
+            Showing the <span className="font-medium text-foreground">{result.unit.label}</span> unit
+            {unitAlias(result.unit) && ` (${unitAlias(result.unit)})`}
+            {result.unit.beds != null && `: ${result.unit.beds.toLocaleString("en-US")} licensed beds in ${result.unit.lastYear}`}. The
+            charts cover this unit only; the figures on this card are for the whole hospital. ED, surgery, and case mix
+            data aren&apos;t reported by unit.
           </p>
         )}
+        {result.category !== "quality" && lastYear < latestOf(result) && (
+          <p className="text-[13px] text-muted-foreground">Last reported in {lastYear}.</p>
+        )}
+        {noData && (
+          <p className="rounded-xl bg-black/4 px-3.5 py-2.5 text-[13px] leading-relaxed text-muted-foreground dark:bg-white/6">
+            {result.category === "quality"
+              ? "CMS and CDPH published none of these measures for this hospital in these years."
+              : `HCAI has no ${result.category === "utilization" ? "utilization" : "financial"} data for this hospital in these years.`}
+          </p>
+        )}
+        {result.notes.map((note) => (
+          <p key={note} className="rounded-xl bg-black/4 px-3.5 py-2.5 text-[13px] leading-relaxed text-muted-foreground dark:bg-white/6">
+            {note}
+          </p>
+        ))}
         {f.hospitalType && f.hospitalType !== "Comparable" && (
           <p className="rounded-xl bg-black/4 px-3.5 py-2.5 text-[13px] leading-relaxed text-muted-foreground dark:bg-white/6">
             HCAI classifies this hospital as <span className="font-medium text-foreground">{f.hospitalType}</span>, so its
@@ -253,7 +375,7 @@ function FacilitySummary({ result, lastYear }: { result: BenchmarkResult; lastYe
             {f.hospitalType === "Kaiser" && " Kaiser hospitals report financials differently from other hospitals."}
           </p>
         )}
-        <dl className="mt-auto grid grid-cols-3 gap-3 border-t border-black/6 pt-3 dark:border-white/8">
+        <dl className="mt-auto grid grid-cols-3 gap-x-3 gap-y-3.5 border-t border-black/6 pt-3 dark:border-white/8">
           <Stat label="Licensed beds" value={f.licensedBeds != null ? f.licensedBeds.toLocaleString("en-US") : "—"} />
           <Stat
             label="Fiscal year ends"
@@ -263,7 +385,25 @@ function FacilitySummary({ result, lastYear }: { result: BenchmarkResult; lastYe
                 : "—"
             }
           />
-          <Stat label={result.category === "utilization" ? "Utilization data" : "Financial data"} value={yearRange(dataYears) ?? "None"} />
+          <Stat
+            label={{ financial: "Financial data", utilization: "Utilization data", quality: "Quality data" }[result.category]}
+            value={yearRange(dataYears) ?? "None"}
+          />
+          <Stat
+            label="Length of stay"
+            value={snapshot.alos ? `${snapshot.alos.value.toFixed(1)} days` : "—"}
+            sub={snapshot.alos ? `Acute · ${snapshot.alos.year}` : undefined}
+          />
+          <Stat
+            label="Avg. daily census"
+            value={snapshot.adc ? Math.round(snapshot.adc.value).toLocaleString("en-US") : "—"}
+            sub={snapshot.adc ? `Acute · ${snapshot.adc.year}` : undefined}
+          />
+          <Stat
+            label="Case mix index"
+            value={snapshot.caseMixIndex ? snapshot.caseMixIndex.value.toFixed(2) : "—"}
+            sub={snapshot.caseMixIndex ? `FFY ${snapshot.caseMixIndex.year}` : undefined}
+          />
         </dl>
       </section>
       <section aria-label="Peer group" className="widget fade-up flex flex-col gap-1 p-5">
@@ -277,18 +417,49 @@ function FacilitySummary({ result, lastYear }: { result: BenchmarkResult; lastYe
           {!result.filters.includeNonComparable && ", not counting Kaiser and other non-comparable hospitals"}.
         </p>
         {result.peerGroup.note && <p className="text-xs leading-relaxed text-tertiary-foreground">{result.peerGroup.note}</p>}
+        {result.unit && (
+          <p className="mt-1 text-[13px] leading-relaxed">
+            <span className="font-medium">
+              {result.unit.peersWithUnit.count} of {result.peers.length}
+            </span>{" "}
+            <span className="text-muted-foreground">
+              had {result.unit.label.match(/^[AEIOU]/i) ? "an" : "a"} {result.unit.label} unit in {result.unit.peersWithUnit.year}
+              ; only hospitals with the unit count toward the peer median.
+            </span>
+          </p>
+        )}
       </section>
     </div>
   )
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+/** The plain-language name when it says more than HCAI's ("neonatal intensive care (NICU)"), else null. */
+function unitAlias(unit: { label: string; description: string }) {
+  const plain = unit.description.replace(/\s*\(.*\)$/, "").toLowerCase()
+  return plain === unit.label.toLowerCase() ? null : unit.description.charAt(0).toLowerCase() + unit.description.slice(1)
+}
+
+function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <div className="min-w-0">
       <dt className="truncate text-[11px] text-tertiary-foreground">{label}</dt>
       <dd className="num truncate text-[15px] font-semibold tracking-tight">{value}</dd>
+      {sub && <dd className="truncate text-[11px] text-tertiary-foreground">{sub}</dd>}
     </div>
   )
+}
+
+/** Years with a value for any metric shown (quality mixes sources, so there's no single year list). */
+function qualityYears(result: BenchmarkResult) {
+  const years = new Set<number>()
+  for (const id of result.metrics) for (const p of result.series[id] ?? []) if (p.value != null) years.add(p.year)
+  return [...years].sort((a, b) => a - b)
+}
+
+/** Keeps metrics of the same group (quality: Readmissions, Infections, ...) next to each other, in first-seen order. */
+function orderByGroup(ids: string[], metaById: Record<string, MetricDef>) {
+  const groups = [...new Set(ids.map((id) => metaById[id]?.group ?? ""))]
+  return [...ids].sort((a, b) => groups.indexOf(metaById[a]?.group ?? "") - groups.indexOf(metaById[b]?.group ?? ""))
 }
 
 const yearRange = (years: number[]) =>

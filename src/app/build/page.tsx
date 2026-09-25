@@ -3,7 +3,7 @@ import type { Metadata } from "next"
 import { BuildView } from "@/components/build/build-view"
 import { PageHeader } from "@/components/shell/page-header"
 import { CATEGORY_BY_ID, isTrendMetric, parseCategory } from "@/lib/data/datasets"
-import { getFacilityOptions, getLatestYear, getManifest, getMetricCatalog } from "@/lib/data/store"
+import { DATASET_IDS, getFacilityOptions, getLatestYear, getManifest, getMetricCatalog } from "@/lib/data/store"
 import { runReport } from "@/lib/report/run"
 import { parseSpec } from "@/lib/report/spec"
 
@@ -16,7 +16,7 @@ export default async function BuildPage({ searchParams }: PageProps<"/build">) {
     getFacilityOptions(),
     getMetricCatalog(),
     getLatestYear(),
-    Promise.all([getManifest("hafd-selected"), getManifest("hau")]),
+    Promise.all(DATASET_IDS.map(getManifest)),
   ])
   const trendMetrics = catalog.filter(isTrendMetric)
   const spec = parseSpec(params, new Set(trendMetrics.map((m) => m.id)))

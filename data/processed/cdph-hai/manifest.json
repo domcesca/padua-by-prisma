@@ -1,0 +1,285 @@
+{
+  "id": "cdph-hai",
+  "title": "CDPH Healthcare-Associated Infections in California Hospitals",
+  "sourcePage": "https://www.cdph.ca.gov/Programs/CHCQ/HAI/Pages/HAIreport.aspx",
+  "package": {
+    "clabsi": {
+      "title": "Central Line-Associated Bloodstream infections (CLABSI) in California Hospitals",
+      "metadata_modified": "2026-08-26T18:11:05.306698"
+    },
+    "cdi": {
+      "title": "Clostridioides difficile infections (CDI) in California Hospitals",
+      "metadata_modified": "2026-08-26T18:10:33.769468"
+    },
+    "mrsa": {
+      "title": "Methicillin-resistant Staphylococcus aureus (MRSA) bloodstream infections (BSI) in California Hospitals",
+      "metadata_modified": "2026-08-26T18:11:38.420763"
+    },
+    "vre": {
+      "title": "Vancomycin-Resistant Enterococci (VRE) Bloodstream Infections in California Hospitals",
+      "metadata_modified": "2026-08-26T18:15:14.651436"
+    }
+  },
+  "years": [
+    2019,
+    2020,
+    2021,
+    2022,
+    2023,
+    2024,
+    2025
+  ],
+  "sources": [
+    {
+      "kind": "clabsi",
+      "year": 2025,
+      "name": "CLABSI in Hospitals, 2025",
+      "url": "https://data.chhs.ca.gov/dataset/9bfdb084-9ca5-46f5-8121-20a53d59bfca/resource/0789b8e7-a12b-4c04-a76d-2f2e5e8659ee/download/cdph_clabsi_odp_2025.csv"
+    },
+    {
+      "kind": "clabsi",
+      "year": 2024,
+      "name": "CLABSI in Hospitals, 2024",
+      "url": "https://data.chhs.ca.gov/dataset/9bfdb084-9ca5-46f5-8121-20a53d59bfca/resource/de4b7b02-3580-43e8-b6a7-5ca7eda2eb0e/download/cdph_clabsi_odp_2024.csv"
+    },
+    {
+      "kind": "clabsi",
+      "year": 2023,
+      "name": "CLABSI in Hospitals, 2023",
+      "url": "https://data.chhs.ca.gov/dataset/9bfdb084-9ca5-46f5-8121-20a53d59bfca/resource/3854cec9-7a09-432c-bfbc-56e949ec0ac8/download/cdph_clabsi_odp_2023.csv"
+    },
+    {
+      "kind": "clabsi",
+      "year": 2022,
+      "name": "CLABSI in Hospitals, 2022",
+      "url": "https://data.chhs.ca.gov/dataset/9bfdb084-9ca5-46f5-8121-20a53d59bfca/resource/c21e50bc-f2b9-4f01-ab82-080f23010f4e/download/cdph_clabsi_odp_2022.csv"
+    },
+    {
+      "kind": "clabsi",
+      "year": 2021,
+      "name": "CLABSI in Hospitals, 2021",
+      "url": "https://data.chhs.ca.gov/dataset/9bfdb084-9ca5-46f5-8121-20a53d59bfca/resource/08b818ed-40e8-4292-807c-0917fd2c3c20/download/cdph_clabsi_odp_2021.csv"
+    },
+    {
+      "kind": "clabsi",
+      "year": 2020,
+      "name": "CLABSI in Hospitals, January through June 2020 (updated annually)",
+      "url": "https://data.chhs.ca.gov/dataset/9bfdb084-9ca5-46f5-8121-20a53d59bfca/resource/4b828a78-d12f-4f3f-8dc4-b1a3b7698df0/download/cdph_clabsi_odp_2020h1.csv"
+    },
+    {
+      "kind": "clabsi",
+      "year": 2020,
+      "name": "CLABSI in Hospitals, July through December 2020 (updated annually)",
+      "url": "https://data.chhs.ca.gov/dataset/9bfdb084-9ca5-46f5-8121-20a53d59bfca/resource/7049101c-82fb-4782-9342-4555fdb02087/download/cdph_clabsi_odp_2020h2.csv"
+    },
+    {
+      "kind": "clabsi",
+      "year": 2019,
+      "name": "CLABSI in Hospitals, 2019",
+      "url": "https://data.chhs.ca.gov/dataset/9bfdb084-9ca5-46f5-8121-20a53d59bfca/resource/9e7c705b-122d-4246-aaef-32b9182bf0f9/download/cdph_clabsi_odp_2019.csv"
+    },
+    {
+      "kind": "cdi",
+      "year": 2025,
+      "name": "CDIs in Hospitals, 2025",
+      "url": "https://data.chhs.ca.gov/dataset/430e3d9b-5129-4b2b-b466-c7819894817e/resource/cd29057e-e82d-4f06-aaf7-32f6e7ab2434/download/cdph_cdi_odp_2025.csv"
+    },
+    {
+      "kind": "cdi",
+      "year": 2024,
+      "name": "CDIs in Hospitals, 2024",
+      "url": "https://data.chhs.ca.gov/dataset/430e3d9b-5129-4b2b-b466-c7819894817e/resource/28b8fc2a-f954-45e1-962f-8c943ecba784/download/cdph_cdi_2024.csv"
+    },
+    {
+      "kind": "cdi",
+      "year": 2023,
+      "name": "CDIs in Hospitals, 2023",
+      "url": "https://data.chhs.ca.gov/dataset/430e3d9b-5129-4b2b-b466-c7819894817e/resource/09c10355-5116-4e73-a748-adf347f9c693/download/cdph_cdi_2023.csv"
+    },
+    {
+      "kind": "cdi",
+      "year": 2022,
+      "name": "CDIs in Hospitals, 2022",
+      "url": "https://data.chhs.ca.gov/dataset/430e3d9b-5129-4b2b-b466-c7819894817e/resource/f27e9bb8-8469-4b0e-80c6-5f576dfad9dd/download/cdph_cdi_2022.csv"
+    },
+    {
+      "kind": "cdi",
+      "year": 2021,
+      "name": "CDIs in Hospitals, 2021",
+      "url": "https://data.chhs.ca.gov/dataset/430e3d9b-5129-4b2b-b466-c7819894817e/resource/a5a0c09e-8917-46eb-9f37-3e4f96dec40f/download/cdph_cdi_odp_2021.csv"
+    },
+    {
+      "kind": "cdi",
+      "year": 2020,
+      "name": "CDIs in January through June 2020 (updated annually)",
+      "url": "https://data.chhs.ca.gov/dataset/430e3d9b-5129-4b2b-b466-c7819894817e/resource/a493de7c-2f3d-4cb2-b5e5-51c125394c81/download/cdph_cdi_odp_2020h1.csv"
+    },
+    {
+      "kind": "cdi",
+      "year": 2020,
+      "name": "CDIs in July through December 2020 (updated annually)",
+      "url": "https://data.chhs.ca.gov/dataset/430e3d9b-5129-4b2b-b466-c7819894817e/resource/1efe4937-350b-468d-b2a0-c50d134b36eb/download/cdph_cdi_odp_2020h2.csv"
+    },
+    {
+      "kind": "cdi",
+      "year": 2019,
+      "name": "CDIs in Hospitals, 2019",
+      "url": "https://data.chhs.ca.gov/dataset/430e3d9b-5129-4b2b-b466-c7819894817e/resource/d42b9d08-6548-4276-93fe-2cf320c2a10f/download/cdph_cdi_odp_2019.csv"
+    },
+    {
+      "kind": "mrsa",
+      "year": 2025,
+      "name": "MRSA BSI in Hospitals, 2025",
+      "url": "https://data.chhs.ca.gov/dataset/a345bba7-25ed-4019-b6e3-0b597bea7368/resource/031bc41f-d186-4787-880f-600a15b3c33e/download/cdph_mrsa_bsi_odp_2025.csv"
+    },
+    {
+      "kind": "mrsa",
+      "year": 2024,
+      "name": "MRSA BSI in Hospitals, 2024",
+      "url": "https://data.chhs.ca.gov/dataset/a345bba7-25ed-4019-b6e3-0b597bea7368/resource/2797a403-f87b-4038-9da7-dc7f9a51f39d/download/cdph_mrsa_odp_2024.csv"
+    },
+    {
+      "kind": "mrsa",
+      "year": 2023,
+      "name": "MRSA BSI in Hospitals, 2023",
+      "url": "https://data.chhs.ca.gov/dataset/a345bba7-25ed-4019-b6e3-0b597bea7368/resource/15c4962f-e357-4b03-9d24-655a2bc8030c/download/mrsa_bsi_odp_2023.csv"
+    },
+    {
+      "kind": "mrsa",
+      "year": 2022,
+      "name": "MRSA BSI in Hospitals, 2022",
+      "url": "https://data.chhs.ca.gov/dataset/a345bba7-25ed-4019-b6e3-0b597bea7368/resource/3ff809c6-c1e2-4107-be0c-f976521aadb2/download/mrsa_bsi_odp_2022.csv"
+    },
+    {
+      "kind": "mrsa",
+      "year": 2021,
+      "name": "MRSA BSI in Hospitals, 2021",
+      "url": "https://data.chhs.ca.gov/dataset/a345bba7-25ed-4019-b6e3-0b597bea7368/resource/23bef156-ae4d-4800-8512-d29660b2269f/download/cdph_mrsa_bsi_odp_2021.csv"
+    },
+    {
+      "kind": "mrsa",
+      "year": 2020,
+      "name": "MRSA BSI in January through June 2020 (updated annually)",
+      "url": "https://data.chhs.ca.gov/dataset/a345bba7-25ed-4019-b6e3-0b597bea7368/resource/d98421dc-a7a0-443a-857a-815a80e7686e/download/cdph_mrsa_bsi_odp_2020h1.csv"
+    },
+    {
+      "kind": "mrsa",
+      "year": 2020,
+      "name": "MRSA BSI in July through December 2020 (updated annually)",
+      "url": "https://data.chhs.ca.gov/dataset/a345bba7-25ed-4019-b6e3-0b597bea7368/resource/9aac68e7-b122-499d-b834-1ae332cb8499/download/cdph_mrsa_bsi_odp_2020h2.csv"
+    },
+    {
+      "kind": "mrsa",
+      "year": 2019,
+      "name": "MRSA in Hospitals, 2019",
+      "url": "https://data.chhs.ca.gov/dataset/a345bba7-25ed-4019-b6e3-0b597bea7368/resource/62aead61-e320-4a74-b64c-1f65efa72b35/download/cdph_mrsa_bsi_odp_2019.csv"
+    },
+    {
+      "kind": "vre",
+      "year": 2025,
+      "name": "VRE BSI in Hospitals, 2025",
+      "url": "https://data.chhs.ca.gov/dataset/268b4c72-7104-424d-97f0-e3a34c36d245/resource/9fe48e3c-f36f-4e2d-8e41-981f90eee8d4/download/cdph_vre_bsi_odp_2025.csv"
+    },
+    {
+      "kind": "vre",
+      "year": 2024,
+      "name": "VRE BSI in Hospitals, 2024",
+      "url": "https://data.chhs.ca.gov/dataset/268b4c72-7104-424d-97f0-e3a34c36d245/resource/0a17db8a-4dae-4204-8cc3-c1f00e52a8d0/download/cdph_vre_bsi_odp_2024.csv"
+    },
+    {
+      "kind": "vre",
+      "year": 2023,
+      "name": "VRE BSI in Hospitals, 2023",
+      "url": "https://data.chhs.ca.gov/dataset/268b4c72-7104-424d-97f0-e3a34c36d245/resource/606bffd7-eb26-43e0-a24a-1c15444f1f65/download/cdph_vre_bsi_odp_2023.csv"
+    },
+    {
+      "kind": "vre",
+      "year": 2022,
+      "name": "VRE BSI in Hospitals, 2022",
+      "url": "https://data.chhs.ca.gov/dataset/268b4c72-7104-424d-97f0-e3a34c36d245/resource/53c25af5-736c-49d7-b593-73c1b23d0c80/download/cdph_vre_bsi_odp_2022.csv"
+    },
+    {
+      "kind": "vre",
+      "year": 2021,
+      "name": "VRE BSI in Hospitals, 2021",
+      "url": "https://data.chhs.ca.gov/dataset/268b4c72-7104-424d-97f0-e3a34c36d245/resource/3c6ba8e0-3580-4547-bb7b-7508acd48fe7/download/cdph_vre_bsi_odp_2021.csv"
+    },
+    {
+      "kind": "vre",
+      "year": 2020,
+      "name": "VRE in Hospitals, January to June 2020 (updated annually)",
+      "url": "https://data.chhs.ca.gov/dataset/268b4c72-7104-424d-97f0-e3a34c36d245/resource/0b5145dc-68d6-45b9-a62a-cfce17423082/download/cdph_vre_bsi_odp_2020h1.csv"
+    },
+    {
+      "kind": "vre",
+      "year": 2020,
+      "name": "VRE in Hospitals, July through December 2020 (updated annually)",
+      "url": "https://data.chhs.ca.gov/dataset/268b4c72-7104-424d-97f0-e3a34c36d245/resource/39a89f59-a34d-4872-b6c4-0605ea6a6538/download/cdph_vre_bsi_odp_2020h2.csv"
+    },
+    {
+      "kind": "vre",
+      "year": 2019,
+      "name": "VRE in California Hospitals, 2019",
+      "url": "https://data.chhs.ca.gov/dataset/268b4c72-7104-424d-97f0-e3a34c36d245/resource/bcb94b04-8472-4e60-b123-2b8170e778ae/download/cdph_vre_bsi_odp_2019.csv"
+    }
+  ],
+  "crosswalk": [
+    {
+      "name": "Licensed and Certified Healthcare Facility Locations",
+      "url": "https://data.chhs.ca.gov/dataset/3b5b80e8-6b8d-4715-b3c0-2699af6e72e5/resource/f0ae5731-fef8-417f-839d-54a0ed3a126e/download/health_facility_locations.csv"
+    },
+    {
+      "name": "ELMS-OSHPD - Licensed and Certified Healthcare Facility Crosswalk",
+      "url": "https://data.chhs.ca.gov/dataset/e89100fd-1f1d-4a37-8205-d588aa42e5a1/resource/cf954841-9ca7-4914-a31f-29ca12c7b71a/download/elms_oshpd_cw_oct2024xlsx.xlsx"
+    }
+  ],
+  "generatedAt": "2026-09-25T04:24:37Z",
+  "coverage": {
+    "reportingFacilities": 413,
+    "matchedHospitals": 366,
+    "unmatched": [
+      {
+        "facilityId": "030001661",
+        "name": "Stanislaus Surgical Hospital"
+      },
+      {
+        "facilityId": "930000105",
+        "name": "Olympia Medical Center"
+      },
+      {
+        "facilityId": "930000032",
+        "name": "Pacific Gardens Medical Center"
+      },
+      {
+        "facilityId": "080000142",
+        "name": "Palomar Health Downtown Campus"
+      },
+      {
+        "facilityId": "220000716",
+        "name": "Menlo Park Surgical Hospital"
+      },
+      {
+        "facilityId": "930000060",
+        "name": "Glendora Community Hospital"
+      },
+      {
+        "facilityId": "930000104",
+        "name": "Saint Vincent Medical Center"
+      },
+      {
+        "facilityId": "170001767",
+        "name": "Fairview Developmental Center"
+      },
+      {
+        "facilityId": "220000002",
+        "name": "California Pacific Medical Center, California West Campus Hospital"
+      }
+    ]
+  },
+  "notes": [
+    "Calendar years. CDPH facility IDs are mapped to HCAI facility numbers with CDPH's licensed facility listing and ELMS–OSHPD crosswalk; campuses reported separately are combined into the licensed hospital.",
+    "Rehabilitation units, which report separately under the hospital's ID, are excluded.",
+    "2020 was published in two halves (January–June without SIRs); the halves are combined and the SIR recomputed.",
+    "VRE has no SIR because no national risk adjustment exists; its rate is per 10,000 patient days."
+  ]
+}

@@ -2,9 +2,10 @@ import { NextResponse, type NextRequest } from "next/server"
 
 import { parseFilters } from "@/lib/benchmark/filters"
 import { resolvePeerGroup } from "@/lib/benchmark/peers"
-import { getFacilities } from "@/lib/data/store"
+import { getFacilities, getFacilityUnits } from "@/lib/data/store"
 
-// GET /api/peers?facility=106381154[&peers=statewide] -> who the peer group would be, without metrics.
+// GET /api/peers?facility=106381154[&peers=statewide] -> who the peer group would be, without metrics,
+// plus the bed classifications the hospital has (Home's "View by unit" step).
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams
   const facilityId = params.get("facility")
@@ -22,6 +23,7 @@ export async function GET(request: NextRequest) {
       mode: group.filters.mode,
       hasFinancial: facility.financialYears.length > 0,
       hasUtilization: facility.utilizationYears.length > 0,
+      units: await getFacilityUnits(facility.id),
     },
     { headers: { "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=604800" } }
   )
