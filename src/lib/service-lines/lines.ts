@@ -20,10 +20,10 @@ export type ServiceLine = {
 export const SERVICE_LINES: ServiceLine[] = [
   { id: "medSurg", label: "Medical/Surgical", units: ["medSurg"] },
   {
-    id: "adultCriticalCare",
-    label: "Adult Critical Care",
+    id: "criticalCare",
+    label: "Critical Care (ICU, CCU, Respiratory)",
     units: ["icu", "ccu", "acuteRespiratory"],
-    note: "HCAI has no pediatric ICU classification: a pediatric ICU reports its beds as Intensive Care, so at children's hospitals and others with a PICU this line includes pediatric intensive care. There's no cardiac ICU classification either; coronary care is its own and is combined here.",
+    note: "Adult and pediatric: HCAI has no pediatric ICU classification, so a PICU reports its beds as Intensive Care. There's no cardiac ICU classification either; coronary care is its own and is combined here.",
   },
   {
     id: "maternityNewborn",
@@ -37,7 +37,7 @@ export const SERVICE_LINES: ServiceLine[] = [
     id: "burn",
     label: "Burn Center",
     units: ["burn"],
-    note: "Kept apart from Adult Critical Care: only 13 California hospitals had burn beds in 2024, and folding them into the larger critical care totals would hide them.",
+    note: "Kept apart from Critical Care: only 13 California hospitals had burn beds in 2024, and folding them into the larger critical care totals would hide them.",
   },
   { id: "rehab", label: "Rehabilitation", units: ["rehab"] },
   {

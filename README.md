@@ -186,7 +186,7 @@ used (they cover traditional Medicare only, by calendar year, and need a CCN cro
 Benchmark → Utilization → **Unit or service line** groups HCAI's 14 bed classifications into service lines, alongside
 the existing one-classification unit view (which is unchanged).
 - **Mapping** (`src/lib/service-lines/lines.ts`, edit to regroup, rename, or add a line; no data rebuild): Medical/Surgical;
-  Adult Critical Care = Intensive Care + Coronary Care + Acute Respiratory Care; Maternity & Newborn = Perinatal + NICU,
+  Critical Care (ICU, CCU, Respiratory) = Intensive Care + Coronary Care + Acute Respiratory Care; Maternity & Newborn = Perinatal + NICU,
   with the well-baby nursery (report line 35) listed under it but outside its totals (nursery days and infants only;
   bassinets aren't licensed beds, and a NICU-then-nursery baby would count twice); Pediatrics; Burn Center (standalone,
   13 hospitals in 2024); Rehabilitation; Behavioral Health = Acute Psychiatric + Chemical Dependency Recovery; Long-Term
@@ -194,7 +194,7 @@ the existing one-classification unit view (which is unchanged).
   exactly one line.
 - **Views.** `?line=all`: every line with licensed beds, patient days, discharges, occupancy, peer median occupancy,
   and length of stay, each followed by its classifications, plus a whole-hospital row; a year picker covers every
-  year reported. `?line=adultCriticalCare` (lines of 2+ classifications): the same metric cards as a unit, combined,
+  year reported. `?line=criticalCare` (lines of 2+ classifications): the same metric cards as a unit, combined,
   with that line's breakdown above them. A unit view links to its line.
 - **Math** (`src/lib/service-lines/compute.ts`, from `fields.json`): sums of HCAI's own fields, then occupancy =
   Σ patient days ÷ Σ licensed bed days, ADC = Σ days ÷ days in the period, LOS = Σ days ÷ Σ stays (discharges, plus
@@ -205,8 +205,8 @@ the existing one-classification unit view (which is unchanged).
   classification counts in a year if it had beds on Dec 31 *or* any activity (units that closed mid-year).
 - **Blanks.** About 475 classification-years report beds but leave patient days or discharges blank. The combined line
   counts a blank as none (as HCAI's own hospital totals do) and says so; the classification's row shows the blank.
-- **Caveat:** HCAI has no pediatric ICU classification, so a PICU's beds are Intensive Care and land in Adult Critical
-  Care (e.g. Children's Hospital Los Angeles). The line's note says so.
+- **Why "Critical Care", not "Adult":** HCAI has no pediatric ICU classification, so a PICU's beds are Intensive Care
+  and land in this line (e.g. Children's Hospital Los Angeles's 74). The line's note says so.
 
 ## Specialty benchmarking (V6.11)
 

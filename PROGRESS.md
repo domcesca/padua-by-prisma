@@ -302,7 +302,8 @@ downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and
 - Found in the data: (1) ~475 classification-years with beds but blank days or discharges, counted as none in a
   combined line (as HCAI's totals do) and flagged; (2) 107 hospital-years where a classification has activity but no
   Dec 31 beds (closed mid-year), included so lines add up; (3) children's hospitals report PICU beds as Intensive
-  Care, so Adult Critical Care includes them (noted on screen; the name is open for review).
+  Care, so the line was renamed from "Adult Critical Care" to "Critical Care (ICU, CCU, Respiratory)"
+  (id `criticalCare`) on review. Blanks counted as none (flagged) and mid-year closures kept: confirmed on review.
 
 ### V6.11 (Specialty-level benchmarking: Medicare cases by MDC)
 - Benchmark → Utilization gains a "Medicare specialty" picker: all MDCs vs peers, or one MDC ranked across peers with
@@ -318,7 +319,7 @@ downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and
 - Home page: the "Case mix" tile is now "Case mix by specialty", still marked "All payers: coming later", with a
   link to the Medicare specialty view ("Available now: Medicare only").
 - Service-line bundling (built in V6.12): mapping decided. Maternity & Newborn = Perinatal +
-  NICU, with the well-baby nursery (report line 35) as its own row outside the totals; Adult Critical Care = ICU +
+  NICU, with the well-baby nursery (report line 35) as its own row outside the totals; Critical Care (was "Adult Critical Care") = ICU +
   Coronary Care + Acute Respiratory; Burn standalone; Pediatrics standalone; Behavioral Health = Acute Psychiatric +
   Chemical Dependency Recovery; Long-Term Care = SNF + ICF + ICF/DD; Medical/Surgical and Rehabilitation standalone.
   Every bed category is in exactly one line, so lines add up to total licensed beds.

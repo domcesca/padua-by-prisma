@@ -18,7 +18,7 @@ export const ABOUT: Record<AboutId, { title: string; body: string[]; walkthrough
       "Shows where a hospital stands against similar hospitals, one card per measure, with the peer group set by the filters at the top.",
       "Each card shows the hospital's value, where it falls among its peers, and the peer median; higher isn't always better (a higher cost per discharge is worse).",
       "On the Quality view, measures come from CMS and CDPH and usually trail the financial data by a year or more.",
-      "Under Utilization, the unit picker also groups HCAI's bed classifications into service lines (Adult Critical Care, Maternity & Newborn, Behavioral Health, Long-Term Care, …): every line side by side with its classifications listed underneath, or one line's combined trend against peers.",
+      "Under Utilization, the unit picker also groups HCAI's bed classifications into service lines (Critical Care, Maternity & Newborn, Behavioral Health, Long-Term Care, …): every line side by side with its classifications listed underneath, or one line's combined trend against peers.",
       "Under Utilization, Medicare specialty breaks a hospital's traditional Medicare inpatient cases down by CMS's diagnostic categories (cardiac, orthopedics, neuro, …) against its peers. It counts only Original Medicare patients, not the hospital's total volume.",
     ],
   },

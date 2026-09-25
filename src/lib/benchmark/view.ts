@@ -13,7 +13,7 @@ import { MAX_COMPARE } from "@/lib/specialty/mdc"
 // Which metrics Benchmark shows, shared by the page, the API route, and the URL:
 //   ?view=utilization&metrics=occupancy,edVisits&since=2021&payer=medicare
 //   ?view=utilization&unit=icu        (one bed classification; utilization only)
-//   ?view=utilization&line=all        (service lines side by side; line=adultCriticalCare for one; utilization only)
+//   ?view=utilization&line=all        (service lines side by side; line=criticalCare for one; utilization only)
 //   ?view=utilization&specialty=all&with=106190555,106381154
 //                                      (Medicare cases by MDC; specialty=05 for one MDC; utilization only)
 
