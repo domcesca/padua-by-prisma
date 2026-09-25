@@ -298,6 +298,33 @@ the original (checked on 1.2M random inputs). With them, "benefit a year" and "n
 In the link: `adv=1`, `pm=`, `ramp=`, `esc=`, and the penalty module's `ptime=`; kept when Advanced is off, applied only
 when on.
 
+V6.10 adds six more, each with its own switch (so one can be used without the others) and all off by default:
+- **Wage index** (reimbursement modules; `wageIndex: true`): prices at the hospital's own CMS wage index the way Medicare
+  pays. Inpatient: weight × (labor-related × wage index + non-labor), Table 1A's split above 1 and 1B's at or below
+  (`lib/propose/wage-index.ts`). Outpatient: national rate × (0.60 × wage index + 0.40); physician fees aren't adjusted.
+  Labeled "wage-index-adjusted for <hospital>" in the editor, the lines, "What went in", and the notes; hospitals with
+  no published index (critical access, children's, cancer, psychiatric, rehab, LTC for IPPS) stay on the national rate
+  with a note.
+- **Break-even volume** (`lib/propose/analysis.ts` `breakEven`): the least multiple of the entered volume (each module's
+  `volume` hook: cases, services, hours/days/supplies, improvement, benefit lines) at which the expected scenario's
+  cumulative cash reaches zero by the end of the useful life. Scans and bisects, so capped or all-or-nothing benefits
+  (penalties) work; "not reachable" when even 1,000× doesn't pay back. One number under the scenario cards.
+- **Sensitivity** (`sensitivity`, `sensitivity-chart.tsx`): the expected scenario's NPV or ROI with one input at a time
+  lowered and raised 10/20/30% (volume, the module's own `drivers` such as payment per case or hourly cost, up-front
+  and running costs, useful life, discount rate for NPV, growth rates when set), ranked in a tornado chart with a
+  screen-reader table. A printout section ("Sensitivity (Advanced)"): in the Finance preset, not Board.
+- **Staff time by role** (Cost savings, in its editor): role, hours saved a week, loaded hourly cost; summed into the same
+  staff-time saving. Seeded from the single pair when first switched on.
+- **Lost readmission revenue** (Avoided penalties, in its editor): $ per avoided readmission × readmissions avoided a
+  year (each cut × the condition's HRRP Medicare discharges ÷ the 3-year window), from year 1, netted as a negative line.
+- **Readmission dampening** (Avoided penalties): the share (0–1, default 1) of a cut that reaches the ERR, for CMS's
+  shrinkage toward the average. A "use this hospital's" button offers a rough reading from CMS's own figures:
+  (predicted − expected) ÷ (raw − expected), discharge-weighted; labeled as not a CMS figure.
+Break-even and sensitivity re-run the same model (`modelBenefit` → engine); they never change the estimate. In the link:
+`wi=1`, `be=1`, `sens=20[:roi]`, and the modules' `byrole=1&roles=RN~10~70|…`, `lostrev=on:12000`, `damp=on:0.5`.
+Checked against `main`: rendered results identical with Advanced off (including links carrying all the new settings)
+and with Advanced on and the new options off.
+
 No persistence by design (no accounts): the whole proposal, including every module's inputs, is in the URL, so
 reloading keeps it and the link can be shared. "Print or save PDF" uses the browser; print styles
 (`@media print` in `globals.css`) force the light palette, flatten the glass, and hide the app chrome and inputs.
@@ -317,6 +344,12 @@ its final rule; its HAC file the following January), so the newest complete year
 indicators only, so drug/device/biological APCs are dropped; 299 APCs in July 2026, conversion factor $91.415) and the
 newest outpatient provider-and-service CSV (suppressed counts under 11 are left out, not zeroed). Needs www.cms.gov and
 data.cms.gov reachable.
+`cms-wage-index` (run after `cms-opps`): each hospital's IPPS wage index from the newest final rule's Table 2 ("Wage
+Index With Cap", or the low-wage transition value where filled; fails unless it matches the same rule's Impact File for
+every hospital in both, 3,074 for FY 2027), the Table 1A/1B labor splits, and the OPPS wage index from the matching
+calendar year's OPPS final rule Hospital Impact File ("Post Reclassification Wage Index": the final FY IPPS index; checked
+against Table 2's prior-year column, 2,957 of 2,978 equal, the rest revised after the OPPS rule). OPPS's 60% labor
+share is a constant (it isn't restated in the files).
 
 ## Similar hospitals (the default peer group)
 

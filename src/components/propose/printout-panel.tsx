@@ -3,11 +3,22 @@
 import { ArrowDown, ArrowUp } from "lucide-react"
 
 import { Segmented } from "@/components/shell/segmented"
-import { matchingPreset, moveSection, PRESETS, SECTION_LABELS, type OutputConfig, type PresetId } from "@/lib/propose/output"
+import { matchingPreset, moveSection, PRESETS, SECTION_LABELS, type OutputConfig, type PresetId, type SectionId } from "@/lib/propose/output"
 import { cn } from "@/lib/utils"
 
-/** Choose what the printout includes: start from a preset, then switch sections on or off and reorder them. */
-export function PrintoutPanel({ value, onChange }: { value: OutputConfig; onChange: (next: OutputConfig) => void }) {
+/**
+ * Choose what the printout includes: start from a preset, then switch sections on or off and reorder them.
+ * `unavailable`: sections with nothing to print right now (sensitivity until it's on in Advanced).
+ */
+export function PrintoutPanel({
+  value,
+  onChange,
+  unavailable = [],
+}: {
+  value: OutputConfig
+  onChange: (next: OutputConfig) => void
+  unavailable?: SectionId[]
+}) {
   const preset = matchingPreset(value)
   const iconButton =
     "flex size-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:pointer-events-none disabled:opacity-30"
@@ -47,6 +58,7 @@ export function PrintoutPanel({ value, onChange }: { value: OutputConfig; onChan
                   className="size-4 accent-[var(--primary)]"
                 />
                 <span className={cn(!s.on && "text-muted-foreground")}>{SECTION_LABELS[s.id]}</span>
+                {unavailable.includes(s.id) && <span className="text-[12px] text-muted-foreground">Turn on in Advanced to print</span>}
               </label>
               {s.id === "assumptions" && s.on && (
                 <Segmented

@@ -8,6 +8,7 @@ from .cms_inpatient import CmsInpatient
 from .cms_ipps import CmsIpps
 from .cms_opps import CmsOpps
 from .cms_penalties import CmsPenalties
+from .cms_wage_index import CmsWageIndex
 from .dhcs_medi_cal import DhcsMediCal
 from .hafd_selected import HafdSelected
 from .hau import HospitalUtilization
@@ -28,6 +29,8 @@ REGISTRY = {
     CmsOpps.id: CmsOpps,
     # HRRP and HAC Reduction Program standing plus estimated Medicare payments, for Propose.
     CmsPenalties.id: CmsPenalties,
+    # Each hospital's IPPS and OPPS wage index, for Propose's Advanced mode (after cms-opps).
+    CmsWageIndex.id: CmsWageIndex,
     # Reference tables (not per-hospital): MS-DRG weights for Propose.
     CmsIpps.id: CmsIpps,
     # County context (not hospital metrics).

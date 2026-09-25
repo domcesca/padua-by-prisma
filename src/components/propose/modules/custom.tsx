@@ -125,6 +125,14 @@ export const customModule = defineModule<State, null>({
   initial: () => ({ items: [blank()] }),
   toParams,
   fromParams,
+  volume: {
+    label: "Benefit amounts",
+    scale: (s, k) => ({ items: s.items.map((i) => ({ ...i, quantity: i.quantity * k, amount: i.amount * k })) }),
+    describe: (s, _data, k) => ({
+      value: `${formatUsd(s.items.reduce((t, i) => t + itemValue(i), 0) * k)} a year of benefit`,
+      detail: `${Math.round(k * 100)}% of the benefit entered (quantities and flat amounts scaled together)`,
+    }),
+  },
   benefit: (s) => {
     const lines = s.items
       .filter((i) => itemValue(i) !== 0)

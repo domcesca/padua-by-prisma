@@ -11,7 +11,9 @@ import { formatInt, formatUsd } from "@/lib/format"
 import { defineModule, type BenefitLine, type ModuleEditorProps } from "@/lib/propose/module"
 import { DRG_SEARCH_NOTES } from "@/lib/propose/search-terms"
 import { estimatedPayment, type ReimbursementData } from "@/lib/propose/reimbursement"
+import { ippsLaborShare, ippsWagePayment } from "@/lib/propose/wage-index"
 import { NumberField } from "../number-field"
+import { SourceTag } from "../source-tag"
 
 // New technology or service that brings in inpatient cases: pick the MS-DRGs it maps to, say how
 // many more cases a year, and each case is valued at the DRG's national-average Medicare payment
@@ -43,13 +45,26 @@ function fromParams(params: URLSearchParams): State {
 
 type Computed = { code: string; label: string; payment: number; baseline: number | null; added: number; revenue: number }
 
-function compute(s: State, data: ReimbursementData | null): Computed[] {
+/**
+ * Payment per case: the national estimate, or with Advanced mode's wage index on (and a CMS wage index for the
+ * hospital) the wage-adjusted one. `adjusted` is the wage index in use, or null for the national rate.
+ */
+function pricing(data: ReimbursementData, wageIndex: boolean) {
+  const wi = wageIndex ? data.wageIndex : null
+  return {
+    adjusted: wi,
+    pay: (weight: number) => (wi ? ippsWagePayment(weight, data.laborSplit, wi.value) : estimatedPayment(weight, data.rate)),
+  }
+}
+
+function compute(s: State, data: ReimbursementData | null, wageIndex: boolean): Computed[] {
   if (!data) return []
+  const { pay } = pricing(data, wageIndex)
   const byCode = new Map(data.drgs.map((d) => [d.code, d]))
   return s.drgs.flatMap((r) => {
     const d = byCode.get(r.code)
     if (!d) return []
-    const payment = estimatedPayment(d.weight, data.rate)
+    const payment = pay(d.weight)
     const baseline = data.baseline?.cases[r.code] ?? null
     const added = r.mode === "cases" ? r.value : baseline != null ? (baseline * r.value) / 100 : 0
     return [{ code: r.code, label: d.label, payment, baseline, added, revenue: added * payment }]
@@ -78,13 +93,13 @@ function Editor({ state, onChange, data, context }: ModuleEditorProps<State, Rei
         .map((d) => ({
           value: d.code,
           label: `${d.code} · ${d.label}`,
-          hint: formatUsd(estimatedPayment(d.weight, data.rate), { compact: true }),
+          hint: formatUsd(pricing(data, context.wageIndex).pay(d.weight), { compact: true }),
           group: d.mdcName,
           keywords: [d.type === "SURG" ? "surgical" : "medical", ...(d.mdc ? [`mdc ${d.mdc}`] : [])],
           tags: d.terms,
           leadTags: d.leadTerms,
         })) ?? [],
-    [data, system]
+    [data, system, context.wageIndex]
   )
   const systemName = system === "all" ? null : (systems.get(system)?.label ?? null)
   const emptyText = (query: string) => {
@@ -105,7 +120,8 @@ function Editor({ state, onChange, data, context }: ModuleEditorProps<State, Rei
     )
   }
 
-  const rows = compute(state, data)
+  const rows = compute(state, data, context.wageIndex)
+  const { adjusted } = pricing(data, context.wageIndex)
   const byCode = new Map(data.drgs.map((d) => [d.code, d]))
   const revenue = rows.reduce((sum, r) => sum + r.revenue, 0)
   const setRow = (code: string, patch: Partial<Row>) =>
@@ -116,9 +132,14 @@ function Editor({ state, onChange, data, context }: ModuleEditorProps<State, Rei
     <div className="space-y-4">
       <p className="text-[13px] leading-relaxed text-muted-foreground">
         Pick the MS-DRGs the new cases will fall into and how many more a year. Each case is valued at the DRG’s{" "}
-        <span className="font-medium text-foreground">national-average Medicare payment</span> for FY {data.fiscalYear}.{" "}
-        <MethodInfo data={data} />
+        {adjusted ? (
+          <span className="font-medium text-foreground">Medicare payment, wage-index-adjusted for {adjusted.hospital}</span>
+        ) : (
+          <span className="font-medium text-foreground">national-average Medicare payment</span>
+        )}{" "}
+        for FY {data.fiscalYear}. <MethodInfo data={data} />
       </p>
+      {context.wageIndex && <WageIndexNote data={data} facilityName={context.facilityName} />}
 
       <div className="flex flex-wrap items-center gap-2">
         <FilterPill
@@ -269,6 +290,38 @@ function Editor({ state, onChange, data, context }: ModuleEditorProps<State, Rei
   )
 }
 
+/** Advanced mode's wage index: which one is in use, or why the national rate still is. */
+function WageIndexNote({ data, facilityName }: { data: ReimbursementData; facilityName: string | null }) {
+  const wi = data.wageIndex
+  return (
+    <p className="rounded-xl border border-dashed border-border px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+      <SourceTag kind="data" className="mr-1.5">
+        Advanced · wage index
+      </SourceTag>
+      {wi ? (
+        <>
+          {wi.hospital}’s {wi.year} IPPS wage index is <span className="num font-medium text-foreground">{wi.value.toFixed(4)}</span> (
+          {wi.table}, CCN {wi.ccn}
+          {wi.reportedWithName ? `, paid under ${wi.reportedWithName}’s Medicare number` : ""}). The labor-related{" "}
+          {ippsLaborShare(data.laborSplit, wi.value)}% of the national rate is multiplied by it, as CMS does:{" "}
+          <span className="num">
+            weight × ({formatUsd((wi.value > 1 ? data.laborSplit.above : data.laborSplit.atMost).laborRelated, { cents: true })} × {wi.value.toFixed(4)} +{" "}
+            {formatUsd((wi.value > 1 ? data.laborSplit.above : data.laborSplit.atMost).nonlaborRelated, { cents: true })})
+          </span>
+          . DSH, IME, outliers, and capital still aren’t applied.{" "}
+          <a href={wi.sourcePage} target="_blank" rel="noreferrer" className="font-medium text-primary hover:underline">
+            CMS source
+          </a>
+        </>
+      ) : facilityName ? (
+        `CMS publishes no IPPS wage index for ${facilityName} (critical access, children’s, cancer, psychiatric, rehabilitation, and long-term care hospitals aren’t paid under IPPS), so the national rate is used.`
+      ) : (
+        "Pick a hospital to apply its CMS wage index; until then the national rate is used."
+      )}
+    </p>
+  )
+}
+
 function MethodInfo({ data }: { data: ReimbursementData }) {
   return (
     <Popover>
@@ -306,27 +359,45 @@ export const reimbursementModule = defineModule<State, ReimbursementData>({
   id: "reimbursement",
   label: "Inpatient reimbursement",
   payerMix: true,
+  wageIndex: true,
+  volume: {
+    label: "Added cases",
+    scale: (s, k) => ({ ...s, drgs: s.drgs.map((r) => ({ ...r, value: r.value * k })) }),
+    describe: (s, data, k) => {
+      const entered = compute(s, data, false).reduce((t, r) => t + r.added, 0)
+      return { value: `${casesText(Math.ceil(entered * k * 10) / 10)} a year`, detail: `${Math.round(k * 100)}% of the ${casesText(entered)} entered, in the same DRG mix` }
+    },
+  },
+  drivers: (s) => [
+    { id: "price", label: "Medicare payment per case" },
+    ...(s.careCost ? [{ id: "care", label: "Cost of caring for the added patients", apply: (st: State, f: number) => ({ ...st, careCost: Math.min(100, st.careCost * f) }) }] : []),
+  ],
   summary: "New technology or service that adds inpatient cases, valued by MS-DRG.",
   icon: Receipt,
   hasData: true,
   initial: () => ({ drgs: [], careCost: 0 }),
   toParams,
   fromParams,
-  benefit: (s, data) => {
+  benefit: (s, data, { wageIndex }) => {
     if (!data) return { annual: 0, lines: [], notes: [], incomplete: "Loading the DRG table…" }
-    const rows = compute(s, data)
+    const rows = compute(s, data, wageIndex)
+    const { adjusted } = pricing(data, wageIndex)
     const lines: BenefitLine[] = rows.map((r) => ({
       label: `DRG ${r.code} · ${r.label}`,
-      detail: `${casesText(r.added)} × ${formatUsd(r.payment)}`,
+      detail: `${casesText(r.added)} × ${formatUsd(r.payment)}${adjusted ? ` (wage-index-adjusted, ${adjusted.value.toFixed(4)})` : ""}`,
       amount: r.revenue,
     }))
     const revenue = rows.reduce((sum, r) => sum + r.revenue, 0)
     if (s.careCost > 0 && revenue) {
       lines.push({ label: "Cost of caring for the added patients", detail: `${s.careCost}% of payment`, amount: (-revenue * s.careCost) / 100 })
     }
+    const split = adjusted && (adjusted.value > 1 ? data.laborSplit.above : data.laborSplit.atMost)
     const notes = [
-      `Payment per case = FY ${data.fiscalYear} MS-DRG relative weight × national operating standardized amount (${formatUsd(data.rate)}). A national Medicare estimate, not this hospital’s actual reimbursement: wage index, DSH/IME, outliers, capital, and payer mix aren’t applied.`,
+      adjusted && split
+        ? `Advanced: payment per case is wage-index-adjusted for ${adjusted.hospital}: FY ${data.fiscalYear} MS-DRG relative weight × (labor-related ${formatUsd(split.laborRelated, { cents: true })} × wage index ${adjusted.value.toFixed(4)} + non-labor ${formatUsd(split.nonlaborRelated, { cents: true })}), with the hospital’s wage index from CMS’s ${adjusted.table} (CCN ${adjusted.ccn}). Still an estimate, not the hospital’s actual reimbursement: DSH/IME, outliers, capital, and payer mix aren’t applied.`
+        : `Payment per case = FY ${data.fiscalYear} MS-DRG relative weight × national operating standardized amount (${formatUsd(data.rate)}). A national Medicare estimate, not this hospital’s actual reimbursement: wage index, DSH/IME, outliers, capital, and payer mix aren’t applied.`,
     ]
+    if (wageIndex && !adjusted) notes.push("Advanced: the wage index adjustment is on, but CMS publishes no IPPS wage index for this hospital (or none is picked), so the national rate is used.")
     if (!s.careCost) notes.push("Counts revenue, not margin: the cost of treating the added patients isn’t subtracted.")
     if (s.drgs.some((r) => r.mode === "pct") && data.baseline)
       notes.push(`Percent increases apply to ${data.baseline.year} Original Medicare (fee-for-service) discharges from CMS.`)

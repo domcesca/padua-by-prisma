@@ -47,7 +47,7 @@ export function AdvancedPanel({
             <SlidersHorizontal className="size-4 text-tertiary-foreground" aria-hidden /> Advanced
           </h2>
           <p className="text-[13px] text-muted-foreground">
-            Optional refinements: payer mix, ramp-up, and escalation. Off, or left at their defaults, they change nothing.
+            Optional refinements and read-outs, each switched on separately. Off, or left at their defaults, they change nothing.
           </p>
         </div>
         <button
@@ -74,6 +74,27 @@ export function AdvancedPanel({
               <p className="text-xs text-muted-foreground">
                 Payer mix applies to inpatient and outpatient reimbursement, whose estimates are Medicare rates. Other methods
                 aren’t payer-rated, so it’s ignored here.
+              </p>
+            )}
+          </Fold>
+
+          <Fold
+            title="Wage index"
+            status={module.wageIndex ? (value.wageIndex ? "On: hospital’s CMS wage index" : "Off: national rate") : "Not used by this method"}
+          >
+            {module.wageIndex ? (
+              <div className="space-y-2">
+                <Toggle label="Adjust for this hospital’s wage index" checked={value.wageIndex} onChange={(wageIndex) => set({ wageIndex })} />
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  The estimate uses CMS’s flat national rate. On, the labor-related share of that rate is multiplied by the
+                  hospital’s own CMS wage index, the way Medicare pays it (IPPS Table 2 for inpatient, the OPPS impact file
+                  for outpatient). California’s wage indexes are well above 1, so this usually raises the estimate. The benefit
+                  section shows the index used. <SourceTag kind="data">CMS</SourceTag>
+                </p>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                The wage index applies to inpatient and outpatient reimbursement, which are priced at national Medicare rates.
               </p>
             )}
           </Fold>
@@ -152,6 +173,43 @@ export function AdvancedPanel({
             </div>
           </Fold>
 
+          <Fold
+            title="Break-even volume"
+            status={value.breakeven ? (module.volume ? "Shown with the results" : "Not used by this method") : "Off"}
+          >
+            <div className="space-y-2">
+              <Toggle label="Show break-even volume" checked={value.breakeven} onChange={(breakeven) => set({ breakeven })} />
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                Solves backward for the least volume ({module.volume ? module.volume.label.toLowerCase() : "cases, services, or savings"}) that
+                pays back the costs within the useful life, in the expected scenario. Shown as one number under the scenario cards.
+                Nothing new is assumed: it’s the same model, re-run.
+              </p>
+            </div>
+          </Fold>
+
+          <Fold
+            title="Sensitivity"
+            status={value.sensitivity.on ? `±${value.sensitivity.swing}% on ${value.sensitivity.outcome === "roi" ? "ROI" : "NPV"}` : "Off"}
+          >
+            <div className="space-y-2">
+              <Toggle
+                label="Show the sensitivity (tornado) chart"
+                checked={value.sensitivity.on}
+                onChange={(on) => set({ sensitivity: { ...value.sensitivity, on } })}
+              />
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                Moves each input (volume, prices, costs, useful life, discount rate) up and down by a fixed percent, one at a
+                time, and ranks them by how much the NPV or ROI changes. Pick the swing and outcome on the chart.
+              </p>
+            </div>
+          </Fold>
+
+          {module.advancedExtras?.length ? (
+            <p className="px-1 pt-1 text-xs leading-relaxed text-muted-foreground">
+              {module.label} also has advanced options in its benefit section: {new Intl.ListFormat("en-US", { type: "conjunction" }).format(module.advancedExtras)}.
+            </p>
+          ) : null}
+
           <div className="flex justify-end pt-1">
             <button
               type="button"
@@ -168,6 +226,27 @@ export function AdvancedPanel({
 }
 
 const pct = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n)}%`
+
+/** A labeled switch for one advanced option. */
+export function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (next: boolean) => void }) {
+  return (
+    <label className="flex cursor-pointer items-center gap-2.5 text-[13px] font-medium">
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        onClick={() => onChange(!checked)}
+        className={cn(
+          "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+          checked ? "bg-primary" : "bg-black/15 dark:bg-white/20"
+        )}
+      >
+        <span className={cn("inline-block size-3.5 rounded-full bg-white shadow transition-transform", checked ? "translate-x-[18px]" : "translate-x-[3px]")} />
+      </button>
+      {label}
+    </label>
+  )
+}
 
 function Fold({ title, status, children }: { title: string; status: string; children: React.ReactNode }) {
   const [open, setOpen] = useState(false)

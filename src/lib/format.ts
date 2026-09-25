@@ -6,10 +6,13 @@ const compact = new Intl.NumberFormat("en-US", { notation: "compact", maximumFra
 
 export const formatInt = (n: number) => int.format(n)
 
-export function formatUsd(n: number, opts: { compact?: boolean } = {}) {
+const cents = new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+export function formatUsd(n: number, opts: { compact?: boolean; cents?: boolean } = {}) {
   const sign = n < 0 ? "−" : ""
   const abs = Math.abs(n)
   if (opts.compact && abs >= 1000) return `${sign}$${compact.format(abs)}`
+  if (opts.cents) return `${sign}$${cents.format(abs)}`
   return `${sign}$${int.format(abs)}`
 }
 

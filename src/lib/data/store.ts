@@ -359,3 +359,19 @@ export const getOppsApcs = () => loadReference<OppsApc[]>("cms-opps", "apcs.json
 export const getOppsManifest = () => loadReference<OppsManifest>("cms-opps", "manifest.json")
 /** Medicare fee-for-service outpatient services per hospital, year, and comprehensive APC (11+ only). */
 export const getOutpatientServices = () => loadReference<Record<string, Record<string, Record<string, number>>>>("cms-opps", "services.json")
+
+/** Each hospital's Medicare wage index for IPPS and OPPS payments (cms-wage-index), for Propose's Advanced mode. */
+export type WageIndexHospital = {
+  ccn: string
+  cmsName: string | null
+  ipps: { wageIndex: number; cbsa: string; reclassified: boolean } | null
+  opps: { wageIndex: number } | null
+}
+type LaborSplit = { laborRelated: number; nonlaborRelated: number }
+export type WageIndexManifest = {
+  ipps: { fiscalYear: number; sourcePage: string; table: string; standardizedAmount: { wageIndexAboveOne: LaborSplit; wageIndexAtMostOne: LaborSplit } }
+  opps: { calendarYear: number; sourcePage: string; table: string; laborShare: number }
+  sharedReporting: Record<string, { ccn: string; reportedWith: string; reportedWithName: string }>
+}
+export const getWageIndexHospitals = () => loadReference<Record<string, WageIndexHospital>>("cms-wage-index", "hospitals.json")
+export const getWageIndexManifest = () => loadReference<WageIndexManifest>("cms-wage-index", "manifest.json")

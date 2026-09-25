@@ -273,6 +273,18 @@ downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and
   so its walkthrough explains strength, sample size, outliers, and association vs cause without adding a significance
   test.
 
+### V6.10 (Advanced mode expansion; Standard mode unchanged)
+- Six independently switched Advanced options: wage index (inpatient/outpatient), break-even volume, sensitivity
+  tornado, staff time by role (Cost savings), lost readmission revenue and readmission dampening (Avoided penalties).
+- New ETL `cms-wage-index`: FY 2027 IPPS Table 2 (checked against the Impact File for all 3,074 hospitals) and the
+  CY 2026 OPPS Hospital Impact File. California: 275 hospitals with an IPPS index, 298 with an OPPS index (LTC, rehab,
+  and psych hospitals bill OPPS but not IPPS).
+- Wage index source confirmed before building: Table 2's with-cap column already includes out-migration and the 5% cap
+  (Impact File's variable description); OPPS uses the final FY IPPS index (CMS's impact-file layout, column F).
+- The Federal Register was unreachable from the build environment, so OPPS's 60% labor share is a documented constant.
+- Break-even and sensitivity reuse one model function (`analysis.ts`), which the page now uses for its results too.
+- The Propose walkthrough is unchanged: its targets didn't move.
+
 ## 3. Key decisions and why
 
 ### Peer groups: a proxy, not a PSA/SSA

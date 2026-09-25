@@ -1,0 +1,243 @@
+{
+  "id": "cms-wage-index",
+  "title": "CMS hospital wage indexes for IPPS and OPPS payments",
+  "ipps": {
+    "fiscalYear": 2027,
+    "sourcePage": "https://www.cms.gov/medicare/payment/prospective-payment-systems/acute-inpatient-pps/fy-2027-ipps-final-rule-home-page",
+    "table": "FY 2027 IPPS Final Rule, Table 2 (wage index by CCN)",
+    "standardizedAmount": {
+      "wageIndexAboveOne": {
+        "laborRelated": 4520.33,
+        "nonlaborRelated": 2328.65
+      },
+      "wageIndexAtMostOne": {
+        "laborRelated": 4246.37,
+        "nonlaborRelated": 2602.61
+      }
+    }
+  },
+  "opps": {
+    "calendarYear": 2026,
+    "sourcePage": "https://www.cms.gov/medicare/payment/prospective-payment-systems/hospital-outpatient/regulations-notices/cms-1834-fc",
+    "table": "CY 2026 OPPS Final Rule, Hospital Impact File (post-reclassification wage index)",
+    "laborShare": 0.6,
+    "checkAgainstTable2": {
+      "compared": 2978,
+      "differ": 21,
+      "differCcns": [
+        "040072",
+        "050180",
+        "160079",
+        "160153",
+        "180040",
+        "180067",
+        "180130",
+        "180141",
+        "190045",
+        "240001",
+        "240115",
+        "250123",
+        "340098",
+        "340113",
+        "360035",
+        "360134",
+        "360161",
+        "360179",
+        "390026",
+        "390231",
+        "420036"
+      ]
+    }
+  },
+  "sources": [
+    {
+      "name": "FY 2027 IPPS final rule table2",
+      "url": "https://www.cms.gov/files/zip/fy2027-ipps-fr-tables-2-3-4a-4b.zip"
+    },
+    {
+      "name": "FY 2027 IPPS final rule table1",
+      "url": "https://www.cms.gov/files/zip/fy2027-ipps-fr-table-1a-1e.zip"
+    },
+    {
+      "name": "FY 2027 IPPS final rule impact",
+      "url": "https://www.cms.gov/files/zip/fy2027-ipps-fr-impact-file.zip"
+    },
+    {
+      "name": "CY 2026 OPPS final rule Hospital Impact File",
+      "url": "https://www.cms.gov/files/zip/2026-nfrm-opps-facility-specific-impacts.zip"
+    },
+    {
+      "name": "Hospital General Information",
+      "url": "https://data.cms.gov/provider-data/sites/default/files/resources/893c372430d9d71a1c52737d01239d47_1785189955/Hospital_General_Information.csv"
+    }
+  ],
+  "crosswalk": [
+    {
+      "name": "Licensed and Certified Healthcare Facility Locations",
+      "url": "https://data.chhs.ca.gov/dataset/3b5b80e8-6b8d-4715-b3c0-2699af6e72e5/resource/f0ae5731-fef8-417f-839d-54a0ed3a126e/download/health_facility_locations.csv"
+    },
+    {
+      "name": "ELMS-OSHPD - Licensed and Certified Healthcare Facility Crosswalk",
+      "url": "https://data.chhs.ca.gov/dataset/e89100fd-1f1d-4a37-8205-d588aa42e5a1/resource/cf954841-9ca7-4914-a31f-29ca12c7b71a/download/elms_oshpd_cw_oct2024xlsx.xlsx"
+    }
+  ],
+  "sharedReporting": {
+    "106013619": {
+      "ccn": "050320",
+      "reportedWith": "106010846",
+      "reportedWithName": "Highland Hospital"
+    },
+    "106364014": {
+      "ccn": "050327",
+      "reportedWith": "106361246",
+      "reportedWithName": "Loma Linda University Medical Center"
+    },
+    "106190636": {
+      "ccn": "050382",
+      "reportedWith": "106190413",
+      "reportedWithName": "Emanate Health Inter-Community Hospital"
+    },
+    "106154101": {
+      "ccn": "050455",
+      "reportedWith": "106150788",
+      "reportedWithName": "Adventist Health Bakersfield"
+    },
+    "106190857": {
+      "ccn": "050763",
+      "reportedWith": "106190661",
+      "reportedWithName": "L.a. Downtown Medical Center"
+    }
+  },
+  "coverage": {
+    "cmsHospitals": 321,
+    "matchedHospitals": 305,
+    "withIpps": 275,
+    "withOpps": 298,
+    "matchedByNameAndZip": [
+      {
+        "ccn": "050115",
+        "cmsName": "PALOMAR HEALTH DOWNTOWN CAMPUS",
+        "hcaiId": "106370755",
+        "name": "Palomar Health Downtown Campus",
+        "score": 1.0,
+        "alsoHasCcn": false
+      },
+      {
+        "ccn": "050551",
+        "cmsName": "UCI HEALTH - LOS ALAMITOS",
+        "hcaiId": "106301248",
+        "name": "UCI Health-Los Alamitos",
+        "score": 0.96,
+        "alsoHasCcn": false
+      },
+      {
+        "ccn": "050570",
+        "cmsName": "UCI HEALTH - FOUNTAIN VALLEY",
+        "hcaiId": "106301175",
+        "name": "UCI Health-Fountain Valley",
+        "score": 0.96,
+        "alsoHasCcn": true
+      },
+      {
+        "ccn": "050581",
+        "cmsName": "UCI HEALTH-LAKEWOOD",
+        "hcaiId": "106190240",
+        "name": "UCI Health-Lakewood",
+        "score": 1.0,
+        "alsoHasCcn": true
+      },
+      {
+        "ccn": "050726",
+        "cmsName": "STANISLAUS SURGICAL HOSPITAL",
+        "hcaiId": "106504038",
+        "name": "Stanislaus Surgical Hospital",
+        "score": 1.0,
+        "alsoHasCcn": false
+      },
+      {
+        "ccn": "050856",
+        "cmsName": "MADERA COMMUNITY HOSPITAL",
+        "hcaiId": "106201281",
+        "name": "Madera Community Hospital",
+        "score": 1.0,
+        "alsoHasCcn": false
+      },
+      {
+        "ccn": "054157",
+        "cmsName": "GLENDORA  HOSPITAL",
+        "hcaiId": "106190328",
+        "name": "Glendora Hospital",
+        "score": 0.97,
+        "alsoHasCcn": false
+      }
+    ],
+    "unmatched": [
+      {
+        "ccn": "050096",
+        "name": ""
+      },
+      {
+        "ccn": "050568",
+        "name": ""
+      },
+      {
+        "ccn": "050589",
+        "name": "Uci Health-Placentia Linda"
+      },
+      {
+        "ccn": "050724",
+        "name": ""
+      },
+      {
+        "ccn": "050757",
+        "name": ""
+      },
+      {
+        "ccn": "052046",
+        "name": "Kindred Hospital Paramount"
+      },
+      {
+        "ccn": "054662",
+        "name": "Portia Bell Hume Behav  Hlth &"
+      },
+      {
+        "ccn": "054675",
+        "name": "Pacific Health Education Cognitive Center, Inc."
+      },
+      {
+        "ccn": "054676",
+        "name": "Aspire Counseling Services Inc"
+      },
+      {
+        "ccn": "054677",
+        "name": "Pacific Solstice Integrative Clinic"
+      },
+      {
+        "ccn": "054679",
+        "name": "Gold Star Community Health Center, Inc"
+      },
+      {
+        "ccn": "054680",
+        "name": "Horizon Cmhc"
+      },
+      {
+        "ccn": "054681",
+        "name": "Moreno Valley Cmhc"
+      },
+      {
+        "ccn": "054682",
+        "name": "Compassion Recovery Centers"
+      },
+      {
+        "ccn": "05B121",
+        "name": ""
+      }
+    ]
+  },
+  "generatedAt": "2026-09-25T17:51:47Z",
+  "notes": [
+    "IPPS: Table 2's FY 2027 wage index with all adjustments (or the low-wage-index transition value), checked against the FY 2027 Impact File for every hospital.",
+    "Wage-adjusted operating payment = relative weight x (labor-related amount x wage index + non-labor amount); Table 1A's split applies above a wage index of 1, Table 1B's at or below.",
+    "OPPS: the CY 2026 OPPS Hospital Impact File's post-reclassification wage index (the final FY 2026 IPPS wage index). Wage-adjusted rate = national rate x (0.6 x wage index + 0.40)."
+  ]
+}
