@@ -1,8 +1,8 @@
 import "server-only"
 
 import { applyPayerView, CATEGORY_BY_ID, type MetricDef, type PayerView } from "@/lib/data/datasets"
-import { getFacilities, getManifest, getMetricCatalog, getMetrics, getPublishedYears } from "@/lib/data/store"
-import type { Facility, MetricCategory, MetricsFile, PayerGroup, PayerMix, PointDetail } from "@/lib/data/types"
+import { getCommunityContext, getFacilities, getManifest, getMetricCatalog, getMetrics, getPublishedYears } from "@/lib/data/store"
+import type { CommunityContext, Facility, MetricCategory, MetricsFile, PayerGroup, PayerMix, PointDetail } from "@/lib/data/types"
 import type { PeerFilters } from "./filters"
 import { milesBetween, resolvePeerGroup } from "./peers"
 
@@ -44,6 +44,8 @@ export type BenchmarkResult = {
   peers: PeerSummary[]
   /** metric id -> one point per year of that metric's dataset (companions included). */
   series: Record<string, SeriesPoint[]>
+  /** The hospital's county: Census demographics and Medi-Cal enrollment. Context, not a benchmark. */
+  community: CommunityContext | null
   /** Caveats about this hospital's data in this category (e.g. reported together with another hospital). */
   notes: string[]
   payerMix: PayerMixComparison | null
@@ -170,6 +172,7 @@ export async function computeBenchmark({
     payer: lens,
     metrics: metrics.map((m) => m.id),
     notes: category === "quality" ? await qualityNotes(facility.id) : [],
+    community: await getCommunityContext(facility.county),
     filters: group.filters,
     peerGroup: { description: group.description, note: group.note },
     peers: peers

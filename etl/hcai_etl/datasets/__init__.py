@@ -1,7 +1,9 @@
 """Dataset pipelines. Register new ones in `REGISTRY`."""
 
+from .acs_county import AcsCounty
 from .cdph_hai import CdphHai
 from .cms_care_compare import CmsCareCompare
+from .dhcs_medi_cal import DhcsMediCal
 from .hafd_selected import HafdSelected
 from .hau import HospitalUtilization
 
@@ -15,4 +17,7 @@ REGISTRY = {
     # Non-HCAI sources, mapped onto HCAI facility numbers; build after the HCAI datasets.
     CdphHai.id: CdphHai,
     CmsCareCompare.id: CmsCareCompare,
+    # County context (not hospital metrics).
+    DhcsMediCal.id: DhcsMediCal,
+    AcsCounty.id: AcsCounty,
 }

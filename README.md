@@ -6,8 +6,8 @@ plain-language field guide, and a reporting calendar.
 
 | Tab | What it does |
 | --- | --- |
-| **Home** | The front door. Pick a topic (Financials or Utilization; Quality and Case mix are reserved for later), pick a hospital, optionally refine the peer group, metrics, and years, and land in Benchmark pre-loaded. The chosen hospital follows you to every tab. |
-| **Benchmark** | A hospital against its peer group on financial metrics (operating margin, days cash on hand, cost and revenue per adjusted discharge, payer mix) or utilization metrics (occupancy, ALOS, ED visits and flow, surgeries, cath volume). Default peers are **similar hospitals** (see below); switch to all of California or set filters yourself. A **Payer view** toggle (All payers / Medicare) narrows the metrics to Medicare where HCAI reports a Medicare split. Every view is a shareable URL. |
+| **Home** | The front door. Pick a topic (Financials, Utilization, or Quality; Case mix is reserved for later), pick a hospital, optionally refine the peer group, metrics, and years, and land in Benchmark pre-loaded. The chosen hospital follows you to every tab. |
+| **Benchmark** | A hospital against its peer group on financial metrics (operating margin, days cash on hand, cost and revenue per adjusted discharge, payer mix) utilization metrics (occupancy, ALOS, ED visits and flow, surgeries, cath volume), or quality (CMS readmissions, mortality, patient experience, star ratings; CDPH infection ratios). A collapsible panel shows the county's Census and Medi-Cal context. Default peers are **similar hospitals** (see below); switch to all of California or set filters yourself. A **Payer view** toggle (All payers / Medicare) narrows the metrics to Medicare where HCAI reports a Medicare split. Every view is a shareable URL. |
 | **Build** | A guided chart and table builder: up to four metrics from the catalog, line / bar / table, grouped by year, by hospital, or against the peer group. Legend, table view, CSV download, and a copyable link on every result. |
 | **Translate** | Every field in either dataset in plain language, with why it moves. Pick a hospital to see year-over-year changes, or paste/upload a raw HCAI extract (.xlsx/.csv, including the utilization workbook) to translate its columns. Parsing happens in the browser. |
 | **Deadlines** | Quarterly and annual financial report due dates for a hospital's fiscal year, the Annual Utilization Report (Feb 15), extension limits, off-cycle report periods, and filed/extended tracking (saved in the browser). |
@@ -17,6 +17,10 @@ Data, calendar/report years 2019–2024:
 
 - [HCAI Hospital Annual Financial Data – Selected Data & Pivot Tables](https://data.chhs.ca.gov/dataset/hospital-annual-financial-data-selected-data-pivot-tables)
 - [HCAI Hospital Annual Utilization Report & Pivot Tables](https://data.chhs.ca.gov/dataset/hospital-annual-utilization-report)
+- [CMS Care Compare – Hospitals](https://data.cms.gov/provider-data/topics/hospitals) (archived snapshots, 2019–2026)
+- [CDPH Healthcare-Associated Infections](https://www.cdph.ca.gov/Programs/CHCQ/HAI/Pages/HAIreport.aspx) (CLABSI, C. diff, MRSA, VRE; 2019–2025)
+- [DHCS Medi-Cal Certified Eligibles by month](https://data.chhs.ca.gov/dataset/medi-cal-certified-eligibles-with-demographics-by-month) and the [Census ACS 5-year API](https://www.census.gov/data/developers/data-sets/acs-5year.html) (county context)
+- [CDPH Licensed and Certified Healthcare Facility Listing](https://data.chhs.ca.gov/dataset/healthcare-facility-locations) and [crosswalk](https://data.chhs.ca.gov/dataset/licensed-facility-crosswalk) (to match CMS and CDPH IDs to HCAI)
 
 ## Running locally
 
@@ -116,6 +120,19 @@ acute hospitals reporting in 2024 have infection data.
 **"Not yet reported"**: a card never shows an empty chart. Years the source hasn't published are named under the
 chart; a hospital with no value gets "Not reported for this hospital" with the source's reason.
 
+## Community context (Benchmark panel)
+
+A collapsible panel under the hospital summary shows the hospital's **county**: population, median household
+income, age 65+, poverty, health coverage (Census ACS 5-year), and Medi-Cal enrollment with its share of residents
+and the share also on Medicare (DHCS certified eligibles, averaged over the year's months; recent months are
+preliminary). It's context, not a benchmark, and the county isn't the hospital's service area.
+
+- `dhcs-medi-cal`: file-based like the other sources (CHHS "Medi-Cal Certified Eligibles … by Month", dual-status table).
+- `acs-county`: the one API source. Needs a free Census key at **ETL time only**: copy `.env.example` to `.env` and
+  set `CENSUS_API_KEY`, or export it, then `python -m hcai_etl acs-county`. It picks the newest 5-year release that has
+  every variable and writes `data/processed/acs-county/`; the key is never cached or written out. Until that runs,
+  the panel shows Medi-Cal only.
+
 ## Medicare lens (Benchmark's Payer view)
 
 Built from the Medicare columns HCAI already publishes in the financial report (`*_MCAR_TR` traditional Medicare,
@@ -194,7 +211,7 @@ Apple-style restraint with a "Liquid Glass" layer (utilities in `src/app/globals
 
 Import the repo in Vercel with the defaults (framework: Next.js). `next.config.ts` uses `outputFileTracingIncludes`
 to bundle `data/processed/**/*.json` into the server functions, and API responses are CDN-cached for a day.
-No environment variables are needed.
+The app needs no environment variables (`CENSUS_API_KEY` is only for the ETL).
 
 ## Caveats worth knowing
 

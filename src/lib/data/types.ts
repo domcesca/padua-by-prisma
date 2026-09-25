@@ -234,3 +234,32 @@ export type Manifest = {
   /** Care Compare: hospitals CMS reports together with another under one CCN. */
   sharedReporting?: Record<string, { ccn: string; reportedWith: string; reportedWithName: string }>
 }
+
+// -- county context (data/processed/{dhcs-medi-cal,acs-county}) ------------------
+
+/** data/processed/dhcs-medi-cal/counties.json: Medi-Cal certified eligibles (annual = monthly average). */
+export type MediCalCounty = {
+  years: Record<string, { eligibles: number; dual: number | null; months: number; preliminary: boolean }>
+  latest: { month: string; eligibles: number; dual: number | null; preliminary: boolean }
+}
+
+/** data/processed/acs-county/counties.json: Census ACS 5-year estimates. Coverage percents overlap. */
+export type AcsCounty = {
+  fips: string
+  population: number | null
+  medianHouseholdIncome: number | null
+  medianAge: number | null
+  pctAge65Plus: number | null
+  pctBelowPoverty: number | null
+  pctUninsured: number | null
+  pctPrivate: number | null
+  pctMedicare: number | null
+  pctMedicaid: number | null
+}
+
+/** Context for the county a hospital is in. Either source may be missing (not yet loaded). */
+export type CommunityContext = {
+  county: string
+  acs: (AcsCounty & { vintage: string }) | null
+  mediCal: (MediCalCounty["latest"] & { year: number; annual: MediCalCounty["years"][string] | null }) | null
+}

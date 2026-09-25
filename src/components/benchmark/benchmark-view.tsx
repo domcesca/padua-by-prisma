@@ -21,6 +21,7 @@ import {
 import type { MetricCategory, PayerGroup } from "@/lib/data/types"
 import { rememberSelection } from "@/lib/selection"
 import { cn } from "@/lib/utils"
+import { CommunityPanel } from "./community-panel"
 import { FacilityPicker, type FacilityOption } from "./facility-picker"
 import { FilterPill } from "./filter-pill"
 import { MetricCard } from "./metric-card"
@@ -210,6 +211,7 @@ export function BenchmarkView({
       {shown && (
         <div className={cn("space-y-6 transition-opacity duration-200", loading && "opacity-60")}>
           <FacilitySummary result={shown} lastYear={facility?.lastYear ?? latestYear} />
+          {shown.community && <CommunityPanel context={shown.community} />}
 
           {shown.peers.length === 0 ? (
             <div className="glass rounded-2xl p-8 text-center">

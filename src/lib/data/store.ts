@@ -7,6 +7,8 @@ import type { FacilityOption } from "@/components/benchmark/facility-picker"
 
 import { HCAI_DATASETS, isTrendMetric, type MetricDef } from "./datasets"
 import type {
+  AcsCounty,
+  CommunityContext,
   DatasetId,
   Dictionary,
   Facility,
@@ -14,6 +16,7 @@ import type {
   FinancialFacility,
   HcaiDatasetId,
   Manifest,
+  MediCalCounty,
   MetricsFile,
   UtilizationFacility,
 } from "./types"
@@ -212,4 +215,39 @@ export async function getFacilityFieldValues(dataset: HcaiDatasetId, id: string)
     values[year] = Object.fromEntries(file.fields.map((code, i) => [code, row[i]]))
   }
   return { values, meta: file.meta[id] ?? {} }
+}
+
+// -- county context -------------------------------------------------------------
+
+/** A county-level context file, or null when that source hasn't been processed (e.g. no Census key yet). */
+function loadOptional<T>(dir: string, file: string): Promise<T | null> {
+  return memo(`${dir}/${file}`, () =>
+    readFile(path.join(PROCESSED_DIR, dir, file), "utf8")
+      .then((text) => JSON.parse(text) as T)
+      .catch((e: NodeJS.ErrnoException) => {
+        if (e.code === "ENOENT") return null
+        throw e
+      })
+  )
+}
+
+/** Census and Medi-Cal context for a county (HCAI county names, e.g. "Los Angeles"). */
+export async function getCommunityContext(county: string | null): Promise<CommunityContext | null> {
+  if (!county) return null
+  const [acs, acsManifest, mediCal] = await Promise.all([
+    loadOptional<Record<string, AcsCounty>>("acs-county", "counties.json"),
+    loadOptional<{ vintage: string }>("acs-county", "manifest.json"),
+    loadOptional<Record<string, MediCalCounty>>("dhcs-medi-cal", "counties.json"),
+  ])
+  const a = acs?.[county]
+  const m = mediCal?.[county]
+  if (!a && !m) return null
+  // The latest full year of Medi-Cal enrollment, falling back to the newest partial one.
+  const years = m ? Object.keys(m.years).map(Number).sort((x, y) => x - y) : []
+  const fullYear = [...years].reverse().find((y) => m!.years[y].months === 12) ?? years.at(-1)
+  return {
+    county,
+    acs: a ? { ...a, vintage: acsManifest?.vintage ?? "" } : null,
+    mediCal: m && fullYear != null ? { ...m.latest, year: fullYear, annual: m.years[fullYear] ?? null } : null,
+  }
 }

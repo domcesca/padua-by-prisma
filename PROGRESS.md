@@ -1,6 +1,6 @@
 # PROGRESS — handoff for the next session
 
-_Last updated 2026-09-24, after V2 (commit `b09ba3a`). Read this first, then `README.md` (run/refresh/deploy commands) and `AGENTS.md` (this is Next.js 16 — check `node_modules/next/dist/docs/` before writing Next code)._
+_Last updated 2026-09-25, mid-V3 (see §2 V3). Read this first, then `README.md` (run/refresh/deploy commands) and `AGENTS.md` (this is Next.js 16 — check `node_modules/next/dist/docs/` before writing Next code)._
 
 ## 1. Project overview
 
@@ -44,18 +44,25 @@ _Last updated 2026-09-24, after V2 (commit `b09ba3a`). Read this first, then `RE
 - **No automated tests.** Verification so far has been typecheck, lint, `next build`, and manual/browser checks at desktop and 375px widths in both themes.
 
 ### V3 (in progress)
-1. **Medicare lens** (done): a "Payer view" toggle (All payers / Medicare, `?payer=medicare`) on Benchmark, for both
-   Financials and Utilization. It uses HCAI's own Medicare columns. The user chose this over the CMS public-use file;
-   CMS payment per discharge may be added as an extra metric once Care Compare ingestion exists. See README
-   "Medicare lens". The processed `metrics.json`/`dictionary.json` were regenerated from `fields.json` via
-   `derive_medicare_metrics` because no raw files were reachable; a full ETL run produces the same values.
-2. **Quality tab** (CMS Care Compare + CDPH HAI): waiting on source files or network access. Agreed: HAI shows the SIR
-   as the main number with the raw rate beside it, labeled by infection type; confirm CDPH `Facility_ID` = HCAI
-   facility number on the real file; VRE shows "not yet reported" after its last year, never estimated.
-3. **Community context** (Census ACS via `CENSUS_API_KEY` at ETL time, plus DHCS Medi-Cal): waiting on data and key.
-4. **Correlate tab**: last, after 1–3.
+1. **Medicare lens** (done): a "Payer view" toggle (All payers / Medicare, `?payer=medicare`) on Benchmark for
+   Financials and Utilization, built from HCAI's own Medicare columns (the user chose this over the CMS public-use
+   file; CMS payment per discharge may be added later as an extra metric). Medicare margin uses the AHA
+   payment-to-cost method (cost-to-charge ratio = TOT_OP_EXP ÷ (GR_PT_REV + OTH_OP_REV)); median −29% to −35%,
+   checked against AHA (82¢ per dollar nationally, 2022) and CHA (~75¢ in California). It's far below MedPAC (−13%)
+   by design; the popup says so. Charge-based allocation doesn't inflate Medicare's share (charge share ~44% <
+   days share ~47–49%).
+2. **Quality topic** (done): see README "Quality". CMS Care Compare (archived snapshots) + CDPH HAI. **CDPH's
+   Facility_ID is NOT the HCAI ID** (ELMS ID, e.g. 930000004); mapped via CDPH's facility listing + ELMS–OSHPD
+   crosswalk (`etl/hcai_etl/crosswalk.py`), 286/288 comparable general hospitals matched. **VRE has no SIR** in the
+   source (no national risk adjustment) — rate only, as the user agreed for missing years. VRE is still published
+   through 2025. Rates follow CDPH units (CLABSI per 1,000 line days, others per 10,000 patient days).
+3. **Community context** (done except Census data): Medi-Cal enrollment is loaded. **ACS needs `CENSUS_API_KEY`**,
+   which wasn't set in the cloud session; the pipeline was tested against a mock of the API's response shape only.
+   Run `python -m hcai_etl acs-county` once the key is in `.env`, check the output, and commit `data/processed/acs-county/`.
+4. **Correlate tab**: not started (build last, per the user).
 
-The cloud session's network policy blocks data.cms.gov, data.chhs.ca.gov and api.census.gov.
+Cloud sessions need data.cms.gov, data.chhs.ca.gov and api.census.gov allowed (the user added them); CHHS
+downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and aha.org were not.
 
 ## 3. Key decisions and why
 
@@ -144,7 +151,7 @@ The utilities are all in `src/app/globals.css`. **Reuse them; don't invent new o
 ## 4. Deferred or not built
 - **Ask** (natural-language queries): placeholder only. The intended design is NL → `ReportSpec` → the existing Build runner.
 - **Watch** (anomaly detection on uploaded data): placeholder only.
-- **Quality and Case mix** topics: shown as "coming later" on the home page (`FUTURE_CATEGORIES` in `datasets.ts`).
+- **Case mix** topic: shown as "coming later" on the home page (`FUTURE_CATEGORIES` in `datasets.ts`).
 - **Other**: no accounts, saved reports, server-side uploads or database.
 - **More HCAI datasets:** Quarterly Financial & Utilization, the complete Annual Disclosure set and the Case Mix Index are planned but not started.
 
