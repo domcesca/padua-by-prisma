@@ -1,0 +1,165 @@
+{
+  "dataset": "cdph-hai",
+  "source": "CDPH Healthcare-Associated Infections in California Hospitals (annual datasets and data dictionaries)",
+  "sections": [
+    {
+      "id": "infections",
+      "title": "Healthcare-associated infections",
+      "summary": "Hospital-onset infections reported to CDC's NHSN and published by CDPH each calendar year.",
+      "drivers": []
+    }
+  ],
+  "fields": [],
+  "metrics": [
+    {
+      "id": "clabsiSir",
+      "category": "quality",
+      "group": "Infections",
+      "label": "CLABSI infection ratio (SIR)",
+      "unit": "number",
+      "decimals": 2,
+      "summary": "Central line-associated bloodstream infection: Standardized infection ratio: infections the hospital reported divided by the number predicted for a hospital like it (NHSN's 2015 national baseline, adjusted for hospital type, size, and patient mix). Below 1 means fewer than predicted.",
+      "formula": "Infections reported ÷ infections predicted (CLABSI, NHSN 2015 baseline)",
+      "inputs": [],
+      "higherIsBetter": false,
+      "caution": "An SIR is only calculated when at least 0.2 infections were predicted; below 1 predicted it's imprecise, so small hospitals swing a lot. Better / worse than predicted is decided by the 95% confidence interval, not by the SIR alone.",
+      "comparedTo": "predicted",
+      "reference": 1,
+      "companion": "clabsiRate",
+      "drivers": [
+        "Central-line insertion and maintenance practices (bundles, chlorhexidine bathing, daily review of whether the line is still needed).",
+        "ICU census and acuity: more line days, sicker patients.",
+        "Nurse staffing and use of travel or registry nurses unfamiliar with local protocols.",
+        "Surveillance: how rigorously infection preventionists apply the NHSN definition."
+      ]
+    },
+    {
+      "id": "clabsiRate",
+      "category": "quality",
+      "group": "Infections",
+      "label": "CLABSI rate",
+      "unit": "number",
+      "decimals": 2,
+      "unitLabel": "per 1,000 central-line days",
+      "summary": "Central line-associated bloodstream infection: infections reported per 1,000 central-line days. Bloodstream infections in ICU and ward patients with a central line. Largely preventable with insertion and maintenance bundles.",
+      "formula": "Infections reported ÷ central-line days × 1,000",
+      "inputs": [],
+      "higherIsBetter": false,
+      "caution": "Not risk-adjusted. Use the SIR to compare hospitals; the rate shows the raw frequency.",
+      "companionOf": "clabsiSir",
+      "drivers": [
+        "Central-line insertion and maintenance practices (bundles, chlorhexidine bathing, daily review of whether the line is still needed).",
+        "ICU census and acuity: more line days, sicker patients.",
+        "Nurse staffing and use of travel or registry nurses unfamiliar with local protocols.",
+        "Surveillance: how rigorously infection preventionists apply the NHSN definition."
+      ]
+    },
+    {
+      "id": "cdiSir",
+      "category": "quality",
+      "group": "Infections",
+      "label": "C. diff infection ratio (SIR)",
+      "unit": "number",
+      "decimals": 2,
+      "summary": "C. difficile infection: Standardized infection ratio: infections the hospital reported divided by the number predicted for a hospital like it (NHSN's 2015 national baseline, adjusted for hospital type, size, and patient mix). Below 1 means fewer than predicted.",
+      "formula": "Infections reported ÷ infections predicted (C. diff, NHSN 2015 baseline)",
+      "inputs": [],
+      "higherIsBetter": false,
+      "caution": "An SIR is only calculated when at least 0.2 infections were predicted; below 1 predicted it's imprecise, so small hospitals swing a lot. Better / worse than predicted is decided by the 95% confidence interval, not by the SIR alone.",
+      "comparedTo": "predicted",
+      "reference": 1,
+      "companion": "cdiRate",
+      "drivers": [
+        "Antibiotic stewardship: fewer and narrower antibiotics mean less C. diff.",
+        "Testing practice: sensitive PCR testing without diagnostic stewardship finds colonized patients, raising reported rates.",
+        "Environmental cleaning and contact precautions.",
+        "Admission of more patients already carrying C. diff from nursing homes."
+      ]
+    },
+    {
+      "id": "cdiRate",
+      "category": "quality",
+      "group": "Infections",
+      "label": "C. diff rate",
+      "unit": "number",
+      "decimals": 2,
+      "unitLabel": "per 10,000 patient days",
+      "summary": "C. difficile infection: infections reported per 10,000 patient days. Hospital-onset C. difficile, a diarrheal infection spread in health care settings and driven by antibiotic use.",
+      "formula": "Infections reported ÷ patient days × 10,000",
+      "inputs": [],
+      "higherIsBetter": false,
+      "caution": "Not risk-adjusted. Use the SIR to compare hospitals; the rate shows the raw frequency.",
+      "companionOf": "cdiSir",
+      "drivers": [
+        "Antibiotic stewardship: fewer and narrower antibiotics mean less C. diff.",
+        "Testing practice: sensitive PCR testing without diagnostic stewardship finds colonized patients, raising reported rates.",
+        "Environmental cleaning and contact precautions.",
+        "Admission of more patients already carrying C. diff from nursing homes."
+      ]
+    },
+    {
+      "id": "mrsaSir",
+      "category": "quality",
+      "group": "Infections",
+      "label": "MRSA infection ratio (SIR)",
+      "unit": "number",
+      "decimals": 2,
+      "summary": "MRSA bloodstream infection: Standardized infection ratio: infections the hospital reported divided by the number predicted for a hospital like it (NHSN's 2015 national baseline, adjusted for hospital type, size, and patient mix). Below 1 means fewer than predicted.",
+      "formula": "Infections reported ÷ infections predicted (MRSA, NHSN 2015 baseline)",
+      "inputs": [],
+      "higherIsBetter": false,
+      "caution": "An SIR is only calculated when at least 0.2 infections were predicted; below 1 predicted it's imprecise, so small hospitals swing a lot. Better / worse than predicted is decided by the 95% confidence interval, not by the SIR alone.",
+      "comparedTo": "predicted",
+      "reference": 1,
+      "companion": "mrsaRate",
+      "drivers": [
+        "Line and device care, since many MRSA bloodstream infections start at a catheter.",
+        "Screening and decolonization of high-risk patients.",
+        "Hand hygiene and contact precautions.",
+        "Community MRSA prevalence among admitted patients."
+      ]
+    },
+    {
+      "id": "mrsaRate",
+      "category": "quality",
+      "group": "Infections",
+      "label": "MRSA rate",
+      "unit": "number",
+      "decimals": 2,
+      "unitLabel": "per 10,000 patient days",
+      "summary": "MRSA bloodstream infection: infections reported per 10,000 patient days. Hospital-onset bloodstream infections with methicillin-resistant Staphylococcus aureus.",
+      "formula": "Infections reported ÷ patient days × 10,000",
+      "inputs": [],
+      "higherIsBetter": false,
+      "caution": "Not risk-adjusted. Use the SIR to compare hospitals; the rate shows the raw frequency.",
+      "companionOf": "mrsaSir",
+      "drivers": [
+        "Line and device care, since many MRSA bloodstream infections start at a catheter.",
+        "Screening and decolonization of high-risk patients.",
+        "Hand hygiene and contact precautions.",
+        "Community MRSA prevalence among admitted patients."
+      ]
+    },
+    {
+      "id": "vreRate",
+      "category": "quality",
+      "group": "Infections",
+      "label": "VRE rate",
+      "unit": "number",
+      "decimals": 2,
+      "unitLabel": "per 10,000 patient days",
+      "summary": "VRE bloodstream infection: infections reported per 10,000 patient days. Hospital-onset bloodstream infections with vancomycin-resistant enterococci, common in transplant, oncology, and ICU patients.",
+      "formula": "Infections reported ÷ patient days × 10,000",
+      "inputs": [],
+      "higherIsBetter": false,
+      "caution": "Not risk-adjusted: no national method exists for VRE, so hospitals with transplant, oncology, and ICU services run higher. CDPH compares each hospital with the average rate for its hospital type and size.",
+      "comparedTo": "the average for similar California hospitals",
+      "drivers": [
+        "Service mix: transplant, oncology, and dialysis patients carry much higher risk, so large academic centers run higher.",
+        "Antibiotic use, especially vancomycin and broad-spectrum agents.",
+        "Environmental cleaning and contact precautions."
+      ]
+    }
+  ],
+  "payerGroups": []
+}

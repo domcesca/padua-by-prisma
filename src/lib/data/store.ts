@@ -5,13 +5,14 @@ import path from "node:path"
 
 import type { FacilityOption } from "@/components/benchmark/facility-picker"
 
-import { isTrendMetric, type MetricDef } from "./datasets"
+import { HCAI_DATASETS, isTrendMetric, type MetricDef } from "./datasets"
 import type {
   DatasetId,
   Dictionary,
   Facility,
   FieldsFile,
   FinancialFacility,
+  HcaiDatasetId,
   Manifest,
   MetricsFile,
   UtilizationFacility,
@@ -32,7 +33,9 @@ import type {
 
 const PROCESSED_DIR = path.join(process.cwd(), "data", "processed")
 
-export const DATASET_IDS: DatasetId[] = ["hafd-selected", "hau"]
+export const DATASET_IDS: DatasetId[] = ["hafd-selected", "hau", "cms-care-compare", "cdph-hai"]
+
+const CATEGORY_ORDER = { financial: 0, utilization: 1, quality: 2 } as const
 
 const cache = new Map<string, Promise<unknown>>()
 
@@ -54,7 +57,7 @@ function load<T>(dataset: DatasetId, file: string): Promise<T> {
 }
 
 export const getMetrics = (dataset: DatasetId) => load<MetricsFile>(dataset, "metrics.json")
-export const getFields = (dataset: DatasetId) => load<FieldsFile>(dataset, "fields.json")
+export const getFields = (dataset: HcaiDatasetId) => load<FieldsFile>(dataset, "fields.json")
 export const getDictionary = (dataset: DatasetId) => load<Dictionary>(dataset, "dictionary.json")
 export const getManifest = (dataset: DatasetId) => load<Manifest>(dataset, "manifest.json")
 
@@ -163,7 +166,7 @@ export function getMetricCatalog(): Promise<MetricDef[]> {
       d.metrics
         .filter((m) => m.category != null)
         .map((m) => ({ ...m, category: m.category!, dataset: d.dataset }) as MetricDef)
-    ).sort((a, b) => (a.category === b.category ? 0 : a.category === "financial" ? -1 : 1))
+    ).sort((a, b) => CATEGORY_ORDER[a.category] - CATEGORY_ORDER[b.category])
   })
 }
 
@@ -171,16 +174,36 @@ export async function getTrendMetrics() {
   return (await getMetricCatalog()).filter(isTrendMetric)
 }
 
-/** Latest year across all datasets. */
+/** Latest year HCAI has reported (financial or utilization); a hospital that stopped before it is flagged. */
 export async function getLatestYear() {
-  const manifests = await Promise.all(DATASET_IDS.map(getManifest))
+  const manifests = await Promise.all(HCAI_DATASETS.map(getManifest))
   return Math.max(...manifests.map((m) => m.years.at(-1) ?? 0))
+}
+
+/** Every year any dataset covers, ascending. */
+export async function getAllYears() {
+  const manifests = await Promise.all(DATASET_IDS.map(getManifest))
+  return [...new Set(manifests.flatMap((m) => m.years))].sort((a, b) => a - b)
+}
+
+/** Years in which a metric has a value for at least one hospital (i.e. its source published it). */
+export function getPublishedYears(metric: MetricDef): Promise<Set<number>> {
+  return memo(`published/${metric.dataset}/${metric.id}`, async () => {
+    const file = await getMetrics(metric.dataset)
+    const years = new Set<number>()
+    for (const byYear of Object.values(file)) {
+      for (const [year, row] of Object.entries(byYear)) {
+        if (typeof row[metric.id] === "number") years.add(Number(year))
+      }
+    }
+    return years
+  })
 }
 
 // -- raw fields (Translate) -----------------------------------------------------
 
 /** Raw field values for one facility, keyed by year then field code. */
-export async function getFacilityFieldValues(dataset: DatasetId, id: string) {
+export async function getFacilityFieldValues(dataset: HcaiDatasetId, id: string) {
   const file = await getFields(dataset)
   const byYear = file.values[id]
   if (!byYear) return null

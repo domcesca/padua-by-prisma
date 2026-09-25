@@ -50,7 +50,8 @@ Each dataset writes `data/processed/<id>/`:
 - `dictionary.json`: plain-language data dictionary and metric definitions (from `etl/hcai_etl/dictionary/<id>.py`)
 - `manifest.json`: source files, years, and processing notes
 
-Commit the regenerated files and redeploy.
+Commit the regenerated files and redeploy. Build the HCAI datasets (`hafd-selected`, `hau`) before `cms-care-compare`
+and `cdph-hai`, which map onto their facility list (the default order does this).
 
 ### How the ETL handles HCAI's quirks
 
@@ -85,6 +86,35 @@ dictionary module (with `category` on each metric), register it in `datasets/__i
 `DATASET_IDS` in `src/lib/data/store.ts` and `DATASETS` in `src/lib/data/datasets.ts`. Its metrics then appear in
 Benchmark, Build, and Translate. Planned: Quarterly Financial & Utilization, Annual Disclosure complete set, Case Mix
 Index.
+
+## Quality (Benchmark's third topic)
+
+Two non-HCAI sources, mapped onto HCAI facility numbers:
+
+- **CMS Care Compare** (`cms-care-compare`): readmissions, mortality, PSI 90, patient experience (HCAHPS), ED time
+  and sepsis bundle, and the overall star rating. Care Compare only publishes the current quarter, so the ETL reads
+  CMS's archived snapshots (the last one of each year, plus the newest) and files each value under the year its
+  measurement period **ends**; the card shows the period ("Jul 2023–Jun 2025"). Periods run up to three years and
+  overlap. CMS left January–June 2020 out of its claims measures, so no period ends in 2020, and it withheld pneumonia
+  results for the period ending June 2021. The retired claims-based hospital-wide readmission measure and its "hybrid"
+  replacement are separate metrics. Missing values carry CMS's footnote reason ("too few cases to report").
+- **CDPH healthcare-associated infections** (`cdph-hai`): CLABSI, C. diff, and MRSA as the SIR (observed ÷ predicted,
+  with the 95% CI and CDPH's better/same/worse call) plus the raw rate on the same card; VRE as a rate only, because
+  no national risk adjustment exists for it (CDPH compares it with the mean for the same hospital type). Rates follow
+  CDPH: CLABSI per 1,000 central-line days, the rest per 10,000 patient days. Rehabilitation units, which report
+  under their hospital's ID, are excluded. 2020 was published in two halves and is combined; many hospitals have
+  July–December only.
+
+**Facility matching** (`etl/hcai_etl/crosswalk.py`): CDPH uses its own ELMS facility IDs and CMS uses the Medicare CCN.
+CDPH's Licensed and Certified Healthcare Facility Listing (plus its ELMS–OSHPD crosswalk for closed facilities) has
+ELMS ID, CCN, license number, and HCAI ID side by side. Campuses reported separately roll up to the licensed hospital,
+like utilization. CCNs retired after an ownership change are matched on ZIP plus a close name (listed in the manifest).
+Where one CCN covers several licensed hospitals (Alameda Health System's Highland and San Leandro; Emanate), CMS's
+combined score goes to the hospital CMS names and the other hospital says so. Coverage: 286 of 288 comparable general
+acute hospitals reporting in 2024 have infection data.
+
+**"Not yet reported"**: a card never shows an empty chart. Years the source hasn't published are named under the
+chart; a hospital with no value gets "Not reported for this hospital" with the source's reason.
 
 ## Medicare lens (Benchmark's Payer view)
 

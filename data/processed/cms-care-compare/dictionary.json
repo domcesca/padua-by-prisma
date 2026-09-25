@@ -1,0 +1,391 @@
+{
+  "dataset": "cms-care-compare",
+  "source": "CMS Provider Data Catalog — Hospitals (Care Compare), archived quarterly snapshots",
+  "sections": [
+    {
+      "id": "care_compare",
+      "title": "CMS Care Compare",
+      "summary": "Hospital quality measures CMS publishes quarterly on Care Compare, mostly for Medicare patients.",
+      "drivers": []
+    }
+  ],
+  "fields": [],
+  "metrics": [
+    {
+      "id": "readmHospitalWide",
+      "category": "quality",
+      "group": "Readmissions",
+      "label": "Hospital-wide readmission rate",
+      "unit": "pct",
+      "summary": "Share of Medicare fee-for-service patients readmitted to any hospital for any reason within 30 days of discharge, risk-standardized. One-year period.",
+      "higherIsBetter": false,
+      "caution": "CMS retired this claims-based measure after the period ending June 2023 and replaced it with the hybrid measure (claims plus EHR data), shown separately because the two aren't comparable.",
+      "drivers": [
+        "Discharge planning and follow-up: medication reconciliation, follow-up visits booked before discharge, transitional care calls.",
+        "Access to post-acute care (skilled nursing, home health) and primary care in the community.",
+        "Patient social risk (housing, income, language), which CMS's risk adjustment only partly captures.",
+        "Observation stays and ED treat-and-release visits, which don't count as readmissions."
+      ],
+      "formula": "CMS measure READM_30_HOSP_WIDE",
+      "inputs": [],
+      "comparedTo": "the national rate"
+    },
+    {
+      "id": "readmHybrid",
+      "category": "quality",
+      "group": "Readmissions",
+      "label": "Hospital-wide readmission rate (hybrid)",
+      "unit": "pct",
+      "summary": "CMS's replacement hospital-wide readmission measure, risk-adjusted with clinical data from the hospital's EHR as well as claims. One-year period.",
+      "higherIsBetter": false,
+      "caution": "Started with the period ending June 2024; not comparable with the older claims-based rate.",
+      "drivers": [
+        "Discharge planning and follow-up: medication reconciliation, follow-up visits booked before discharge, transitional care calls.",
+        "Access to post-acute care (skilled nursing, home health) and primary care in the community.",
+        "Patient social risk (housing, income, language), which CMS's risk adjustment only partly captures.",
+        "Observation stays and ED treat-and-release visits, which don't count as readmissions."
+      ],
+      "formula": "CMS measure Hybrid_HWR",
+      "inputs": [],
+      "comparedTo": "the national rate"
+    },
+    {
+      "id": "readmHf",
+      "category": "quality",
+      "group": "Readmissions",
+      "label": "Heart failure readmission rate",
+      "unit": "pct",
+      "summary": "Share of Medicare heart failure patients readmitted within 30 days, risk-standardized. Three-year period. Penalized under the Hospital Readmissions Reduction Program.",
+      "higherIsBetter": false,
+      "caution": "Each value covers a rolling multi-year period, so neighboring years share most of their patients; read the trend, not single-year jumps. CMS left January–June 2020 out of these measures because of COVID-19, so no published period ends in 2020 and periods around it overlap less.",
+      "drivers": [
+        "Discharge planning and follow-up: medication reconciliation, follow-up visits booked before discharge, transitional care calls.",
+        "Access to post-acute care (skilled nursing, home health) and primary care in the community.",
+        "Patient social risk (housing, income, language), which CMS's risk adjustment only partly captures.",
+        "Observation stays and ED treat-and-release visits, which don't count as readmissions."
+      ],
+      "formula": "CMS measure READM_30_HF",
+      "inputs": [],
+      "comparedTo": "the national rate"
+    },
+    {
+      "id": "readmPn",
+      "category": "quality",
+      "group": "Readmissions",
+      "label": "Pneumonia readmission rate",
+      "unit": "pct",
+      "summary": "Share of Medicare pneumonia patients readmitted within 30 days, risk-standardized. Three-year period.",
+      "higherIsBetter": false,
+      "caution": "Each value covers a rolling multi-year period, so neighboring years share most of their patients; read the trend, not single-year jumps. CMS left January–June 2020 out of these measures because of COVID-19, so no published period ends in 2020 and periods around it overlap less. CMS withheld pneumonia results for the period ending June 2021.",
+      "drivers": [
+        "Discharge planning and follow-up: medication reconciliation, follow-up visits booked before discharge, transitional care calls.",
+        "Access to post-acute care (skilled nursing, home health) and primary care in the community.",
+        "Patient social risk (housing, income, language), which CMS's risk adjustment only partly captures.",
+        "Observation stays and ED treat-and-release visits, which don't count as readmissions."
+      ],
+      "formula": "CMS measure READM_30_PN",
+      "inputs": [],
+      "comparedTo": "the national rate"
+    },
+    {
+      "id": "readmAmi",
+      "category": "quality",
+      "group": "Readmissions",
+      "label": "Heart attack readmission rate",
+      "unit": "pct",
+      "summary": "Share of Medicare heart attack (AMI) patients readmitted within 30 days, risk-standardized. Three-year period.",
+      "higherIsBetter": false,
+      "caution": "Each value covers a rolling multi-year period, so neighboring years share most of their patients; read the trend, not single-year jumps. CMS left January–June 2020 out of these measures because of COVID-19, so no published period ends in 2020 and periods around it overlap less.",
+      "drivers": [
+        "Discharge planning and follow-up: medication reconciliation, follow-up visits booked before discharge, transitional care calls.",
+        "Access to post-acute care (skilled nursing, home health) and primary care in the community.",
+        "Patient social risk (housing, income, language), which CMS's risk adjustment only partly captures.",
+        "Observation stays and ED treat-and-release visits, which don't count as readmissions."
+      ],
+      "formula": "CMS measure READM_30_AMI",
+      "inputs": [],
+      "comparedTo": "the national rate"
+    },
+    {
+      "id": "readmCopd",
+      "category": "quality",
+      "group": "Readmissions",
+      "label": "COPD readmission rate",
+      "unit": "pct",
+      "summary": "Share of Medicare COPD patients readmitted within 30 days, risk-standardized. Three-year period.",
+      "higherIsBetter": false,
+      "caution": "Each value covers a rolling multi-year period, so neighboring years share most of their patients; read the trend, not single-year jumps. CMS left January–June 2020 out of these measures because of COVID-19, so no published period ends in 2020 and periods around it overlap less.",
+      "drivers": [
+        "Discharge planning and follow-up: medication reconciliation, follow-up visits booked before discharge, transitional care calls.",
+        "Access to post-acute care (skilled nursing, home health) and primary care in the community.",
+        "Patient social risk (housing, income, language), which CMS's risk adjustment only partly captures.",
+        "Observation stays and ED treat-and-release visits, which don't count as readmissions."
+      ],
+      "formula": "CMS measure READM_30_COPD",
+      "inputs": [],
+      "comparedTo": "the national rate"
+    },
+    {
+      "id": "readmHipKnee",
+      "category": "quality",
+      "group": "Readmissions",
+      "label": "Hip/knee replacement readmission rate",
+      "unit": "pct",
+      "summary": "Share of Medicare elective hip or knee replacement patients readmitted within 30 days, risk-standardized. Three-year period.",
+      "higherIsBetter": false,
+      "caution": "Each value covers a rolling multi-year period, so neighboring years share most of their patients; read the trend, not single-year jumps. CMS left January–June 2020 out of these measures because of COVID-19, so no published period ends in 2020 and periods around it overlap less.",
+      "drivers": [
+        "Discharge planning and follow-up: medication reconciliation, follow-up visits booked before discharge, transitional care calls.",
+        "Access to post-acute care (skilled nursing, home health) and primary care in the community.",
+        "Patient social risk (housing, income, language), which CMS's risk adjustment only partly captures.",
+        "Observation stays and ED treat-and-release visits, which don't count as readmissions."
+      ],
+      "formula": "CMS measure READM_30_HIP_KNEE",
+      "inputs": [],
+      "comparedTo": "the national rate"
+    },
+    {
+      "id": "mortHybrid",
+      "category": "quality",
+      "group": "Mortality & safety",
+      "label": "Hospital-wide mortality rate (hybrid)",
+      "unit": "pct",
+      "summary": "Share of Medicare patients who died within 30 days of admission for any condition, risk-standardized with claims and EHR data. One-year period.",
+      "higherIsBetter": false,
+      "caution": "New measure; first published for the period ending June 2024.",
+      "drivers": [
+        "Timeliness and reliability of treatment protocols for the condition.",
+        "Transfers: hospitals that send sick patients elsewhere, or receive them, see different risk.",
+        "Hospice and palliative care use near the end of life.",
+        "Coding completeness of patients' other conditions, which feeds CMS's risk adjustment."
+      ],
+      "formula": "CMS measure Hybrid_HWM",
+      "inputs": [],
+      "comparedTo": "the national rate"
+    },
+    {
+      "id": "mortHf",
+      "category": "quality",
+      "group": "Mortality & safety",
+      "label": "Heart failure mortality rate",
+      "unit": "pct",
+      "summary": "Share of Medicare heart failure patients who died within 30 days of admission, risk-standardized. Three-year period.",
+      "higherIsBetter": false,
+      "caution": "Each value covers a rolling multi-year period, so neighboring years share most of their patients; read the trend, not single-year jumps. CMS left January–June 2020 out of these measures because of COVID-19, so no published period ends in 2020 and periods around it overlap less.",
+      "drivers": [
+        "Timeliness and reliability of treatment protocols for the condition.",
+        "Transfers: hospitals that send sick patients elsewhere, or receive them, see different risk.",
+        "Hospice and palliative care use near the end of life.",
+        "Coding completeness of patients' other conditions, which feeds CMS's risk adjustment."
+      ],
+      "formula": "CMS measure MORT_30_HF",
+      "inputs": [],
+      "comparedTo": "the national rate"
+    },
+    {
+      "id": "mortPn",
+      "category": "quality",
+      "group": "Mortality & safety",
+      "label": "Pneumonia mortality rate",
+      "unit": "pct",
+      "summary": "Share of Medicare pneumonia patients who died within 30 days of admission, risk-standardized. Three-year period.",
+      "higherIsBetter": false,
+      "caution": "Each value covers a rolling multi-year period, so neighboring years share most of their patients; read the trend, not single-year jumps. CMS left January–June 2020 out of these measures because of COVID-19, so no published period ends in 2020 and periods around it overlap less. CMS withheld pneumonia results for the period ending June 2021.",
+      "drivers": [
+        "Timeliness and reliability of treatment protocols for the condition.",
+        "Transfers: hospitals that send sick patients elsewhere, or receive them, see different risk.",
+        "Hospice and palliative care use near the end of life.",
+        "Coding completeness of patients' other conditions, which feeds CMS's risk adjustment."
+      ],
+      "formula": "CMS measure MORT_30_PN",
+      "inputs": [],
+      "comparedTo": "the national rate"
+    },
+    {
+      "id": "mortAmi",
+      "category": "quality",
+      "group": "Mortality & safety",
+      "label": "Heart attack mortality rate",
+      "unit": "pct",
+      "summary": "Share of Medicare heart attack (AMI) patients who died within 30 days of admission, risk-standardized. Three-year period.",
+      "higherIsBetter": false,
+      "caution": "Each value covers a rolling multi-year period, so neighboring years share most of their patients; read the trend, not single-year jumps. CMS left January–June 2020 out of these measures because of COVID-19, so no published period ends in 2020 and periods around it overlap less.",
+      "drivers": [
+        "Timeliness and reliability of treatment protocols for the condition.",
+        "Transfers: hospitals that send sick patients elsewhere, or receive them, see different risk.",
+        "Hospice and palliative care use near the end of life.",
+        "Coding completeness of patients' other conditions, which feeds CMS's risk adjustment."
+      ],
+      "formula": "CMS measure MORT_30_AMI",
+      "inputs": [],
+      "comparedTo": "the national rate"
+    },
+    {
+      "id": "mortCopd",
+      "category": "quality",
+      "group": "Mortality & safety",
+      "label": "COPD mortality rate",
+      "unit": "pct",
+      "summary": "Share of Medicare COPD patients who died within 30 days of admission, risk-standardized. Three-year period.",
+      "higherIsBetter": false,
+      "caution": "Each value covers a rolling multi-year period, so neighboring years share most of their patients; read the trend, not single-year jumps. CMS left January–June 2020 out of these measures because of COVID-19, so no published period ends in 2020 and periods around it overlap less.",
+      "drivers": [
+        "Timeliness and reliability of treatment protocols for the condition.",
+        "Transfers: hospitals that send sick patients elsewhere, or receive them, see different risk.",
+        "Hospice and palliative care use near the end of life.",
+        "Coding completeness of patients' other conditions, which feeds CMS's risk adjustment."
+      ],
+      "formula": "CMS measure MORT_30_COPD",
+      "inputs": [],
+      "comparedTo": "the national rate"
+    },
+    {
+      "id": "mortStroke",
+      "category": "quality",
+      "group": "Mortality & safety",
+      "label": "Stroke mortality rate",
+      "unit": "pct",
+      "summary": "Share of Medicare stroke patients who died within 30 days of admission, risk-standardized.",
+      "higherIsBetter": false,
+      "caution": "Each value covers a rolling multi-year period, so neighboring years share most of their patients; read the trend, not single-year jumps. CMS left January–June 2020 out of these measures because of COVID-19, so no published period ends in 2020 and periods around it overlap less.",
+      "drivers": [
+        "Timeliness and reliability of treatment protocols for the condition.",
+        "Transfers: hospitals that send sick patients elsewhere, or receive them, see different risk.",
+        "Hospice and palliative care use near the end of life.",
+        "Coding completeness of patients' other conditions, which feeds CMS's risk adjustment."
+      ],
+      "formula": "CMS measure MORT_30_STK",
+      "inputs": [],
+      "comparedTo": "the national rate"
+    },
+    {
+      "id": "psi90",
+      "category": "quality",
+      "group": "Mortality & safety",
+      "label": "Patient safety composite (PSI 90)",
+      "unit": "number",
+      "decimals": 2,
+      "reference": 1,
+      "summary": "AHRQ's composite of serious in-hospital complications (pressure ulcers, falls with fracture, post-op sepsis, blood clots, and others), as a ratio to the expected number. Below 1 is better than expected. Two-year period.",
+      "higherIsBetter": false,
+      "caution": "Feeds the Hospital-Acquired Condition Reduction Program penalty. Driven by coding: how completely complications and present-on-admission conditions are documented. Each value covers a rolling multi-year period, so neighboring years share most of their patients; read the trend, not single-year jumps.",
+      "drivers": [
+        "Clinical documentation and coding of complications and present-on-admission conditions.",
+        "Surgical volume and complexity.",
+        "Fall, pressure injury, and VTE prevention programs."
+      ],
+      "formula": "CMS measure PSI_90 / PSI_90_SAFETY",
+      "inputs": [],
+      "comparedTo": "the national rate"
+    },
+    {
+      "id": "hcahpsStar",
+      "category": "quality",
+      "group": "Patient experience",
+      "label": "Patient experience star rating",
+      "unit": "number",
+      "decimals": 0,
+      "unitLabel": "stars (1–5)",
+      "summary": "CMS's 1–5 star summary of the HCAHPS patient survey across all its topics. Four quarters of surveys.",
+      "higherIsBetter": true,
+      "caution": "Stars are relative: CMS sets cut points so the national distribution is spread across 1–5. California hospitals typically score below the national average on HCAHPS.",
+      "drivers": [
+        "Nurse and physician communication, responsiveness, and discharge information.",
+        "Staffing levels and turnover.",
+        "Facility factors: noise at night, cleanliness, private rooms.",
+        "Patient mix: survey responses differ by age, language, and health status (CMS adjusts for some of this)."
+      ],
+      "formula": "CMS measure H_STAR_RATING",
+      "inputs": []
+    },
+    {
+      "id": "hcahpsRating",
+      "category": "quality",
+      "group": "Patient experience",
+      "label": "Patients rating the hospital 9–10",
+      "unit": "pct",
+      "summary": "Share of surveyed patients who rated the hospital 9 or 10 out of 10. Four quarters of surveys.",
+      "higherIsBetter": true,
+      "drivers": [
+        "Nurse and physician communication, responsiveness, and discharge information.",
+        "Staffing levels and turnover.",
+        "Facility factors: noise at night, cleanliness, private rooms.",
+        "Patient mix: survey responses differ by age, language, and health status (CMS adjusts for some of this)."
+      ],
+      "formula": "CMS measure H_HSP_RATING_9_10",
+      "inputs": []
+    },
+    {
+      "id": "hcahpsRecommend",
+      "category": "quality",
+      "group": "Patient experience",
+      "label": "Patients who would definitely recommend",
+      "unit": "pct",
+      "summary": "Share of surveyed patients who would definitely recommend the hospital to friends and family. Four quarters of surveys.",
+      "higherIsBetter": true,
+      "drivers": [
+        "Nurse and physician communication, responsiveness, and discharge information.",
+        "Staffing levels and turnover.",
+        "Facility factors: noise at night, cleanliness, private rooms.",
+        "Patient mix: survey responses differ by age, language, and health status (CMS adjusts for some of this)."
+      ],
+      "formula": "CMS measure H_RECMND_DY",
+      "inputs": []
+    },
+    {
+      "id": "edTimeToDeparture",
+      "category": "quality",
+      "group": "Timely care",
+      "label": "ED time to departure (median)",
+      "unit": "number",
+      "decimals": 0,
+      "unitLabel": "minutes",
+      "summary": "Median minutes from arrival to departure for ED patients who were sent home (not admitted). About a year of visits.",
+      "higherIsBetter": false,
+      "drivers": [
+        "Boarding: admitted patients waiting for beds tie up ED rooms.",
+        "Triage, fast-track, and provider-in-triage processes.",
+        "Lab and imaging turnaround.",
+        "ED volume and staffing."
+      ],
+      "formula": "CMS measure OP_18b",
+      "inputs": []
+    },
+    {
+      "id": "sepsisBundle",
+      "category": "quality",
+      "group": "Timely care",
+      "label": "Sepsis care bundle compliance",
+      "unit": "pct",
+      "summary": "Share of severe sepsis and septic shock patients who got every element of CMS's SEP-1 bundle (lactate, cultures, antibiotics, fluids, reassessment) on time.",
+      "higherIsBetter": true,
+      "caution": "All-or-nothing: missing one element or its documentation fails the case, so documentation practices move this a lot.",
+      "drivers": [
+        "Sepsis screening and order sets in the ED and on the floors.",
+        "Documentation of each bundle element and its timing.",
+        "Abstraction sample size at smaller hospitals."
+      ],
+      "formula": "CMS measure SEP_1",
+      "inputs": []
+    },
+    {
+      "id": "overallStar",
+      "category": "quality",
+      "group": "Overall",
+      "label": "CMS overall star rating",
+      "unit": "number",
+      "decimals": 0,
+      "unitLabel": "stars (1–5)",
+      "summary": "CMS's 1–5 star summary across mortality, safety, readmission, patient experience, and timely and effective care. Filed under the year CMS published it.",
+      "higherIsBetter": true,
+      "caution": "Built from measures covering several earlier years. Hospitals without enough measures get no rating.",
+      "drivers": [
+        "Every underlying measure group, weighted: mortality, safety, readmission, patient experience (22% each), timely and effective care (12%).",
+        "Peer grouping: CMS compares hospitals that report a similar number of measure groups."
+      ],
+      "formula": "CMS Hospital overall rating",
+      "inputs": []
+    }
+  ],
+  "payerGroups": []
+}

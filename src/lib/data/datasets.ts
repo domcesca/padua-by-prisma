@@ -1,4 +1,4 @@
-import type { DatasetId, DictionaryMetric, MetricCategory, PayerLens } from "./types"
+import type { DatasetId, DictionaryMetric, HcaiDatasetId, MetricCategory, PayerLens } from "./types"
 
 // Client-safe descriptions of the loaded datasets and metric categories.
 // Server code reads the data itself through ./store.ts.
@@ -19,17 +19,32 @@ export const DATASETS: Record<
     sourcePage: "https://data.chhs.ca.gov/dataset/hospital-annual-utilization-report",
     yearNote: "Calendar years (January–December).",
   },
+  "cms-care-compare": {
+    label: "CMS Care Compare – hospital quality measures",
+    shortLabel: "Care Compare",
+    sourcePage: "https://data.cms.gov/provider-data/topics/hospitals",
+    yearNote: "Filed under the year each measurement period ends; most periods span one to three years.",
+  },
+  "cdph-hai": {
+    label: "CDPH Healthcare-Associated Infections in California Hospitals",
+    shortLabel: "Infection data",
+    sourcePage: "https://www.cdph.ca.gov/Programs/CHCQ/HAI/Pages/HAIreport.aspx",
+    yearNote: "Calendar years (January–December).",
+  },
 }
 
-/** Short URL names for datasets (Translate's ?source=). */
-export const DATASET_SLUG: Record<DatasetId, string> = { "hafd-selected": "financial", hau: "utilization" }
+export const HCAI_DATASETS: HcaiDatasetId[] = ["hafd-selected", "hau"]
+export const isHcaiDataset = (d: DatasetId): d is HcaiDatasetId => d === "hafd-selected" || d === "hau"
 
-export function parseDatasetSlug(value: string | null | undefined): DatasetId {
+/** Short URL names for datasets (Translate's ?source=). */
+export const DATASET_SLUG: Record<HcaiDatasetId, string> = { "hafd-selected": "financial", hau: "utilization" }
+
+export function parseDatasetSlug(value: string | null | undefined): HcaiDatasetId {
   return value === "utilization" ? "hau" : "hafd-selected"
 }
 
-/** Translate deep link explaining a metric or field. */
-export function translateHref(dataset: DatasetId, focus?: { metric?: string; field?: string }, facilityId?: string | null) {
+/** Translate deep link explaining a metric or field (HCAI datasets only). */
+export function translateHref(dataset: HcaiDatasetId, focus?: { metric?: string; field?: string }, facilityId?: string | null) {
   const params = new URLSearchParams({ source: DATASET_SLUG[dataset] })
   if (facilityId) params.set("facility", facilityId)
   if (focus?.metric) params.set("metric", focus.metric)
@@ -58,18 +73,30 @@ export const CATEGORIES: CategoryInfo[] = [
     description: "Beds, occupancy, length of stay, ED visits, and surgeries.",
     defaultMetrics: ["occupancy", "edVisits", "alos", "discharges", "ipSurgeries", "opSurgeries"],
   },
+  {
+    id: "quality",
+    label: "Quality",
+    description: "Readmissions, mortality, patient experience, and infections.",
+    defaultMetrics: ["overallStar", "hcahpsRating", "readmHf", "mortHf", "clabsiSir", "cdiSir"],
+  },
 ]
 
 /** Categories planned for later phases; shown as "coming soon" on the home page. */
 export const FUTURE_CATEGORIES = [
-  { id: "quality", label: "Quality & outcomes", description: "Readmissions, mortality, and patient safety indicators." },
   { id: "caseMix", label: "Case mix", description: "Case mix index and the conditions hospitals treat." },
 ] as const
 
 export const CATEGORY_BY_ID = Object.fromEntries(CATEGORIES.map((c) => [c.id, c])) as Record<MetricCategory, CategoryInfo>
 
 export function parseCategory(value: string | null | undefined): MetricCategory {
-  return value === "utilization" ? "utilization" : "financial"
+  return value === "utilization" || value === "quality" ? value : "financial"
+}
+
+/** The dataset whose years a category's charts follow; quality mixes sources and periods. */
+export const PRIMARY_DATASET: Record<MetricCategory, DatasetId | null> = {
+  financial: "hafd-selected",
+  utilization: "hau",
+  quality: null,
 }
 
 /** A benchmarkable metric: its definition plus which dataset it comes from. */
@@ -97,10 +124,17 @@ export function parsePayerView(value: string | null | undefined): PayerView {
   return value === "medicare" ? "medicare" : "all"
 }
 
-/** Metrics offered in pickers for a category: all-payer metrics plus, under a lens, that lens's extras. */
+/**
+ * Metrics offered in Benchmark's pickers for a category: all-payer metrics plus, under a
+ * lens, that lens's extras. Companions (an SIR's raw rate) ride on their metric's card.
+ */
 export function pickableMetrics(catalog: MetricDef[], category: MetricCategory, payer: PayerView) {
   return catalog.filter(
-    (m) => m.category === category && m.unit !== "share" && (!m.lens || (m.lens === payer && !m.allPayer))
+    (m) =>
+      m.category === category &&
+      m.unit !== "share" &&
+      !m.companionOf &&
+      (!m.lens || (m.lens === payer && !m.allPayer))
   )
 }
 

@@ -1,8 +1,8 @@
 import "server-only"
 
 import { applyPayerView, CATEGORY_BY_ID, type MetricDef, type PayerView } from "@/lib/data/datasets"
-import { getFacilities, getManifest, getMetricCatalog, getMetrics } from "@/lib/data/store"
-import type { Facility, MetricCategory, MetricsFile, PayerGroup, PayerMix } from "@/lib/data/types"
+import { getFacilities, getManifest, getMetricCatalog, getMetrics, getPublishedYears } from "@/lib/data/store"
+import type { Facility, MetricCategory, MetricsFile, PayerGroup, PayerMix, PointDetail } from "@/lib/data/types"
 import type { PeerFilters } from "./filters"
 import { milesBetween, resolvePeerGroup } from "./peers"
 
@@ -18,6 +18,10 @@ export type SeriesPoint = {
   percentile: number | null
   annualized: boolean
   status: string | null
+  /** Whether the source published this metric for any hospital this year (false: not yet, or skipped). */
+  published: boolean
+  /** Period, significance, and caveats for this hospital's value (quality data). */
+  detail?: PointDetail
 }
 
 export type PayerMixComparison = {
@@ -38,8 +42,10 @@ export type BenchmarkResult = {
   filters: PeerFilters
   peerGroup: { description: string; note: string | null }
   peers: PeerSummary[]
-  /** metric id -> one point per year of that metric's dataset. */
+  /** metric id -> one point per year of that metric's dataset (companions included). */
   series: Record<string, SeriesPoint[]>
+  /** Caveats about this hospital's data in this category (e.g. reported together with another hospital). */
+  notes: string[]
   payerMix: PayerMixComparison | null
 }
 
@@ -84,7 +90,11 @@ export async function metricSeries(
   peerIds: string[],
   since: number | null = null
 ): Promise<SeriesPoint[]> {
-  const [file, manifest] = await Promise.all([getMetrics(metric.dataset), getManifest(metric.dataset)])
+  const [file, manifest, published] = await Promise.all([
+    getMetrics(metric.dataset),
+    getManifest(metric.dataset),
+    getPublishedYears(metric),
+  ])
   return manifest.years.filter((y) => since == null || y >= since).map((year) => {
     const values = peerIds
       .map((id) => metricValue(file, id, year, metric.id))
@@ -92,6 +102,9 @@ export async function metricSeries(
       .sort((a, b) => a - b)
     const row = facilityId ? file[facilityId]?.[year] : undefined
     const value = facilityId ? metricValue(file, facilityId, year, metric.id) : null
+    const period = manifest.periods?.[metric.id]?.[year]
+    const own = row?.detail?.[metric.id]
+    const detail = own || period ? { ...(period ? { period } : {}), ...own } : undefined
     return {
       year,
       value,
@@ -102,6 +115,8 @@ export async function metricSeries(
       percentile: value != null ? percentileRank(values, value) : null,
       annualized: row?.annualized ?? false,
       status: row?.status ?? null,
+      published: published.has(year),
+      ...(detail ? { detail } : {}),
     }
   })
 }
@@ -132,14 +147,19 @@ export async function computeBenchmark({
   const peers = group.peers
   const peerIds = peers.map((p) => p.id)
 
-  const wanted = applyPayerView(metricIds?.length ? metricIds : CATEGORY_BY_ID[category].defaultMetrics, payer, catalog)
+  // The Medicare lens applies to financial and utilization metrics only.
+  const lens = category === "quality" ? "all" : payer
+  const wanted = applyPayerView(metricIds?.length ? metricIds : CATEGORY_BY_ID[category].defaultMetrics, lens, catalog)
   const metrics = wanted
     .map((id) => catalog.find((m) => m.id === id))
     .filter((m): m is MetricDef => !!m && m.unit !== "share")
+  const companions = metrics
+    .map((m) => (m.companion ? catalog.find((c) => c.id === m.companion) : undefined))
+    .filter((m): m is MetricDef => !!m)
 
   const series: Record<string, SeriesPoint[]> = {}
   await Promise.all(
-    metrics.map(async (m) => {
+    [...metrics, ...companions].map(async (m) => {
       series[m.id] = await metricSeries(m, facility.id, peerIds, since)
     })
   )
@@ -147,8 +167,9 @@ export async function computeBenchmark({
   return {
     facility,
     category,
-    payer,
+    payer: lens,
     metrics: metrics.map((m) => m.id),
+    notes: category === "quality" ? await qualityNotes(facility.id) : [],
     filters: group.filters,
     peerGroup: { description: group.description, note: group.note },
     peers: peers
@@ -160,6 +181,15 @@ export async function computeBenchmark({
     series,
     payerMix: category === "financial" ? await payerMix(facility.id, peerIds) : null,
   }
+}
+
+/** Hospitals whose CMS measures are published under another hospital's Medicare number. */
+async function qualityNotes(facilityId: string): Promise<string[]> {
+  const shared = (await getManifest("cms-care-compare")).sharedReporting?.[facilityId]
+  if (!shared) return []
+  return [
+    `CMS certifies this hospital together with ${shared.reportedWithName} under one Medicare provider number (CCN ${shared.ccn}). Years without a Care Compare value of its own are included in ${shared.reportedWithName}’s combined result. Infection data from CDPH is this hospital’s own.`,
+  ]
 }
 
 /** Payer mix for the latest year this hospital reported financials. */

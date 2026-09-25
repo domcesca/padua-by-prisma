@@ -106,7 +106,7 @@ export function HomeFlow({
   const benchmarkHref = (() => {
     if (!ready) return "/benchmark"
     const p = new URLSearchParams({ facility: facilityId })
-    if (category === "utilization") p.set("view", "utilization")
+    if (category !== "financial") p.set("view", category)
     if (customMetrics && chosenMetrics.length) p.set("metrics", chosenMetrics.join(","))
     if (since != null) p.set("since", String(since))
     if (peers === "statewide") p.set("peers", "statewide")
@@ -115,7 +115,11 @@ export function HomeFlow({
   const withFacility = (href: string, extra: Record<string, string> = {}) =>
     facilityId ? `${href}?${new URLSearchParams({ ...extra, facility: facilityId })}` : href
   const noDataForCategory =
-    preview && category ? (category === "financial" ? !preview.hasFinancial : !preview.hasUtilization) : false
+    preview && category && category !== "quality"
+      ? category === "financial"
+        ? !preview.hasFinancial
+        : !preview.hasUtilization
+      : false
 
   const remember = () => ready && rememberSelection({ facilityId, category })
 
@@ -127,11 +131,11 @@ export function HomeFlow({
         <h1 className="text-[34px] leading-[1.1] font-semibold tracking-tight sm:text-[44px]">What do you want to look at?</h1>
         <p className="max-w-2xl text-[17px] leading-relaxed text-muted-foreground">
           Pick a topic and a hospital. You&apos;ll see it next to similar California hospitals, using HCAI&apos;s public
-          financial and utilization reports.
+          financial and utilization reports and CMS and CDPH quality data.
         </p>
         {resume && (
           <Link
-            href={`/benchmark?${new URLSearchParams({ facility: resume.id, ...(selection?.category === "utilization" ? { view: "utilization" } : {}) })}`}
+            href={`/benchmark?${new URLSearchParams({ facility: resume.id, ...(selection && selection.category !== "financial" ? { view: selection.category } : {}) })}`}
             className="glass fade-up inline-flex max-w-full items-center gap-2 rounded-full px-4 py-2 text-[13px] transition-shadow duration-200 hover:glow-soft focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
           >
             <span className="text-muted-foreground">Pick up where you left off:</span>
@@ -353,7 +357,7 @@ export function HomeFlow({
         </Link>
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px]">
           <SecondaryLink
-            href={withFacility("/build", category === "utilization" ? { category: "utilization" } : {})}
+            href={withFacility("/build", category && category !== "financial" ? { category } : {})}
             icon={ChartColumnBig}
             enabled={ready}
             onClick={remember}
@@ -361,7 +365,7 @@ export function HomeFlow({
             Build a chart
           </SecondaryLink>
           <SecondaryLink
-            href={withFacility("/translate", { source: category ?? "financial" })}
+            href={withFacility("/translate", { source: category === "utilization" ? "utilization" : "financial" })}
             icon={BookOpenText}
             enabled={ready}
             onClick={remember}

@@ -1,0 +1,593 @@
+{
+  "id": "cms-care-compare",
+  "title": "CMS Care Compare — Hospital quality measures",
+  "sourcePage": "https://data.cms.gov/provider-data/topics/hospitals",
+  "years": [
+    2018,
+    2019,
+    2020,
+    2021,
+    2022,
+    2023,
+    2024,
+    2025,
+    2026
+  ],
+  "sources": [
+    {
+      "snapshot": "2019-10-31",
+      "name": "Theme: hospitals (2019-10-31) Snapshot",
+      "url": "https://data.cms.gov/provider-data/sites/default/files/dataset-archives/theme/hospitals/hospitals_2019-10-31.zip"
+    },
+    {
+      "snapshot": "2020-10-16",
+      "name": "Theme: hospitals (2020-10-16) Snapshot",
+      "url": "https://data.cms.gov/provider-data/sites/default/files/dataset-archives/theme/hospitals/hospitals_2020-10-16.zip"
+    },
+    {
+      "snapshot": "2021-10-27",
+      "name": "Theme: hospitals (2021-10-27) Snapshot",
+      "url": "https://data.cms.gov/provider-data/sites/default/files/dataset-archives/theme/hospitals/hospitals_2021-10-27.zip"
+    },
+    {
+      "snapshot": "2022-10-06",
+      "name": "Theme: hospitals (2022-10-06) Snapshot",
+      "url": "https://data.cms.gov/provider-data/sites/default/files/dataset-archives/theme/hospitals/hospitals_2022-10-06.zip"
+    },
+    {
+      "snapshot": "2023-11-06",
+      "name": "Theme: hospitals (2023-11-06) Snapshot",
+      "url": "https://data.cms.gov/provider-data/sites/default/files/dataset-archives/theme/hospitals/hospitals_2023-11-06.zip"
+    },
+    {
+      "snapshot": "2024-10-30",
+      "name": "Theme: hospitals (2024-10-30) Snapshot",
+      "url": "https://data.cms.gov/provider-data/sites/default/files/dataset-archives/theme/hospitals/hospitals_2024-10-30.zip"
+    },
+    {
+      "snapshot": "2025-11-26",
+      "name": "Theme: hospitals (2025-11-26) Snapshot",
+      "url": "https://data.cms.gov/provider-data/sites/default/files/dataset-archives/theme/hospitals/hospitals_2025-11-26.zip"
+    },
+    {
+      "snapshot": "2026-08-13",
+      "name": "Theme: hospitals (2026-08-13)",
+      "url": "https://data.cms.gov/provider-data/sites/default/files/dataset-archives/theme/hospitals/hospitals_2026-08-13.zip"
+    }
+  ],
+  "crosswalk": [
+    {
+      "name": "Licensed and Certified Healthcare Facility Locations",
+      "url": "https://data.chhs.ca.gov/dataset/3b5b80e8-6b8d-4715-b3c0-2699af6e72e5/resource/f0ae5731-fef8-417f-839d-54a0ed3a126e/download/health_facility_locations.csv"
+    },
+    {
+      "name": "ELMS-OSHPD - Licensed and Certified Healthcare Facility Crosswalk",
+      "url": "https://data.chhs.ca.gov/dataset/e89100fd-1f1d-4a37-8205-d588aa42e5a1/resource/cf954841-9ca7-4914-a31f-29ca12c7b71a/download/elms_oshpd_cw_oct2024xlsx.xlsx"
+    }
+  ],
+  "generatedAt": "2026-09-25T04:27:45Z",
+  "sharedReporting": {
+    "106013619": {
+      "ccn": "050320",
+      "reportedWith": "106010846",
+      "reportedWithName": "Highland Hospital"
+    },
+    "106190636": {
+      "ccn": "050382",
+      "reportedWith": "106190413",
+      "reportedWithName": "Emanate Health Inter-Community Hospital"
+    }
+  },
+  "periods": {
+    "edTimeToDeparture": {
+      "2018": "Jan 2018–Dec 2018",
+      "2019": "Jan 2019–Dec 2019",
+      "2020": "Jul 2020–Dec 2020",
+      "2021": "Jan 2021–Dec 2021",
+      "2022": "Jan 2022–Dec 2022",
+      "2023": "Jan 2023–Dec 2023",
+      "2024": "Jan 2024–Dec 2024",
+      "2025": "Oct 2024–Sep 2025"
+    },
+    "hcahpsRating": {
+      "2018": "Jan 2018–Dec 2018",
+      "2019": "Jan 2019–Dec 2019",
+      "2020": "Jul 2020–Dec 2020",
+      "2021": "Jan 2021–Dec 2021",
+      "2022": "Jan 2022–Dec 2022",
+      "2023": "Jan 2023–Dec 2023",
+      "2024": "Jan 2024–Dec 2024",
+      "2025": "Oct 2024–Sep 2025"
+    },
+    "hcahpsRecommend": {
+      "2018": "Jan 2018–Dec 2018",
+      "2019": "Jan 2019–Dec 2019",
+      "2020": "Jul 2020–Dec 2020",
+      "2021": "Jan 2021–Dec 2021",
+      "2022": "Jan 2022–Dec 2022",
+      "2023": "Jan 2023–Dec 2023",
+      "2024": "Jan 2024–Dec 2024",
+      "2025": "Oct 2024–Sep 2025"
+    },
+    "hcahpsStar": {
+      "2018": "Jan 2018–Dec 2018",
+      "2019": "Jan 2019–Dec 2019",
+      "2020": "Jul 2020–Dec 2020",
+      "2021": "Jan 2021–Dec 2021",
+      "2022": "Jan 2022–Dec 2022",
+      "2023": "Jan 2023–Dec 2023",
+      "2024": "Jan 2024–Dec 2024",
+      "2025": "Oct 2024–Sep 2025"
+    },
+    "mortAmi": {
+      "2018": "Jul 2015–Jun 2018",
+      "2019": "Jul 2017–Dec 2019",
+      "2021": "Jul 2018–Jun 2021",
+      "2022": "Jul 2019–Jun 2022",
+      "2023": "Jul 2020–Jun 2023",
+      "2024": "Jul 2021–Jun 2024",
+      "2025": "Jul 2022–Jun 2025"
+    },
+    "mortCopd": {
+      "2018": "Jul 2015–Jun 2018",
+      "2019": "Jul 2017–Dec 2019",
+      "2021": "Jul 2018–Jun 2021",
+      "2022": "Jul 2019–Jun 2022",
+      "2023": "Jul 2020–Jun 2023",
+      "2024": "Jul 2021–Jun 2024",
+      "2025": "Jul 2022–Jun 2025"
+    },
+    "mortHf": {
+      "2018": "Jul 2015–Jun 2018",
+      "2019": "Jul 2017–Dec 2019",
+      "2021": "Jul 2018–Jun 2021",
+      "2022": "Jul 2019–Jun 2022",
+      "2023": "Jul 2020–Jun 2023",
+      "2024": "Jul 2021–Jun 2024",
+      "2025": "Jul 2022–Jun 2025"
+    },
+    "mortHybrid": {
+      "2024": "Jul 2023–Jun 2024",
+      "2025": "Jul 2024–Jun 2025"
+    },
+    "mortPn": {
+      "2018": "Jul 2015–Jun 2018",
+      "2019": "Jul 2017–Dec 2019",
+      "2021": "Jul 2018–Jun 2021",
+      "2022": "Jul 2019–Jun 2022",
+      "2023": "Jul 2020–Jun 2023",
+      "2024": "Jul 2021–Jun 2024",
+      "2025": "Jul 2022–Jun 2025"
+    },
+    "mortStroke": {
+      "2018": "Jul 2015–Jun 2018",
+      "2019": "Jul 2017–Dec 2019",
+      "2021": "Jul 2018–Jun 2021",
+      "2022": "Jul 2019–Jun 2022",
+      "2023": "Jul 2020–Jun 2023",
+      "2024": "Jul 2021–Jun 2024",
+      "2025": "Jul 2023–Jun 2025"
+    },
+    "overallStar": {
+      "2019": "Published Oct 2019",
+      "2020": "Published Oct 2020",
+      "2021": "Published Oct 2021",
+      "2022": "Published Oct 2022",
+      "2023": "Published Nov 2023",
+      "2024": "Published Oct 2024",
+      "2025": "Published Nov 2025",
+      "2026": "Published Aug 2026"
+    },
+    "psi90": {
+      "2018": "Jul 2016–Jun 2018",
+      "2019": "Jul 2018–Dec 2019",
+      "2021": "Jul 2019–Jun 2021",
+      "2023": "Jul 2021–Jun 2023",
+      "2024": "Jul 2022–Jun 2024"
+    },
+    "readmAmi": {
+      "2018": "Jul 2015–Jun 2018",
+      "2019": "Jul 2017–Dec 2019",
+      "2021": "Jul 2018–Jun 2021",
+      "2022": "Jul 2019–Jun 2022",
+      "2023": "Jul 2020–Jun 2023",
+      "2024": "Jul 2021–Jun 2024",
+      "2025": "Jul 2023–Jun 2025"
+    },
+    "readmCopd": {
+      "2018": "Jul 2015–Jun 2018",
+      "2019": "Jul 2017–Dec 2019",
+      "2021": "Jul 2018–Jun 2021",
+      "2022": "Jul 2019–Jun 2022",
+      "2023": "Jul 2020–Jun 2023",
+      "2024": "Jul 2021–Jun 2024",
+      "2025": "Jul 2023–Jun 2025"
+    },
+    "readmHf": {
+      "2018": "Jul 2015–Jun 2018",
+      "2019": "Jul 2017–Dec 2019",
+      "2021": "Jul 2018–Jun 2021",
+      "2022": "Jul 2019–Jun 2022",
+      "2023": "Jul 2020–Jun 2023",
+      "2024": "Jul 2021–Jun 2024",
+      "2025": "Jul 2023–Jun 2025"
+    },
+    "readmHipKnee": {
+      "2018": "Jul 2015–Jun 2018",
+      "2019": "Jul 2017–Dec 2019",
+      "2021": "Jul 2018–Jun 2021",
+      "2022": "Jul 2019–Jun 2022",
+      "2023": "Jul 2020–Jun 2023",
+      "2024": "Jul 2021–Jun 2024",
+      "2025": "Jul 2023–Jun 2025"
+    },
+    "readmHospitalWide": {
+      "2018": "Jul 2017–Jun 2018",
+      "2019": "Jul 2019–Dec 2019",
+      "2021": "Jul 2020–Jun 2021",
+      "2022": "Jul 2021–Jun 2022",
+      "2023": "Jul 2022–Jun 2023"
+    },
+    "readmHybrid": {
+      "2024": "Jul 2023–Jun 2024",
+      "2025": "Jul 2024–Jun 2025"
+    },
+    "readmPn": {
+      "2018": "Jul 2015–Jun 2018",
+      "2019": "Jul 2017–Dec 2019",
+      "2021": "Jul 2018–Jun 2021",
+      "2022": "Jul 2019–Jun 2022",
+      "2023": "Jul 2020–Jun 2023",
+      "2024": "Jul 2021–Jun 2024",
+      "2025": "Jul 2023–Jun 2025"
+    },
+    "sepsisBundle": {
+      "2018": "Jan 2018–Dec 2018",
+      "2019": "Jan 2019–Dec 2019",
+      "2020": "Jul 2020–Dec 2020",
+      "2021": "Jan 2021–Dec 2021",
+      "2022": "Jan 2022–Dec 2022",
+      "2023": "Jan 2023–Dec 2023",
+      "2024": "Jan 2024–Dec 2024",
+      "2025": "Oct 2024–Sep 2025"
+    }
+  },
+  "coverage": {
+    "cmsHospitals": 407,
+    "matchedHospitals": 375,
+    "matchedByNameAndZip": [
+      {
+        "ccn": "050096",
+        "cmsName": "WEST COVINA MEDICAL CENTER, INC",
+        "hcaiId": "106190857",
+        "name": "West Covina Medical Center",
+        "score": 0.91,
+        "alsoHasCcn": true
+      },
+      {
+        "ccn": "050115",
+        "cmsName": "PALOMAR HEALTH DOWNTOWN CAMPUS",
+        "hcaiId": "106370755",
+        "name": "Palomar Health Downtown Campus",
+        "score": 1.0,
+        "alsoHasCcn": false
+      },
+      {
+        "ccn": "050189",
+        "cmsName": "GEORGE L MEE MEMORIAL HOSPITAL",
+        "hcaiId": "106270777",
+        "name": "George L. Mee Memorial Hospital",
+        "score": 0.98,
+        "alsoHasCcn": false
+      },
+      {
+        "ccn": "050205",
+        "cmsName": "GLENDORA COMMUNITY HOSPITAL",
+        "hcaiId": "106190328",
+        "name": "Glendora Hospital",
+        "score": 0.77,
+        "alsoHasCcn": false
+      },
+      {
+        "ccn": "050296",
+        "cmsName": "HAZEL HAWKINS MEMORIAL HOSPITAL",
+        "hcaiId": "106350784",
+        "name": "Hazel Hawkins Memorial Hospital",
+        "score": 1.0,
+        "alsoHasCcn": true
+      },
+      {
+        "ccn": "050397",
+        "cmsName": "COALINGA REGIONAL MEDICAL CENTER",
+        "hcaiId": "106100697",
+        "name": "Coalinga Regional Medical Center",
+        "score": 1.0,
+        "alsoHasCcn": true
+      },
+      {
+        "ccn": "050423",
+        "cmsName": "PALO VERDE HOSPITAL",
+        "hcaiId": "106331288",
+        "name": "Palo Verde Hospital",
+        "score": 1.0,
+        "alsoHasCcn": true
+      },
+      {
+        "ccn": "050548",
+        "cmsName": "FAIRVIEW DEVELOPMENTAL CENTER",
+        "hcaiId": "106301781",
+        "name": "Fairview Developmental Center",
+        "score": 1.0,
+        "alsoHasCcn": false
+      },
+      {
+        "ccn": "050551",
+        "cmsName": "UCI HEALTH - LOS ALAMITOS",
+        "hcaiId": "106301248",
+        "name": "UCI Health-Los Alamitos",
+        "score": 0.96,
+        "alsoHasCcn": false
+      },
+      {
+        "ccn": "050568",
+        "cmsName": "MADERA COMMUNITY HOSPITAL",
+        "hcaiId": "106201281",
+        "name": "Madera Community Hospital",
+        "score": 1.0,
+        "alsoHasCcn": false
+      },
+      {
+        "ccn": "050570",
+        "cmsName": "UCI HEALTH - FOUNTAIN VALLEY",
+        "hcaiId": "106301175",
+        "name": "UCI Health-Fountain Valley",
+        "score": 0.96,
+        "alsoHasCcn": true
+      },
+      {
+        "ccn": "050581",
+        "cmsName": "UCI HEALTH-LAKEWOOD",
+        "hcaiId": "106190240",
+        "name": "UCI Health-Lakewood",
+        "score": 1.0,
+        "alsoHasCcn": true
+      },
+      {
+        "ccn": "050589",
+        "cmsName": "UCI HEALTH - PLACENTIA LINDA",
+        "hcaiId": "106301297",
+        "name": "UCI Health-Placentia Linda",
+        "score": 0.96,
+        "alsoHasCcn": false
+      },
+      {
+        "ccn": "050724",
+        "cmsName": "BAKERSFIELD HEART HOSPITAL",
+        "hcaiId": "106154101",
+        "name": "Bakersfield Heart Hospital",
+        "score": 1.0,
+        "alsoHasCcn": true
+      },
+      {
+        "ccn": "050726",
+        "cmsName": "STANISLAUS SURGICAL HOSPITAL",
+        "hcaiId": "106504038",
+        "name": "Stanislaus Surgical Hospital",
+        "score": 1.0,
+        "alsoHasCcn": false
+      },
+      {
+        "ccn": "050727",
+        "cmsName": "COMMUNITY HOSPITAL OF LONG BEACH",
+        "hcaiId": "106190475",
+        "name": "Community Hospital Long Beach",
+        "score": 0.95,
+        "alsoHasCcn": false
+      },
+      {
+        "ccn": "050742",
+        "cmsName": "OLYMPIA MEDICAL CENTER",
+        "hcaiId": "106190534",
+        "name": "Olympia Medical Center",
+        "score": 1.0,
+        "alsoHasCcn": false
+      },
+      {
+        "ccn": "050751",
+        "cmsName": "DOCS SURGICAL HOSPITAL",
+        "hcaiId": "106190681",
+        "name": "Docs Surgical Hospital",
+        "score": 1.0,
+        "alsoHasCcn": true
+      },
+      {
+        "ccn": "050757",
+        "cmsName": "ALVARADO HOSPITAL MEDICAL CENTER",
+        "hcaiId": "106370652",
+        "name": "Alvarado Hospital Medical Center",
+        "score": 1.0,
+        "alsoHasCcn": false
+      },
+      {
+        "ccn": "050781",
+        "cmsName": "SONOMA SPECIALTY HOSPITAL",
+        "hcaiId": "106491338",
+        "name": "Sonoma Specialty Hospital",
+        "score": 1.0,
+        "alsoHasCcn": false
+      },
+      {
+        "ccn": "054093",
+        "cmsName": "LOMA LINDA UNIVERSITY BEHAVIORAL MED CTR",
+        "hcaiId": "106364014",
+        "name": "Loma Linda University Behavioral Medicine Center",
+        "score": 0.91,
+        "alsoHasCcn": true
+      },
+      {
+        "ccn": "054124",
+        "cmsName": "SEMPERVIRENS",
+        "hcaiId": "106124004",
+        "name": "Sempervirens P.H.F.",
+        "score": 0.77,
+        "alsoHasCcn": false
+      },
+      {
+        "ccn": "054135",
+        "cmsName": "NEWPORT BAY HOSPITAL",
+        "hcaiId": "106301304",
+        "name": "Newport Bay Hospital",
+        "score": 1.0,
+        "alsoHasCcn": false
+      },
+      {
+        "ccn": "054149",
+        "cmsName": "WILLOW ROCK CENTER",
+        "hcaiId": "106014226",
+        "name": "Telecare Willow Rock Center",
+        "score": 0.8,
+        "alsoHasCcn": false
+      },
+      {
+        "ccn": "054153",
+        "cmsName": "OCEAN VIEW PSYCHIATRIC HEALTH FACILITY",
+        "hcaiId": "106198495",
+        "name": "Ocean View Psychiatric Health Facility",
+        "score": 1.0,
+        "alsoHasCcn": false
+      },
+      {
+        "ccn": "051336",
+        "cmsName": "SOUTHERN MONTEREY COUNTY MEMORIAL HOSPITAL",
+        "hcaiId": "106270777",
+        "name": "George L. Mee Memorial Hospital",
+        "score": 0.66,
+        "alsoHasCcn": false
+      },
+      {
+        "ccn": "050849",
+        "cmsName": "COMMUNITY HOSPITAL LONG BEACH",
+        "hcaiId": "106190475",
+        "name": "Community Hospital Long Beach",
+        "score": 1.0,
+        "alsoHasCcn": false
+      },
+      {
+        "ccn": "054157",
+        "cmsName": "GLENDORA  HOSPITAL",
+        "hcaiId": "106190328",
+        "name": "Glendora Hospital",
+        "score": 0.97,
+        "alsoHasCcn": false
+      },
+      {
+        "ccn": "050856",
+        "cmsName": "MADERA COMMUNITY HOSPITAL",
+        "hcaiId": "106201281",
+        "name": "Madera Community Hospital",
+        "score": 1.0,
+        "alsoHasCcn": false
+      }
+    ],
+    "unmatched": [
+      {
+        "ccn": "050153",
+        "name": "O'CONNOR HOSPITAL"
+      },
+      {
+        "ccn": "05015F",
+        "name": "60th Medical Group (Travis AFB)"
+      },
+      {
+        "ccn": "05020F",
+        "name": "NH Camp Pendleton"
+      },
+      {
+        "ccn": "050225",
+        "name": "ADVENTIST HEALTH FEATHER RIVER"
+      },
+      {
+        "ccn": "05022F",
+        "name": "NMC San Diego"
+      },
+      {
+        "ccn": "05025F",
+        "name": "FRESNO VA MEDICAL CENTER (VA CENTRAL CALIFORNIA HEALTHCARE SYSTEM)"
+      },
+      {
+        "ccn": "05027F",
+        "name": "VA LONG BEACH HEALTHCARE SYSTEM"
+      },
+      {
+        "ccn": "05030F",
+        "name": "VA N CALIFORNIA HEALTHCARE SYSTEM"
+      },
+      {
+        "ccn": "05031F",
+        "name": "PALO ALTO VA MEDICAL CENTER"
+      },
+      {
+        "ccn": "05039F",
+        "name": "NH Twentynine Palms"
+      },
+      {
+        "ccn": "05041F",
+        "name": "Weed ACH (FT Irwin)"
+      },
+      {
+        "ccn": "050502",
+        "name": "SAINT VINCENT MEDICAL CENTER"
+      },
+      {
+        "ccn": "050547",
+        "name": "SONOMA DEVELOPMENTAL CENTER"
+      },
+      {
+        "ccn": "050688",
+        "name": "ST LOUISE REGIONAL HOSPITAL"
+      },
+      {
+        "ccn": "050754",
+        "name": "MENLO PARK SURGICAL HOSPITAL"
+      },
+      {
+        "ccn": "050773",
+        "name": "SAN LEANDRO HOSPITAL"
+      },
+      {
+        "ccn": "05114F",
+        "name": "VA SAN DIEGO HEALTHCARE SYSTEM"
+      },
+      {
+        "ccn": "05127F",
+        "name": "LOMA LINDA VA MEDICAL CENTER"
+      },
+      {
+        "ccn": "05128F",
+        "name": "VA GREATER LOS ANGELES HEALTHCARE SYSTEM"
+      },
+      {
+        "ccn": "05130F",
+        "name": "SAN FRANCISCO VA MEDICAL CENTER"
+      },
+      {
+        "ccn": "053310",
+        "name": "SHRINERS HOSPITALS FOR CHILDREN"
+      },
+      {
+        "ccn": "054150",
+        "name": "KAISER PERMANENTE PSYCHIATRIC HEALTH FACILITY-SANT"
+      },
+      {
+        "ccn": "054152",
+        "name": "SANTA CRUZ COUNTY PSYCHIATRIC HEALTH FACILITY"
+      }
+    ]
+  },
+  "notes": [
+    "Each value is filed under the year its measurement period ends; periods run up to three years and overlap.",
+    "Snapshots: the last Care Compare release of each calendar year, plus the newest.",
+    "CMS CCNs are mapped to HCAI facility numbers with CDPH's licensed facility listing. Where one CCN covers several licensed hospitals, CMS's combined score is filed under the hospital CMS names, and the others are marked as reported with it.",
+    "CCNs that changed after an ownership change aren't in CDPH's current listing; those are matched on ZIP code plus a close name match (listed under coverage.matchedByNameAndZip)."
+  ]
+}

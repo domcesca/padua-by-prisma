@@ -30,7 +30,7 @@ function read(): Selection {
     const parsed = raw ? (JSON.parse(raw) as Partial<Selection>) : {}
     cached = {
       facilityId: typeof parsed.facilityId === "string" ? parsed.facilityId : null,
-      category: parsed.category === "utilization" ? "utilization" : "financial",
+      category: parsed.category === "utilization" || parsed.category === "quality" ? parsed.category : "financial",
     }
   } catch {
     cached = EMPTY
@@ -67,19 +67,19 @@ export function useSelection(): Selection | null {
 export function hrefWithSelection(href: string, selection: Selection | null) {
   if (!selection?.facilityId) {
     if (href === "/translate" && selection?.category === "utilization") return "/translate?source=utilization"
-    if (href === "/benchmark" && selection?.category === "utilization") return "/benchmark?view=utilization"
+    if (href === "/benchmark" && selection && selection.category !== "financial") return `/benchmark?view=${selection.category}`
     return href
   }
   const params = new URLSearchParams({ facility: selection.facilityId })
   switch (href) {
     case "/benchmark":
-      if (selection.category === "utilization") params.set("view", "utilization")
+      if (selection.category !== "financial") params.set("view", selection.category)
       break
     case "/translate":
-      params.set("source", selection.category)
+      params.set("source", selection.category === "utilization" ? "utilization" : "financial")
       break
     case "/build":
-      if (selection.category === "utilization") params.set("category", "utilization")
+      if (selection.category !== "financial") params.set("category", selection.category)
       break
     case "/deadlines":
       break

@@ -1,11 +1,14 @@
 // Shapes of the processed files written by the Python ETL (etl/hcai_etl).
 // Keep in sync with etl/hcai_etl/datasets/{hafd_selected,hau}.py.
 
-/** Output folder / id of each ETL dataset under data/processed. */
-export type DatasetId = "hafd-selected" | "hau"
+/** HCAI's own datasets: facility directories and raw fields (Translate) come from these. */
+export type HcaiDatasetId = "hafd-selected" | "hau"
+
+/** Output folder / id of each ETL dataset under data/processed. The non-HCAI ones map onto HCAI facility numbers. */
+export type DatasetId = HcaiDatasetId | "cdph-hai" | "cms-care-compare"
 
 /** What the user picks on the home page; each metric belongs to one. */
-export type MetricCategory = "financial" | "utilization"
+export type MetricCategory = "financial" | "utilization" | "quality"
 
 export type Ownership = "nonprofit" | "investor" | "district" | "government" | "state" | "other"
 
@@ -91,8 +94,30 @@ export type FacilityYearMetrics = {
   status: string | null
 }
 
+/** Context for one published value (quality data): its period, significance, and caveats. */
+export type PointDetail = {
+  /** Measurement period, e.g. "Jul 2022–Jun 2025", when it isn't the calendar year. */
+  period?: string
+  /** Statistically better / no different / worse than the metric's comparison point (see comparedTo). */
+  compared?: "better" | "same" | "worse"
+  /** 95% confidence interval. */
+  ci?: [number, number]
+  /** Cases or surveys behind the value. */
+  n?: number
+  observed?: number
+  predicted?: number
+  /** Why the value is missing or should be read with care (source footnotes, partial years). */
+  note?: string
+}
+
 /** Any dataset's metrics row: metric key -> value, plus coverage flags. */
-export type MetricsRow = Record<string, unknown> & { days: number; annualized: boolean; status: string | null }
+export type MetricsRow = Record<string, unknown> & {
+  days?: number
+  annualized: boolean
+  status: string | null
+  /** Quality datasets: per-metric detail. */
+  detail?: Record<string, PointDetail>
+}
 
 /** facilityId -> year -> metrics */
 export type MetricsFile<Row = MetricsRow> = Record<string, Record<string, Row>>
@@ -147,7 +172,8 @@ export type DictionaryField = {
   payer?: string
 }
 
-export type MetricUnit = "ratio" | "days" | "pct" | "count" | "share" | "usd"
+/** number: a plain decimal (SIRs, rates, minutes, stars); unitLabel says what it counts. */
+export type MetricUnit = "ratio" | "days" | "pct" | "count" | "share" | "usd" | "number"
 
 export type DictionaryMetric = {
   id: string
@@ -167,6 +193,18 @@ export type DictionaryMetric = {
   lens?: PayerLens
   /** The all-payer metric this one stands in for under its lens, if any. */
   allPayer?: string
+  /** Sub-heading within a category (quality: Readmissions, Infections, ...). */
+  group?: string
+  /** Unit wording for "number" metrics, e.g. "per 1,000 central-line days". */
+  unitLabel?: string
+  /** A value worth a reference line, e.g. 1 for ratios to expected (SIR, PSI 90). */
+  reference?: number
+  /** What `PointDetail.compared` is relative to, e.g. "the national rate". */
+  comparedTo?: string
+  /** A metric shown alongside this one on the same card (an infection SIR's raw rate). */
+  companion?: string
+  /** Set on a companion: the metric whose card it appears on. */
+  companionOf?: string
   /** Modeled rather than reported (e.g. Medicare cost allocated from charges); flagged in the UI. */
   estimate?: boolean
 }
@@ -188,7 +226,11 @@ export type Manifest = {
   title: string
   sourcePage: string
   years: number[]
-  sources: { year: number; name: string; url: string; preliminary?: boolean }[]
+  sources: { year?: number; name: string; url: string; preliminary?: boolean }[]
   generatedAt: string
   notes: string[]
+  /** Care Compare: the usual measurement period per metric and year. */
+  periods?: Record<string, Record<string, string>>
+  /** Care Compare: hospitals CMS reports together with another under one CCN. */
+  sharedReporting?: Record<string, { ccn: string; reportedWith: string; reportedWithName: string }>
 }

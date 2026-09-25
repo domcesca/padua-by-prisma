@@ -14,6 +14,7 @@ import {
   DATASETS,
   PAYER_VIEWS,
   pickableMetrics,
+  PRIMARY_DATASET,
   type MetricDef,
   type PayerView,
 } from "@/lib/data/datasets"
@@ -116,10 +117,14 @@ export function BenchmarkView({
   }
 
   const shown =
-    result && result.facility.id === facilityId && result.category === view.category && result.payer === view.payer
+    result &&
+    result.facility.id === facilityId &&
+    result.category === view.category &&
+    result.payer === (view.category === "quality" ? "all" : view.payer)
       ? result
       : null
-  const primaryDataset = view.category === "utilization" ? "hau" : "hafd-selected"
+  const primaryDataset = PRIMARY_DATASET[view.category]
+  const quality = view.category === "quality"
   const payerInfo = PAYER_VIEWS.find((p) => p.value === view.payer)!
   const categoryInfo = CATEGORY_BY_ID[view.category]
   const isDefaultMetrics = !view.metrics || view.metrics.join(",") === categoryInfo.defaultMetrics.join(",")
@@ -140,12 +145,14 @@ export function BenchmarkView({
             onChange={setCategory}
             options={CATEGORIES.map((c) => ({ value: c.id, label: c.label }))}
           />
-          <Segmented
-            label="Payer view"
-            value={view.payer}
-            onChange={setPayer}
-            options={PAYER_VIEWS.map((p) => ({ value: p.value, label: p.label }))}
-          />
+          {!quality && (
+            <Segmented
+              label="Payer view"
+              value={view.payer}
+              onChange={setPayer}
+              options={PAYER_VIEWS.map((p) => ({ value: p.value, label: p.label }))}
+            />
+          )}
           <FilterPill
             label="Metrics"
             summary={isDefaultMetrics ? null : `${shownMetrics.length} metric${shownMetrics.length === 1 ? "" : "s"}`}
@@ -214,33 +221,41 @@ export function BenchmarkView({
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <TrendLegend />
                 <p className="max-w-xl text-xs text-tertiary-foreground sm:text-right">
-                  {view.payer === "all"
-                    ? DATASETS[primaryDataset].yearNote
-                    : `${payerInfo.label}: ${payerInfo.description} Measures HCAI doesn’t split by payer stay all-payer and are marked.`}
+                  {quality
+                    ? "Care Compare measures are filed under the year their measurement period ends (periods span one to three years and overlap); infection data is by calendar year."
+                    : view.payer === "all"
+                      ? DATASETS[primaryDataset!].yearNote
+                      : `${payerInfo.label}: ${payerInfo.description} Measures HCAI doesn’t split by payer stay all-payer and are marked.`}
                 </p>
               </div>
               {shown.metrics.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Choose at least one metric.</p>
               ) : (
                 <div className="grid gap-4 md:grid-cols-2">
-                  {shown.metrics.map((id) =>
-                    shown.series[id] ? (
+                  {orderByGroup(shown.metrics, metaById).map((id) => {
+                    const meta = metaById[id]
+                    if (!shown.series[id]) return null
+                    const companion = meta.companion && shown.series[meta.companion] ? meta.companion : null
+                    return (
                       <MetricCard
                         key={id}
-                        meta={metaById[id]}
+                        meta={meta}
                         points={shown.series[id]}
+                        companion={companion ? { meta: metaById[companion], points: shown.series[companion] } : undefined}
                         tags={[
-                          metaById[id].estimate ? "Estimate" : null,
-                          view.payer !== "all" && !metaById[id].lens ? "All payers" : null,
-                          metaById[id].dataset !== primaryDataset
-                            ? metaById[id].dataset === "hau"
+                          quality ? (meta.group ?? null) : null,
+                          quality ? DATASETS[meta.dataset].shortLabel : null,
+                          meta.estimate ? "Estimate" : null,
+                          !quality && view.payer !== "all" && !meta.lens ? "All payers" : null,
+                          primaryDataset && meta.dataset !== primaryDataset
+                            ? meta.dataset === "hau"
                               ? "Calendar years"
                               : "Fiscal years"
                             : null,
                         ].filter((t): t is string => t != null)}
                       />
-                    ) : null
-                  )}
+                    )
+                  })}
                 </div>
               )}
               {shown.payerMix && metaById.payerMix && (
@@ -265,7 +280,12 @@ function FacilitySummary({ result, lastYear }: { result: BenchmarkResult; lastYe
     f.traumaLevel ? `Trauma level ${f.traumaLevel}` : null,
     f.owner && f.owner.toLowerCase() !== f.hcaiName.toLowerCase() ? `Operated by ${titleCase(f.owner)}` : null,
   ].filter(Boolean)
-  const dataYears = result.category === "utilization" ? f.utilizationYears : f.financialYears
+  const dataYears =
+    result.category === "quality"
+      ? qualityYears(result)
+      : result.category === "utilization"
+        ? f.utilizationYears
+        : f.financialYears
   const noData = dataYears.length === 0
   const similar = result.filters.mode === "similar"
 
@@ -283,13 +303,21 @@ function FacilitySummary({ result, lastYear }: { result: BenchmarkResult; lastYe
             under the same license.
           </p>
         )}
-        {lastYear < latestOf(result) && <p className="text-[13px] text-muted-foreground">Last reported in {lastYear}.</p>}
+        {result.category !== "quality" && lastYear < latestOf(result) && (
+          <p className="text-[13px] text-muted-foreground">Last reported in {lastYear}.</p>
+        )}
         {noData && (
           <p className="rounded-xl bg-black/4 px-3.5 py-2.5 text-[13px] leading-relaxed text-muted-foreground dark:bg-white/6">
-            HCAI has no {result.category === "utilization" ? "utilization" : "financial"} data for this hospital in these
-            years.
+            {result.category === "quality"
+              ? "CMS and CDPH published none of these measures for this hospital in these years."
+              : `HCAI has no ${result.category === "utilization" ? "utilization" : "financial"} data for this hospital in these years.`}
           </p>
         )}
+        {result.notes.map((note) => (
+          <p key={note} className="rounded-xl bg-black/4 px-3.5 py-2.5 text-[13px] leading-relaxed text-muted-foreground dark:bg-white/6">
+            {note}
+          </p>
+        ))}
         {f.hospitalType && f.hospitalType !== "Comparable" && (
           <p className="rounded-xl bg-black/4 px-3.5 py-2.5 text-[13px] leading-relaxed text-muted-foreground dark:bg-white/6">
             HCAI classifies this hospital as <span className="font-medium text-foreground">{f.hospitalType}</span>, so its
@@ -307,7 +335,10 @@ function FacilitySummary({ result, lastYear }: { result: BenchmarkResult; lastYe
                 : "—"
             }
           />
-          <Stat label={result.category === "utilization" ? "Utilization data" : "Financial data"} value={yearRange(dataYears) ?? "None"} />
+          <Stat
+            label={{ financial: "Financial data", utilization: "Utilization data", quality: "Quality data" }[result.category]}
+            value={yearRange(dataYears) ?? "None"}
+          />
         </dl>
       </section>
       <section aria-label="Peer group" className="widget fade-up flex flex-col gap-1 p-5">
@@ -333,6 +364,19 @@ function Stat({ label, value }: { label: string; value: string }) {
       <dd className="num truncate text-[15px] font-semibold tracking-tight">{value}</dd>
     </div>
   )
+}
+
+/** Years with a value for any metric shown (quality mixes sources, so there's no single year list). */
+function qualityYears(result: BenchmarkResult) {
+  const years = new Set<number>()
+  for (const id of result.metrics) for (const p of result.series[id] ?? []) if (p.value != null) years.add(p.year)
+  return [...years].sort((a, b) => a - b)
+}
+
+/** Keeps metrics of the same group (quality: Readmissions, Infections, ...) next to each other, in first-seen order. */
+function orderByGroup(ids: string[], metaById: Record<string, MetricDef>) {
+  const groups = [...new Set(ids.map((id) => metaById[id]?.group ?? ""))]
+  return [...ids].sort((a, b) => groups.indexOf(metaById[a]?.group ?? "") - groups.indexOf(metaById[b]?.group ?? ""))
 }
 
 const yearRange = (years: number[]) =>
