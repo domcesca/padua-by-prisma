@@ -167,6 +167,8 @@ export type DictionaryMetric = {
   lens?: PayerLens
   /** The all-payer metric this one stands in for under its lens, if any. */
   allPayer?: string
+  /** Modeled rather than reported (e.g. Medicare cost allocated from charges); flagged in the UI. */
+  estimate?: boolean
 }
 
 /** Payer views a metric can be narrowed to. */

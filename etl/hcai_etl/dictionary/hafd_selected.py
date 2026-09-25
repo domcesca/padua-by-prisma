@@ -873,20 +873,23 @@ METRICS: dict[str, dict] = {
 # replaces when the Benchmark "Payer view" is set to Medicare.
 _MCAR_TR_MC = "MCAR_TR + MCAR_MC"
 _MCAR_COST_CAUTION = (
-    "Estimated. HCAI doesn't report expenses by payer, so patient care cost (operating expense less other operating "
-    "revenue) is allocated to Medicare by its share of gross charges, the convention the AHA uses for payment-to-cost "
-    "ratios. Expect it to differ from the Medicare margin on the hospital's Medicare cost report "
-    "(CMS-2552), which uses Medicare's own cost-finding rules."
+    "Estimated, and more negative than MedPAC's figures by design. HCAI doesn't report expenses by payer, so Medicare's "
+    "cost is its gross charges times the hospital's cost-to-charge ratio (the AHA payment-to-cost method). MedPAC's "
+    "Medicare margin (−13% nationally in 2023) counts only Medicare-allowable costs from cost reports and only traditional "
+    "Medicare. The AHA method counts all operating expense and includes Medicare Advantage: nationally it put Medicare "
+    "at 82 cents per dollar of cost in 2022 (a margin near −22%), and California hospitals run lower, near 75 cents "
+    "(about −33%). Compare hospitals with each other here, not with MedPAC or the Medicare cost report (CMS-2552)."
 )
 MEDICARE_METRICS: dict[str, dict] = {
     "medicareMargin": {
         "category": "financial",
+        "estimate": True,
         "lens": "medicare",
         "allPayer": "operatingMargin",
         "label": "Medicare margin",
         "unit": "ratio",
-        "summary": "Cents of profit or loss per dollar of Medicare net patient revenue, with patient care cost allocated to Medicare by its share of charges.",
-        "formula": f"(NETRV_MCAR − (TOT_OP_EXP − OTH_OP_REV) × GR_MCAR ÷ GR_PT_REV) ÷ NETRV_MCAR, where MCAR = {_MCAR_TR_MC} and GR = GR_IP_ + GR_OP_",
+        "summary": "Estimated profit or loss per dollar of Medicare net patient revenue, with Medicare's cost estimated from its charges and the hospital's cost-to-charge ratio.",
+        "formula": f"(NETRV_MCAR − GR_MCAR × TOT_OP_EXP ÷ (GR_PT_REV + OTH_OP_REV)) ÷ NETRV_MCAR, where MCAR = {_MCAR_TR_MC} and GR = GR_IP_ + GR_OP_",
         "inputs": ["NETRV_MCAR_TR", "NETRV_MCAR_MC", "TOT_OP_EXP", "OTH_OP_REV", "GR_IP_MCAR_TR", "GR_IP_MCAR_MC", "GR_OP_MCAR_TR", "GR_OP_MCAR_MC", "GR_PT_REV"],
         "higherIsBetter": True,
         "caution": _MCAR_COST_CAUTION,
@@ -916,12 +919,13 @@ MEDICARE_METRICS: dict[str, dict] = {
     },
     "medicareCostPerAdjDischarge": {
         "category": "financial",
+        "estimate": True,
         "lens": "medicare",
         "allPayer": "expensePerAdjDischarge",
         "label": "Medicare cost per adjusted discharge",
         "unit": "usd",
         "summary": "Estimated cost of caring for Medicare patients, per Medicare adjusted discharge.",
-        "formula": f"((TOT_OP_EXP − OTH_OP_REV) × GR_MCAR ÷ GR_PT_REV) ÷ (DIS_MCAR × GR_MCAR ÷ GR_IP_MCAR), where MCAR = {_MCAR_TR_MC}",
+        "formula": f"(GR_MCAR × TOT_OP_EXP ÷ (GR_PT_REV + OTH_OP_REV)) ÷ (DIS_MCAR × GR_MCAR ÷ GR_IP_MCAR), where MCAR = {_MCAR_TR_MC}",
         "inputs": ["TOT_OP_EXP", "OTH_OP_REV", "GR_PT_REV", "DIS_MCAR_TR", "DIS_MCAR_MC", "GR_IP_MCAR_TR", "GR_IP_MCAR_MC", "GR_OP_MCAR_TR", "GR_OP_MCAR_MC"],
         "higherIsBetter": False,
         "caution": _MCAR_COST_CAUTION,

@@ -96,9 +96,15 @@ used (they cover traditional Medicare only, by calendar year, and need a CCN cro
   `allPayer: <metric id>`, the metric it replaces. `applyPayerView` in `src/lib/data/datasets.ts` does the swap.
   Metrics with no Medicare split (days cash on hand, ED visits, occupancy, surgeries, …) stay all-payer and get an
   "All payers" tag on the card.
-- **Medicare margin and cost per adjusted discharge are estimates.** HCAI doesn't report expense by payer, so patient
-  care cost (operating expense less other operating revenue) is allocated by Medicare's share of gross charges, the
-  AHA payment-to-cost convention. They won't match the Medicare cost report (CMS-2552).
+- **Medicare margin and cost per adjusted discharge are estimates**, tagged "Estimate" on the card. HCAI doesn't
+  report expense by payer, so Medicare's cost is its gross charges × the hospital's cost-to-charge ratio
+  (`TOT_OP_EXP ÷ (GR_PT_REV + OTH_OP_REV)`), the AHA payment-to-cost method. The median for comparable general
+  hospitals is about −29% to −35% (payment-to-cost 0.74–0.78). That is far below MedPAC's Medicare margin (−13%
+  nationally in 2023) **by design**: MedPAC counts only Medicare-allowable costs and traditional Medicare, while the
+  AHA method counts all operating expense and includes Medicare Advantage. On the AHA method Medicare paid 82 cents
+  per dollar nationally in 2022, and the California Hospital Association cites about 75 cents for California.
+  Allocating by charges doesn't inflate Medicare's share: Medicare's share of gross charges (~44%) is below its share
+  of patient days (~47–49%) and discharges (~47%). A days-based split would make the margin more negative.
 - Medicare volumes (discharges, days, length of stay, outpatient visits) come from the financial report, so they're
   fiscal-year and include long-term care units. Cards say so.
 - Medicare Advantage share (MA discharges ÷ all Medicare discharges) is available under the Medicare view and in Build.

@@ -25,7 +25,12 @@ export function MetricInfo({ metric }: { metric: DictionaryMetric & { dataset?: 
         <p className="rounded-lg bg-muted px-2.5 py-2 font-mono text-[11px] leading-relaxed text-muted-foreground">
           {metric.formula}
         </p>
-        {metric.caution && <p className="text-xs leading-relaxed text-muted-foreground">{metric.caution}</p>}
+        {metric.caution && (
+          <div className="rounded-lg bg-black/4 px-2.5 py-2 dark:bg-white/6">
+            <p className="text-[11px] font-medium text-foreground">{metric.estimate ? "Estimate — read before comparing" : "Read before comparing"}</p>
+            <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{metric.caution}</p>
+          </div>
+        )}
         <Link href={translateHref(metric.dataset ?? "hafd-selected", { metric: metric.id })} className="text-xs font-medium text-primary hover:underline">
           Why this number moves →
         </Link>

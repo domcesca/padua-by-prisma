@@ -230,6 +230,7 @@ export function BenchmarkView({
                         meta={metaById[id]}
                         points={shown.series[id]}
                         tags={[
+                          metaById[id].estimate ? "Estimate" : null,
                           view.payer !== "all" && !metaById[id].lens ? "All payers" : null,
                           metaById[id].dataset !== primaryDataset
                             ? metaById[id].dataset === "hau"

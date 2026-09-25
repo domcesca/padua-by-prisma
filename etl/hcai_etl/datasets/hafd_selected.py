@@ -368,15 +368,11 @@ def derive_medicare_metrics(rec: dict) -> dict:
     gross_ip, gross_op = total("GR_IP_"), total("GR_OP_")
     gross = (gross_ip or 0) + (gross_op or 0)
     gross_all, opex = _num(rec, "GR_PT_REV"), _num(rec, "TOT_OP_EXP")
-    # Patient care cost: operating expense less other operating revenue (cafeteria,
-    # grants, rent), allocated to Medicare by its share of gross charges — the
-    # AHA payment-to-cost convention.
-    care_cost = opex - (_num(rec, "OTH_OP_REV") or 0) if opex else None
-    cost = (
-        care_cost * gross / gross_all
-        if (care_cost and care_cost > 0 and gross > 0 and gross_all and gross_all > 0)
-        else None
-    )
+    # Medicare cost by the AHA payment-to-cost method: Medicare's gross charges times
+    # the hospital's cost-to-charge ratio, operating expense (which excludes bad
+    # debt) over gross patient revenue plus other operating revenue.
+    charges_all = (gross_all or 0) + (_num(rec, "OTH_OP_REV") or 0)
+    cost = opex * gross / charges_all if (opex and opex > 0 and gross > 0 and charges_all > 0) else None
     adj_discharges = discharges * gross / gross_ip if (discharges and gross_ip and gross_ip > 0) else None
     ma = _num(rec, "DIS_MCAR_MC")
 
