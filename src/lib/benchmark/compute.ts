@@ -4,6 +4,7 @@ import { CATEGORY_BY_ID, type MetricDef } from "@/lib/data/datasets"
 import { getFacilities, getManifest, getMetricCatalog, getMetrics } from "@/lib/data/store"
 import type { Facility, MetricCategory, MetricsFile, PayerGroup, PayerMix } from "@/lib/data/types"
 import type { PeerFilters } from "./filters"
+import { milesBetween, resolvePeerGroup } from "./peers"
 
 export type SeriesPoint = {
   year: number
@@ -30,7 +31,9 @@ export type PeerSummary = { id: string; name: string; county: string | null; bed
 export type BenchmarkResult = {
   facility: Facility
   category: MetricCategory
+  /** Filters actually applied; for "similar" these are the ones chosen automatically. */
   filters: PeerFilters
+  peerGroup: { description: string; note: string | null }
   peers: PeerSummary[]
   /** metric id -> one point per year of that metric's dataset. */
   series: Record<string, SeriesPoint[]>
@@ -38,28 +41,6 @@ export type BenchmarkResult = {
 }
 
 const PAYER_GROUPS: PayerGroup[] = ["medicare", "medical", "commercial", "indigent", "other"]
-
-export function matchesFilters(f: Facility, filters: PeerFilters, typeOfCare: string | null) {
-  if (!filters.includeNonComparable && f.hospitalType !== "Comparable") return false
-  // Compare like with like: a general acute hospital is benchmarked against
-  // general acute hospitals, a children's hospital against children's, etc.
-  if (typeOfCare && f.typeOfCare !== typeOfCare) return false
-  if (filters.counties.length && (!f.county || !filters.counties.includes(f.county))) return false
-  if (filters.ownership.length && !filters.ownership.includes(f.ownership)) return false
-  const beds = f.licensedBeds ?? null
-  if (filters.bedsMin != null && (beds == null || beds < filters.bedsMin)) return false
-  if (filters.bedsMax != null && (beds == null || beds > filters.bedsMax)) return false
-  switch (filters.teaching) {
-    case "teaching":
-      return f.teaching
-    case "rural":
-      return f.rural
-    case "neither":
-      return !f.teaching && !f.rural
-    default:
-      return true
-  }
-}
 
 export function quantile(sorted: number[], q: number) {
   if (!sorted.length) return null
@@ -133,7 +114,8 @@ export async function computeBenchmark({
   const facility = facilities.find((f) => f.id === facilityId)
   if (!facility) return null
 
-  const peers = facilities.filter((f) => f.id !== facility.id && matchesFilters(f, filters, facility.typeOfCare))
+  const group = resolvePeerGroup(facility, facilities, filters)
+  const peers = group.peers
   const peerIds = peers.map((p) => p.id)
 
   const wanted = metricIds?.length ? metricIds : CATEGORY_BY_ID[category].defaultMetrics
@@ -151,9 +133,13 @@ export async function computeBenchmark({
   return {
     facility,
     category,
-    filters,
+    filters: group.filters,
+    peerGroup: { description: group.description, note: group.note },
     peers: peers
-      .map((p) => ({ id: p.id, name: p.name, county: p.county, beds: p.licensedBeds }))
+      .map((p) => {
+        const miles = milesBetween(facility, p)
+        return { id: p.id, name: p.name, county: p.county, beds: p.licensedBeds, distance: miles != null ? Math.round(miles) : null }
+      })
       .sort((a, b) => a.name.localeCompare(b.name)),
     series,
     payerMix: category === "financial" ? await payerMix(facility.id, peerIds) : null,

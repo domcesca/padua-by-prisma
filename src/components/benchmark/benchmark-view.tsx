@@ -125,6 +125,7 @@ export function BenchmarkView({
         </div>
         <PeerFilterBar
           filters={filters}
+          applied={shown?.filters ?? null}
           onChange={(f) => apply({ filters: f })}
           counties={counties}
           facility={shown?.facility ?? null}
@@ -205,9 +206,10 @@ function FacilitySummary({ result, lastYear }: { result: BenchmarkResult; lastYe
       <p className="text-sm text-muted-foreground">{facts.join(" · ")}</p>
       <p className="text-[13px] text-muted-foreground">
         Compared with <span className="font-medium text-foreground">{result.peers.length}</span>{" "}
-        {f.typeOfCare?.toLowerCase() === "general" ? "general acute" : f.typeOfCare?.toLowerCase()} hospital
-        {result.peers.length === 1 ? "" : "s"}
-        {!result.filters.includeNonComparable && " (Kaiser and other non-comparable hospitals excluded)"}.
+        {result.filters.mode === "similar" ? "similar hospitals" : `hospital${result.peers.length === 1 ? "" : "s"}`}:{" "}
+        {result.peerGroup.description.charAt(0).toLowerCase() + result.peerGroup.description.slice(1)}
+        {!result.filters.includeNonComparable && ", not counting Kaiser and other non-comparable hospitals"}.
+        {result.peerGroup.note && ` ${result.peerGroup.note}`}
         {lastYear < latestOf(result) && ` This hospital last reported in ${lastYear}.`}
       </p>
       {result.category === "utilization" && f.campuses.length > 0 && (
@@ -262,6 +264,7 @@ function PeerList({ peers }: { peers: BenchmarkResult["peers"] }) {
                 {" "}
                 · {p.county}
                 {p.beds != null && ` · ${p.beds} beds`}
+                {p.distance != null && ` · ${p.distance} mi`}
               </span>
             </li>
           ))}
