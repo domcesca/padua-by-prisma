@@ -29,6 +29,7 @@ export function FilterPill({
   searchable = false,
   quickActions,
   footer,
+  active: activeOverride,
 }: {
   label: string
   /** Text shown in the pill when something is selected. */
@@ -40,9 +41,11 @@ export function FilterPill({
   searchable?: boolean
   quickActions?: { label: string; onSelect: () => void }[]
   footer?: React.ReactNode
+  /** Force the highlighted style on/off (e.g. a non-default value that still shows a summary). */
+  active?: boolean
 }) {
   const [open, setOpen] = useState(false)
-  const active = summary != null
+  const active = activeOverride ?? summary != null
 
   function toggle(value: string) {
     if (!multiple) {
@@ -56,8 +59,8 @@ export function FilterPill({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger className={pillClass(active)} aria-label={`${label}: ${summary ?? "any"}`}>
-        <span className={cn(active && "sr-only")}>{label}</span>
-        {active && <span className="max-w-44 truncate font-medium">{summary}</span>}
+        <span className={cn(summary != null && "sr-only")}>{label}</span>
+        {summary != null && <span className={cn("max-w-44 truncate", active && "font-medium")}>{summary}</span>}
         <ChevronDown className="size-3.5 opacity-60" />
       </PopoverTrigger>
       <PopoverContent align="start" className="w-64 p-0">
