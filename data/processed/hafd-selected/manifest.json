@@ -1,0 +1,55 @@
+{
+  "id": "hafd-selected",
+  "title": "Hospital Annual Financial Data – Selected Data & Pivot Tables",
+  "sourcePage": "https://data.chhs.ca.gov/dataset/hospital-annual-financial-data-selected-data-pivot-tables",
+  "package": {
+    "title": "Hospital Annual Financial Data - Selected Data & Pivot Tables",
+    "metadata_modified": "2026-05-04T19:21:14.637071"
+  },
+  "years": [
+    2019,
+    2020,
+    2021,
+    2022,
+    2023,
+    2024
+  ],
+  "sources": [
+    {
+      "year": 2019,
+      "name": "2019 CY Hospital Annual Selected File (April 2022 Extract)",
+      "url": "https://data.chhs.ca.gov/dataset/ea0c8ca9-023e-46a3-b95b-b9d4ab8ec195/resource/c09beb74-f89f-49a7-b296-bb2fb46331d3/download/hadr-19.xlsx"
+    },
+    {
+      "year": 2020,
+      "name": "2020 CY Hospital Annual Selected File (October 2022 Extract)",
+      "url": "https://data.chhs.ca.gov/dataset/ea0c8ca9-023e-46a3-b95b-b9d4ab8ec195/resource/95614502-4a18-4c0a-a820-a780f4a7f1a2/download/hadr-20.xlsx"
+    },
+    {
+      "year": 2021,
+      "name": "2021 CY Hospital Annual Selected File (October 2023 Extract)",
+      "url": "https://data.chhs.ca.gov/dataset/ea0c8ca9-023e-46a3-b95b-b9d4ab8ec195/resource/48e753b3-db5a-4ddf-b88c-3a726e13b5e3/download/hadr-21.xlsx"
+    },
+    {
+      "year": 2022,
+      "name": "2022 CY Hospital Annual Selected File (October 2024 Extract)",
+      "url": "https://data.chhs.ca.gov/dataset/ea0c8ca9-023e-46a3-b95b-b9d4ab8ec195/resource/28df017b-7693-4d83-b105-69eeca4a12e0/download/hadr-2022.xlsx"
+    },
+    {
+      "year": 2023,
+      "name": "2023 CY Hospital Annual Selected File (October 2025 Extract)",
+      "url": "https://data.chhs.ca.gov/dataset/ea0c8ca9-023e-46a3-b95b-b9d4ab8ec195/resource/244efb23-daf0-4137-9609-1bc25e4612b8/download/hadr-2023.xlsx"
+    },
+    {
+      "year": 2024,
+      "name": "2024 CY Hospital Annual Selected File (April 2026 Extract)",
+      "url": "https://data.chhs.ca.gov/dataset/ea0c8ca9-023e-46a3-b95b-b9d4ab8ec195/resource/3969a3b0-ec23-4962-b09d-89840a326b44/download/hadr-2024.xlsx"
+    }
+  ],
+  "generatedAt": "2026-09-25T00:34:31Z",
+  "notes": [
+    "Years are report years: each year contains reports whose period ENDED in that calendar year.",
+    "Hospitals that filed multiple reports in a year are combined; flows are annualized when coverage differs from a full year by more than 3%.",
+    "Balance-sheet items and bed counts come from the latest report in the year."
+  ]
+}

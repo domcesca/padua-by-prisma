@@ -1,0 +1,2518 @@
+{
+  "dataset": "hafd-selected",
+  "source": "HCAI Hospital Annual Financial Data Selected Data File Documentation (report periods ended on/after 6/30/2004)",
+  "sections": [
+    {
+      "id": "report",
+      "title": "Report information",
+      "summary": "Which report the numbers came from and how complete it is.",
+      "drivers": []
+    },
+    {
+      "id": "general",
+      "title": "Hospital profile",
+      "summary": "Who the hospital is: location, ownership, type, and designations.",
+      "drivers": []
+    },
+    {
+      "id": "beds",
+      "title": "Beds & capacity",
+      "summary": "How many beds the hospital is licensed for, has available, and actually staffs.",
+      "drivers": [
+        "License changes: beds added, closed, or converted to another type of care.",
+        "Seismic retrofits or construction taking units out of service (California SB 1953 requirements).",
+        "Staffed beds track staffing availability — nursing shortages reduce staffed beds without changing the license."
+      ]
+    },
+    {
+      "id": "inpatient_payer",
+      "title": "Inpatient volume by payer",
+      "summary": "Patient days and discharges split by who is responsible for the bill.",
+      "drivers": [
+        "Admission volume: service-line growth, physician recruitment or departures, a competitor opening or closing.",
+        "Length of stay: delays discharging patients to skilled nursing or home care add days without adding patients.",
+        "Payer shifts: Medicare Advantage growth moves volume from Medicare fee-for-service to Medicare managed care; Medi-Cal enrollment swings (the 2023–24 end of continuous coverage, the 2024 expansion to undocumented adults) move volume between Medi-Cal, county programs, and self-pay.",
+        "Partial reporting periods (opening, closure, fiscal-year change) — check Days in Report Period."
+      ]
+    },
+    {
+      "id": "care_type",
+      "title": "Beds & volume by type of care",
+      "summary": "Beds, patient days, and discharges for acute, psychiatric, rehab, long-term care, and other units.",
+      "drivers": [
+        "Opening, closing, or converting a unit (e.g., closing a psych unit or skilled nursing unit).",
+        "Changes in length of stay or referral patterns for that service line.",
+        "Internal transfers between types of care count as a discharge from one and an admission to the other."
+      ]
+    },
+    {
+      "id": "rates",
+      "title": "Occupancy & length of stay",
+      "summary": "How full the hospital is and how long patients stay.",
+      "drivers": [
+        "Occupancy moves with patient days (numerator) and bed counts (denominator) — a bed closure raises occupancy with no change in volume.",
+        "Length of stay rises when discharges to post-acute care are delayed or case mix gets sicker; it falls with care-management programs."
+      ]
+    },
+    {
+      "id": "nursery",
+      "title": "Nursery",
+      "summary": "Newborn nursery capacity and volume (kept separate from inpatient beds and days).",
+      "drivers": [
+        "Birth volume in the service area (California births have been declining).",
+        "Obstetric unit openings or closures — many smaller and rural hospitals have closed labor & delivery."
+      ]
+    },
+    {
+      "id": "outpatient_payer",
+      "title": "Outpatient visits by payer",
+      "summary": "Outpatient visits split by who is responsible for the bill.",
+      "drivers": [
+        "Care continuing to shift from inpatient to outpatient settings.",
+        "Opening, acquiring, or closing clinics and satellite sites that report under the hospital license.",
+        "Payer shifts (Medicare Advantage growth, Medi-Cal enrollment changes).",
+        "Changes in how visits are counted; telehealth may not be counted as a visit."
+      ]
+    },
+    {
+      "id": "outpatient_visits",
+      "title": "Emergency & outpatient visits",
+      "summary": "Visits by setting: emergency department, clinics, home health, and referred outpatient services.",
+      "drivers": [
+        "ED volume swings with respiratory-virus seasons, the 2020 COVID drop, and nearby urgent-care or ED openings/closures.",
+        "Clinic volume moves with sites being added, sold, or moved to an affiliated medical group."
+      ]
+    },
+    {
+      "id": "surgery",
+      "title": "Surgery & births",
+      "summary": "Operating rooms, surgical volume, and deliveries.",
+      "drivers": [
+        "Surgeon recruitment or departures and new or lost payer contracts.",
+        "Procedures migrating to freestanding ambulatory surgery centers.",
+        "Elective-surgery pauses (e.g., 2020 COVID restrictions, staffing shortages)."
+      ]
+    },
+    {
+      "id": "income",
+      "title": "Income statement",
+      "summary": "The top-line P&L: revenue, expenses, and the resulting margin.",
+      "drivers": [
+        "Volume and payment-rate changes (annual Medicare updates, commercial contract renegotiations).",
+        "Medi-Cal supplemental payments such as the Hospital Quality Assurance Fee program arrive in lumpy, multi-year cycles and can swing results sharply year to year.",
+        "Labor costs: the 2021–22 travel-nurse surge and California's health care worker minimum wage (SB 525, phased in from October 2024).",
+        "One-time items: COVID relief grants in 2020–21, prior-year cost report settlements."
+      ]
+    },
+    {
+      "id": "revenue_center",
+      "title": "Gross revenue by service",
+      "summary": "Charges at full list price, split into inpatient room & board, ambulatory, and ancillary services.",
+      "drivers": [
+        "Annual chargemaster (list price) increases — gross charges rise even when volume is flat.",
+        "Volume and acuity changes in each service group."
+      ],
+      "caution": "Gross charges are list prices that almost no payer pays. Use net patient revenue to judge real change or compare hospitals."
+    },
+    {
+      "id": "gross_inpatient",
+      "title": "Gross inpatient revenue by payer",
+      "summary": "Inpatient charges at full list price, by payer.",
+      "drivers": [
+        "Annual chargemaster increases.",
+        "Inpatient volume and case mix by payer.",
+        "Payer shifts such as Medicare fee-for-service to Medicare Advantage."
+      ],
+      "caution": "Gross charges are list prices, not what the hospital collects. They're most useful as a consistent way to measure payer mix."
+    },
+    {
+      "id": "gross_outpatient",
+      "title": "Gross outpatient revenue by payer",
+      "summary": "Outpatient charges at full list price, by payer.",
+      "drivers": [
+        "Annual chargemaster increases.",
+        "Outpatient volume growth as care shifts out of the hospital bed.",
+        "Payer shifts such as Medicare fee-for-service to Medicare Advantage."
+      ],
+      "caution": "Gross charges are list prices, not what the hospital collects. They're most useful as a consistent way to measure payer mix."
+    },
+    {
+      "id": "deductions",
+      "title": "Deductions from revenue",
+      "summary": "The gap between list-price charges and what the hospital expects to collect.",
+      "drivers": [
+        "Chargemaster increases widen contractual adjustments automatically (list price rises faster than payment).",
+        "Payer contract terms and payer mix.",
+        "Some Medi-Cal supplemental payments are recorded as reductions to Medi-Cal contractual adjustments, so these lines can swing with supplemental payment timing.",
+        "Charity-care and bad-debt policy changes, and patients gaining or losing coverage."
+      ]
+    },
+    {
+      "id": "capitation",
+      "title": "Capitation revenue",
+      "summary": "Fixed per-member-per-month payments from managed care plans, regardless of services used.",
+      "drivers": [
+        "Contracts moving between capitated and fee-for-service arrangements.",
+        "Changes in the number of members assigned under capitated contracts."
+      ]
+    },
+    {
+      "id": "net_revenue_payer",
+      "title": "Net patient revenue by payer",
+      "summary": "What the hospital actually expects to collect, by payer.",
+      "drivers": [
+        "Payment-rate changes: annual Medicare rate updates, commercial contract renegotiations, Medi-Cal rate actions.",
+        "Volume and payer-mix shifts.",
+        "Medi-Cal supplemental payments (Hospital Quality Assurance Fee program, disproportionate share) — timing can make one year look unusually strong or weak.",
+        "Prior-year settlements with Medicare or Medi-Cal booked in the current year."
+      ]
+    },
+    {
+      "id": "financial_other",
+      "title": "Other financial items",
+      "summary": "Transfers, contributions, investment income, and public funding outside patient care.",
+      "drivers": [
+        "Investment market performance (e.g., losses in 2022, recovery in 2023).",
+        "Fundraising and one-time gifts.",
+        "District tax revenue or county appropriations for public hospitals.",
+        "Cash moved to or from a parent organization."
+      ]
+    },
+    {
+      "id": "expense_center",
+      "title": "Expenses by department group",
+      "summary": "Operating expenses assigned to the part of the hospital that incurred them.",
+      "drivers": [
+        "Volume in that service group, staffing levels, and wage rates.",
+        "Cost-allocation or chart-of-accounts changes can move dollars between groups without changing the total."
+      ]
+    },
+    {
+      "id": "expense_natural",
+      "title": "Expenses by type",
+      "summary": "Operating expenses by what was bought: labor, supplies, services, capital.",
+      "drivers": [
+        "Wage rates, headcount, and union contracts.",
+        "Supply and drug price inflation, and changes in case mix.",
+        "Outsourcing decisions move cost between salaries and purchased services."
+      ]
+    },
+    {
+      "id": "assets",
+      "title": "Balance sheet — assets",
+      "summary": "What the hospital owns at the end of the period.",
+      "drivers": [
+        "Operating results adding to or draining cash.",
+        "Capital projects: construction in progress becomes buildings and equipment when finished.",
+        "Cash swept to or from a parent system."
+      ],
+      "caution": "These are hospital-level balance sheets. Hospitals in a health system often keep cash and debt at the parent, so hospital-level figures can understate the system's real financial position."
+    },
+    {
+      "id": "liabilities",
+      "title": "Balance sheet — liabilities & equity",
+      "summary": "What the hospital owes and the net worth left over.",
+      "drivers": [
+        "New debt or refinancing (often for seismic compliance or expansion).",
+        "Operating gains or losses flowing into equity.",
+        "Debt pushed down from, or taken up by, a parent organization."
+      ],
+      "caution": "These are hospital-level balance sheets. Hospitals in a health system often keep cash and debt at the parent, so hospital-level figures can understate the system's real financial position."
+    },
+    {
+      "id": "balance_other",
+      "title": "Balance sheet — detail",
+      "summary": "Selected balance sheet line items: cash, receivables, property, and debt detail.",
+      "drivers": [
+        "Collection performance, claim denials, and billing-system conversions change receivables.",
+        "New buildings, equipment, and depreciation change property values.",
+        "Bond issues, refinancing, and scheduled principal payments change debt."
+      ],
+      "caution": "These are hospital-level balance sheets. Hospitals in a health system often keep cash and debt at the parent, so hospital-level figures can understate the system's real financial position."
+    },
+    {
+      "id": "labor",
+      "title": "Workforce",
+      "summary": "Paid staff, hours, medical staff, and trainees.",
+      "drivers": [
+        "Volume and California's mandated nurse-to-patient ratios.",
+        "Replacing contract (registry/travel) staff with employees, or the reverse.",
+        "Outsourcing departments such as food service or environmental services."
+      ]
+    },
+    {
+      "id": "hours_class",
+      "title": "Hours worked by job category",
+      "summary": "Hours actually worked, by employee classification.",
+      "drivers": [
+        "Staffing levels and mix (e.g., more RNs vs. LVNs or aides).",
+        "Volume changes and new or closed services."
+      ]
+    },
+    {
+      "id": "contract_labor",
+      "title": "Contract labor",
+      "summary": "Hours worked by staff not on the hospital payroll (registry/travel nurses, contractors).",
+      "drivers": [
+        "Contract labor surged in 2021–22 during COVID-era nursing shortages and has generally declined since.",
+        "Vacancy rates and success of hiring and retention programs."
+      ]
+    },
+    {
+      "id": "hours_productive_center",
+      "title": "Hours worked by department group",
+      "summary": "Hours actually worked (productive hours), by department group.",
+      "drivers": [
+        "Volume and staffing in each department group.",
+        "Departments being outsourced, consolidated to a parent system, or brought in-house."
+      ]
+    },
+    {
+      "id": "hours_paid_center",
+      "title": "Paid hours by department group",
+      "summary": "Hours paid, including vacation, sick, and holiday time, by department group.",
+      "drivers": [
+        "Staffing levels plus paid-time-off policies and usage.",
+        "Departments being outsourced, consolidated to a parent system, or brought in-house."
+      ]
+    }
+  ],
+  "fields": [
+    {
+      "code": "FAC_NO",
+      "section": "report",
+      "hcaiLabel": "HCAI Facility Number",
+      "label": "HCAI facility ID",
+      "summary": "HCAI's nine-digit ID for the hospital license. Stays the same even if the hospital's name changes.",
+      "unit": "code"
+    },
+    {
+      "code": "FAC_NAME",
+      "section": "report",
+      "hcaiLabel": "Facility DBA Name",
+      "label": "Hospital name",
+      "summary": "The name the hospital does business under.",
+      "unit": "text"
+    },
+    {
+      "code": "BEG_DATE",
+      "section": "report",
+      "hcaiLabel": "Report Period Begin Date",
+      "label": "Report start date",
+      "summary": "First day covered by this report.",
+      "unit": "date"
+    },
+    {
+      "code": "END_DATE",
+      "section": "report",
+      "hcaiLabel": "Report Period End Date",
+      "label": "Report end date",
+      "summary": "Last day covered by this report — normally the hospital's fiscal year end.",
+      "unit": "date"
+    },
+    {
+      "code": "DAY_PER",
+      "section": "report",
+      "hcaiLabel": "Days in Report Period",
+      "label": "Days covered",
+      "summary": "Number of days this report covers. Usually 365; anything else means the hospital opened, closed, changed owners, or changed its fiscal year.",
+      "unit": "days",
+      "caution": "Short or long periods make volumes and dollars look unusually low or high. This app annualizes them when combining reports."
+    },
+    {
+      "code": "DATA_IND",
+      "section": "report",
+      "hcaiLabel": "Data Status Indicator",
+      "label": "Audit status",
+      "summary": "'Audited' means HCAI finished its desk review; 'In Process' means the numbers may still change.",
+      "unit": "text"
+    },
+    {
+      "code": "AUDIT_IND",
+      "section": "report",
+      "hcaiLabel": "Independent Audit Indicator",
+      "label": "Includes auditor adjustments?",
+      "summary": "Whether the report includes adjustments from the hospital's independent financial audit.",
+      "unit": "text"
+    },
+    {
+      "code": "COUNTY",
+      "section": "general",
+      "hcaiLabel": "County Name",
+      "label": "County",
+      "summary": "County where the hospital is located.",
+      "unit": "text"
+    },
+    {
+      "code": "HSA",
+      "section": "general",
+      "hcaiLabel": "Health Service Area (HSA) Number",
+      "label": "Health service area",
+      "summary": "One of California's 14 federally designated health planning regions (e.g., 11 = Los Angeles County).",
+      "unit": "code"
+    },
+    {
+      "code": "HFPA",
+      "section": "general",
+      "hcaiLabel": "Health Facility Planning Area (HFPA) Number",
+      "label": "Planning area",
+      "summary": "HCAI's smaller planning area within the health service area, used to assess local bed need.",
+      "unit": "code"
+    },
+    {
+      "code": "TYPE_CNTRL",
+      "section": "general",
+      "hcaiLabel": "Type of Control",
+      "label": "Ownership type",
+      "summary": "Who owns and governs the hospital: Non-Profit, Investor (for-profit), District, City/County, or State.",
+      "unit": "text"
+    },
+    {
+      "code": "TYPE_CARE",
+      "section": "general",
+      "hcaiLabel": "Type of Care",
+      "label": "Primary type of care",
+      "summary": "The hospital's main focus: General acute, Children's, Psychiatric, or Specialty.",
+      "unit": "text"
+    },
+    {
+      "code": "TYPE_HOSP",
+      "section": "general",
+      "hcaiLabel": "Type of Hospital",
+      "label": "Comparability group",
+      "summary": "Whether HCAI considers the hospital's data comparable to typical hospitals. Kaiser, psychiatric health facilities, state hospitals, and long-term-care-focused hospitals are flagged separately.",
+      "unit": "text",
+      "caution": "Kaiser hospitals report financials differently from other hospitals, so this app leaves non-comparable hospitals out of peer groups by default."
+    },
+    {
+      "code": "TEACH_RURL",
+      "section": "general",
+      "hcaiLabel": "Teaching or Small/Rural Hospital",
+      "label": "Teaching or rural status",
+      "summary": "Marks HCAI-designated teaching hospitals and small/rural hospitals (per Health & Safety Code §124840).",
+      "unit": "text"
+    },
+    {
+      "code": "PHONE",
+      "section": "general",
+      "hcaiLabel": "Phone Number",
+      "label": "Phone",
+      "summary": "Main business phone number.",
+      "unit": "text"
+    },
+    {
+      "code": "ADDRESS",
+      "section": "general",
+      "hcaiLabel": "Street Address",
+      "label": "Address",
+      "summary": "Street address of the hospital.",
+      "unit": "text"
+    },
+    {
+      "code": "CITY",
+      "section": "general",
+      "hcaiLabel": "City",
+      "label": "City",
+      "summary": "City where the hospital is located.",
+      "unit": "text"
+    },
+    {
+      "code": "ZIP_CODE",
+      "section": "general",
+      "hcaiLabel": "Zip Code",
+      "label": "ZIP code",
+      "summary": "Hospital ZIP code.",
+      "unit": "text"
+    },
+    {
+      "code": "CEO",
+      "section": "general",
+      "hcaiLabel": "Chief Executive Officer",
+      "label": "CEO",
+      "summary": "The hospital's chief executive or top administrator at the time of the report.",
+      "unit": "text"
+    },
+    {
+      "code": "CEO_TITLE",
+      "section": "general",
+      "hcaiLabel": "CEO Title",
+      "label": "CEO title",
+      "summary": "Title of the top executive.",
+      "unit": "text"
+    },
+    {
+      "code": "WEB_SITE",
+      "section": "general",
+      "hcaiLabel": "Hospital Web Site Address",
+      "label": "Website",
+      "summary": "Hospital website.",
+      "unit": "text"
+    },
+    {
+      "code": "OWNER",
+      "section": "general",
+      "hcaiLabel": "Hospital Owner",
+      "label": "Licensed owner",
+      "summary": "The organization licensed to operate the hospital, often the parent health system.",
+      "unit": "text"
+    },
+    {
+      "code": "RPT_PREP",
+      "section": "general",
+      "hcaiLabel": "Report Preparer",
+      "label": "Report preparer",
+      "summary": "Person who prepared the annual disclosure report.",
+      "unit": "text"
+    },
+    {
+      "code": "ORG_NAME",
+      "section": "general",
+      "hcaiLabel": "Report Preparer Organization Name",
+      "label": "Preparer's organization",
+      "summary": "Organization of the person who prepared the report.",
+      "unit": "text"
+    },
+    {
+      "code": "ER_DESIG",
+      "section": "general",
+      "hcaiLabel": "ER Trauma Center Designation",
+      "label": "Trauma center level",
+      "summary": "Trauma designation from the local EMS agency. Level I is the highest; blank means not a designated trauma center.",
+      "unit": "code"
+    },
+    {
+      "code": "MCAR_PRO_NO",
+      "section": "general",
+      "hcaiLabel": "Medicare Provider Number",
+      "label": "Medicare provider number (CCN)",
+      "summary": "Medicare certification number, useful for matching to CMS datasets.",
+      "unit": "code"
+    },
+    {
+      "code": "MCAL_PRO_NO",
+      "section": "general",
+      "hcaiLabel": "Medi-Cal Provider Number Contract",
+      "label": "Medi-Cal contract provider number",
+      "summary": "Medi-Cal provider number used for contracted services.",
+      "unit": "code"
+    },
+    {
+      "code": "REG_MCAL_NO",
+      "section": "general",
+      "hcaiLabel": "Medi-Cal Non-Contract Provider Number",
+      "label": "Medi-Cal non-contract provider number",
+      "summary": "Medi-Cal provider number used for non-contracted services.",
+      "unit": "code"
+    },
+    {
+      "code": "BED_LIC",
+      "section": "beds",
+      "hcaiLabel": "Licensed Beds (End of Period)",
+      "label": "Licensed beds",
+      "summary": "Beds on the hospital's license at period end (not counting newborn bassinets). The usual measure of hospital size.",
+      "unit": "beds"
+    },
+    {
+      "code": "BED_AVL",
+      "section": "beds",
+      "hcaiLabel": "Available Beds (Average)",
+      "label": "Available beds",
+      "summary": "Average number of beds physically in place and usable, whether or not staffed.",
+      "unit": "beds"
+    },
+    {
+      "code": "BED_STF",
+      "section": "beds",
+      "hcaiLabel": "Staffed Beds (Average)",
+      "label": "Staffed beds",
+      "summary": "Average number of beds set up and staffed for patients — the beds the hospital can actually use.",
+      "unit": "beds"
+    },
+    {
+      "code": "DAY_MCAR_TR",
+      "section": "inpatient_payer",
+      "hcaiLabel": "Patient (Census) Days Medicare-Traditional",
+      "label": "Patient days — Medicare fee-for-service",
+      "summary": "Inpatient days for traditional Medicare, billed directly to the federal program. Each patient in a bed at the midnight census counts as one day.",
+      "unit": "days",
+      "payer": "MCAR_TR"
+    },
+    {
+      "code": "DAY_MCAR_MC",
+      "section": "inpatient_payer",
+      "hcaiLabel": "Patient (Census) Days Medicare-Managed Care",
+      "label": "Patient days — Medicare Advantage",
+      "summary": "Inpatient days for medicare beneficiaries enrolled in a private Medicare Advantage (managed care) plan. Each patient in a bed at the midnight census counts as one day.",
+      "unit": "days",
+      "payer": "MCAR_MC"
+    },
+    {
+      "code": "DAY_MCAL_TR",
+      "section": "inpatient_payer",
+      "hcaiLabel": "Patient (Census) Days Medi-Cal-Traditional",
+      "label": "Patient days — Medi-Cal fee-for-service",
+      "summary": "Inpatient days for medi-Cal (California Medicaid) billed directly to the state, not through a health plan. Each patient in a bed at the midnight census counts as one day.",
+      "unit": "days",
+      "payer": "MCAL_TR"
+    },
+    {
+      "code": "DAY_MCAL_MC",
+      "section": "inpatient_payer",
+      "hcaiLabel": "Patient (Census) Days Medi-Cal-Managed Care",
+      "label": "Patient days — Medi-Cal managed care",
+      "summary": "Inpatient days for medi-Cal members enrolled in a managed care plan, which covers most Medi-Cal enrollees. Each patient in a bed at the midnight census counts as one day.",
+      "unit": "days",
+      "payer": "MCAL_MC"
+    },
+    {
+      "code": "DAY_CNTY",
+      "section": "inpatient_payer",
+      "hcaiLabel": "Patient (Census) Days County Indigent Programs-Traditional & Managed Care",
+      "label": "Patient days — County indigent programs",
+      "summary": "Inpatient days for low-income patients covered by county programs, traditional and managed care. Each patient in a bed at the midnight census counts as one day.",
+      "unit": "days",
+      "payer": "CNTY"
+    },
+    {
+      "code": "DAY_THRD_TR",
+      "section": "inpatient_payer",
+      "hcaiLabel": "Patient (Census) Days Other Third Parties-Traditional",
+      "label": "Patient days — Commercial & other, non-managed",
+      "summary": "Inpatient days for other coverage without a managed-care contract: indemnity plans, workers' comp, TRICARE, California Children's Services. Each patient in a bed at the midnight census counts as one day.",
+      "unit": "days",
+      "payer": "THRD_TR"
+    },
+    {
+      "code": "DAY_THRD_MC",
+      "section": "inpatient_payer",
+      "hcaiLabel": "Patient (Census) Days Other Third Parties-Managed Care",
+      "label": "Patient days — Commercial managed care",
+      "summary": "Inpatient days for private HMO/PPO plans not funded by Medicare, Medi-Cal, or a county. Each patient in a bed at the midnight census counts as one day.",
+      "unit": "days",
+      "payer": "THRD_MC"
+    },
+    {
+      "code": "DAY_OTH_IND",
+      "section": "inpatient_payer",
+      "hcaiLabel": "Patient (Census) Days Other Indigent",
+      "label": "Patient days — Other indigent (charity)",
+      "summary": "Inpatient days for patients receiving charity care from the hospital outside county programs. Each patient in a bed at the midnight census counts as one day.",
+      "unit": "days",
+      "payer": "OTH_IND"
+    },
+    {
+      "code": "DAY_OTH",
+      "section": "inpatient_payer",
+      "hcaiLabel": "Patient (Census) Days Other Payers",
+      "label": "Patient days — Self-pay & other",
+      "summary": "Inpatient days for everyone not in another category, mostly self-pay and uninsured patients. Each patient in a bed at the midnight census counts as one day.",
+      "unit": "days",
+      "payer": "OTH"
+    },
+    {
+      "code": "DAY_TOT",
+      "section": "inpatient_payer",
+      "hcaiLabel": "Patient (Census) Days Total",
+      "label": "Patient days — All payers",
+      "summary": "Inpatient days for total across all payer categories. Each patient in a bed at the midnight census counts as one day.",
+      "unit": "days",
+      "payer": "TOT"
+    },
+    {
+      "code": "DIS_MCAR_TR",
+      "section": "inpatient_payer",
+      "hcaiLabel": "Discharges Medicare-Traditional",
+      "label": "Discharges — Medicare fee-for-service",
+      "summary": "Inpatients released from the hospital (including deaths) for traditional Medicare, billed directly to the federal program. Roughly, the number of inpatient stays.",
+      "unit": "count",
+      "payer": "MCAR_TR"
+    },
+    {
+      "code": "DIS_MCAR_MC",
+      "section": "inpatient_payer",
+      "hcaiLabel": "Discharges Medicare-Managed Care",
+      "label": "Discharges — Medicare Advantage",
+      "summary": "Inpatients released from the hospital (including deaths) for medicare beneficiaries enrolled in a private Medicare Advantage (managed care) plan. Roughly, the number of inpatient stays.",
+      "unit": "count",
+      "payer": "MCAR_MC"
+    },
+    {
+      "code": "DIS_MCAL_TR",
+      "section": "inpatient_payer",
+      "hcaiLabel": "Discharges Medi-Cal-Traditional",
+      "label": "Discharges — Medi-Cal fee-for-service",
+      "summary": "Inpatients released from the hospital (including deaths) for medi-Cal (California Medicaid) billed directly to the state, not through a health plan. Roughly, the number of inpatient stays.",
+      "unit": "count",
+      "payer": "MCAL_TR"
+    },
+    {
+      "code": "DIS_MCAL_MC",
+      "section": "inpatient_payer",
+      "hcaiLabel": "Discharges Medi-Cal-Managed Care",
+      "label": "Discharges — Medi-Cal managed care",
+      "summary": "Inpatients released from the hospital (including deaths) for medi-Cal members enrolled in a managed care plan, which covers most Medi-Cal enrollees. Roughly, the number of inpatient stays.",
+      "unit": "count",
+      "payer": "MCAL_MC"
+    },
+    {
+      "code": "DIS_CNTY",
+      "section": "inpatient_payer",
+      "hcaiLabel": "Discharges County Indigent Programs-Traditional & Managed Care",
+      "label": "Discharges — County indigent programs",
+      "summary": "Inpatients released from the hospital (including deaths) for low-income patients covered by county programs, traditional and managed care. Roughly, the number of inpatient stays.",
+      "unit": "count",
+      "payer": "CNTY"
+    },
+    {
+      "code": "DIS_THRD_TR",
+      "section": "inpatient_payer",
+      "hcaiLabel": "Discharges Other Third Parties-Traditional",
+      "label": "Discharges — Commercial & other, non-managed",
+      "summary": "Inpatients released from the hospital (including deaths) for other coverage without a managed-care contract: indemnity plans, workers' comp, TRICARE, California Children's Services. Roughly, the number of inpatient stays.",
+      "unit": "count",
+      "payer": "THRD_TR"
+    },
+    {
+      "code": "DIS_THRD_MC",
+      "section": "inpatient_payer",
+      "hcaiLabel": "Discharges Other Third Parties-Managed Care",
+      "label": "Discharges — Commercial managed care",
+      "summary": "Inpatients released from the hospital (including deaths) for private HMO/PPO plans not funded by Medicare, Medi-Cal, or a county. Roughly, the number of inpatient stays.",
+      "unit": "count",
+      "payer": "THRD_MC"
+    },
+    {
+      "code": "DIS_OTH_IND",
+      "section": "inpatient_payer",
+      "hcaiLabel": "Discharges Other Indigent",
+      "label": "Discharges — Other indigent (charity)",
+      "summary": "Inpatients released from the hospital (including deaths) for patients receiving charity care from the hospital outside county programs. Roughly, the number of inpatient stays.",
+      "unit": "count",
+      "payer": "OTH_IND"
+    },
+    {
+      "code": "DIS_OTH",
+      "section": "inpatient_payer",
+      "hcaiLabel": "Discharges Other Payers",
+      "label": "Discharges — Self-pay & other",
+      "summary": "Inpatients released from the hospital (including deaths) for everyone not in another category, mostly self-pay and uninsured patients. Roughly, the number of inpatient stays.",
+      "unit": "count",
+      "payer": "OTH"
+    },
+    {
+      "code": "DIS_TOT",
+      "section": "inpatient_payer",
+      "hcaiLabel": "Discharges Total",
+      "label": "Discharges — All payers",
+      "summary": "Inpatients released from the hospital (including deaths) for total across all payer categories. Roughly, the number of inpatient stays.",
+      "unit": "count",
+      "payer": "TOT"
+    },
+    {
+      "code": "BED_ACUTE",
+      "section": "care_type",
+      "hcaiLabel": "Licensed Beds Acute Care",
+      "label": "Acute care licensed beds",
+      "summary": "Licensed beds in general acute units: medical/surgical, ICU, obstetrics, pediatrics.",
+      "unit": "beds"
+    },
+    {
+      "code": "BED_PSYCH",
+      "section": "care_type",
+      "hcaiLabel": "Licensed Beds Psychiatric Care",
+      "label": "Psychiatric licensed beds",
+      "summary": "Licensed beds in inpatient psychiatric units.",
+      "unit": "beds"
+    },
+    {
+      "code": "BED_CHEM",
+      "section": "care_type",
+      "hcaiLabel": "Licensed Beds Chemical Dependency Care",
+      "label": "Chemical dependency licensed beds",
+      "summary": "Licensed beds in chemical dependency (substance use) recovery units.",
+      "unit": "beds"
+    },
+    {
+      "code": "BED_REHAB",
+      "section": "care_type",
+      "hcaiLabel": "Licensed Beds Rehabilitation Care",
+      "label": "Rehabilitation licensed beds",
+      "summary": "Licensed beds in physical rehabilitation units.",
+      "unit": "beds"
+    },
+    {
+      "code": "BED_LTC",
+      "section": "care_type",
+      "hcaiLabel": "Licensed Beds Long-term Care",
+      "label": "Long-term care licensed beds",
+      "summary": "Licensed beds in skilled nursing, sub-acute, and intermediate care units.",
+      "unit": "beds"
+    },
+    {
+      "code": "BED_RESDNT",
+      "section": "care_type",
+      "hcaiLabel": "Licensed Beds Residential & Other Daily Services",
+      "label": "Residential & other licensed beds",
+      "summary": "Licensed beds in residential care and other daily services.",
+      "unit": "beds"
+    },
+    {
+      "code": "DAY_ACUTE",
+      "section": "care_type",
+      "hcaiLabel": "Patient (Census) Days Acute Care",
+      "label": "Acute care patient days",
+      "summary": "Inpatient days in general acute units: medical/surgical, ICU, obstetrics, pediatrics.",
+      "unit": "days"
+    },
+    {
+      "code": "DAY_PSYCH",
+      "section": "care_type",
+      "hcaiLabel": "Patient (Census) Days Psychiatric Care",
+      "label": "Psychiatric patient days",
+      "summary": "Inpatient days in inpatient psychiatric units.",
+      "unit": "days"
+    },
+    {
+      "code": "DAY_CHEM",
+      "section": "care_type",
+      "hcaiLabel": "Patient (Census) Days Chemical Dependency Care",
+      "label": "Chemical dependency patient days",
+      "summary": "Inpatient days in chemical dependency (substance use) recovery units.",
+      "unit": "days"
+    },
+    {
+      "code": "DAY_REHAB",
+      "section": "care_type",
+      "hcaiLabel": "Patient (Census) Days Rehabilitation Care",
+      "label": "Rehabilitation patient days",
+      "summary": "Inpatient days in physical rehabilitation units.",
+      "unit": "days"
+    },
+    {
+      "code": "DAY_LTC",
+      "section": "care_type",
+      "hcaiLabel": "Patient (Census) Days Long-term Care",
+      "label": "Long-term care patient days",
+      "summary": "Inpatient days in skilled nursing, sub-acute, and intermediate care units.",
+      "unit": "days"
+    },
+    {
+      "code": "DAY_RESDNT",
+      "section": "care_type",
+      "hcaiLabel": "Patient (Census) Days Residential & Other Daily Services",
+      "label": "Residential & other patient days",
+      "summary": "Inpatient days in residential care and other daily services.",
+      "unit": "days"
+    },
+    {
+      "code": "DIS_ACUTE",
+      "section": "care_type",
+      "hcaiLabel": "Discharges Acute Care",
+      "label": "Acute care discharges",
+      "summary": "Discharges from general acute units: medical/surgical, ICU, obstetrics, pediatrics, including transfers to another type of care in the hospital.",
+      "unit": "count"
+    },
+    {
+      "code": "DIS_PSYCH",
+      "section": "care_type",
+      "hcaiLabel": "Discharges Psychiatric Care",
+      "label": "Psychiatric discharges",
+      "summary": "Discharges from inpatient psychiatric units, including transfers to another type of care in the hospital.",
+      "unit": "count"
+    },
+    {
+      "code": "DIS_CHEM",
+      "section": "care_type",
+      "hcaiLabel": "Discharges Chemical Dependency Care",
+      "label": "Chemical dependency discharges",
+      "summary": "Discharges from chemical dependency (substance use) recovery units, including transfers to another type of care in the hospital.",
+      "unit": "count"
+    },
+    {
+      "code": "DIS_REHAB",
+      "section": "care_type",
+      "hcaiLabel": "Discharges Rehabilitation Care",
+      "label": "Rehabilitation discharges",
+      "summary": "Discharges from physical rehabilitation units, including transfers to another type of care in the hospital.",
+      "unit": "count"
+    },
+    {
+      "code": "DIS_LTC",
+      "section": "care_type",
+      "hcaiLabel": "Discharges Long-term Care",
+      "label": "Long-term care discharges",
+      "summary": "Discharges from skilled nursing, sub-acute, and intermediate care units, including transfers to another type of care in the hospital.",
+      "unit": "count"
+    },
+    {
+      "code": "DIS_RESDNT",
+      "section": "care_type",
+      "hcaiLabel": "Discharges Residential & Other Daily Services",
+      "label": "Residential & other discharges",
+      "summary": "Discharges from residential care and other daily services, including transfers to another type of care in the hospital.",
+      "unit": "count"
+    },
+    {
+      "code": "OCC_LIC",
+      "section": "rates",
+      "hcaiLabel": "Occupancy Rate (Licensed Beds)",
+      "label": "Occupancy (licensed beds)",
+      "summary": "Share of licensed bed capacity that was filled: patient days ÷ (licensed beds × days in period).",
+      "unit": "pct",
+      "caution": "Licensed beds often exceed staffed beds, so this can understate how full the hospital feels day to day."
+    },
+    {
+      "code": "OCC_AVL",
+      "section": "rates",
+      "hcaiLabel": "Occupancy Rate (Available Beds)",
+      "label": "Occupancy (available beds)",
+      "summary": "Share of available bed capacity that was filled: patient days ÷ (available beds × days in period).",
+      "unit": "pct"
+    },
+    {
+      "code": "ALOS_ALL",
+      "section": "rates",
+      "hcaiLabel": "Average Length of Stay (incl. LTC)",
+      "label": "Average length of stay (all units)",
+      "summary": "Average days per inpatient stay, including long-term care units.",
+      "unit": "days",
+      "caution": "Long-term care stays are much longer, so hospitals with skilled nursing units look higher. Use the 'excluding LTC' version to compare."
+    },
+    {
+      "code": "ALOS_EXLTC",
+      "section": "rates",
+      "hcaiLabel": "Average Length of Stay (excl. LTC)",
+      "label": "Average length of stay (excl. long-term care)",
+      "summary": "Average days per inpatient stay, excluding long-term care units. The more comparable version.",
+      "unit": "days"
+    },
+    {
+      "code": "BAS_NURSRY",
+      "section": "nursery",
+      "hcaiLabel": "Nursery Bassinets",
+      "label": "Nursery bassinets",
+      "summary": "Average number of newborn nursery bassinets.",
+      "unit": "beds"
+    },
+    {
+      "code": "DAY_NURSRY",
+      "section": "nursery",
+      "hcaiLabel": "Nursery Days",
+      "label": "Nursery days",
+      "summary": "Days newborns spent in the regular nursery (not NICU).",
+      "unit": "days"
+    },
+    {
+      "code": "DIS_NURSRY",
+      "section": "nursery",
+      "hcaiLabel": "Nursery Discharges",
+      "label": "Nursery discharges",
+      "summary": "Newborns released from the regular nursery.",
+      "unit": "count"
+    },
+    {
+      "code": "VIS_MCAR_TR",
+      "section": "outpatient_payer",
+      "hcaiLabel": "Outpatient Visits Medicare-Traditional",
+      "label": "Outpatient visits — Medicare fee-for-service",
+      "summary": "Outpatient visits (ED, clinic, referred, home health) for traditional Medicare, billed directly to the federal program.",
+      "unit": "count",
+      "payer": "MCAR_TR"
+    },
+    {
+      "code": "VIS_MCAR_MC",
+      "section": "outpatient_payer",
+      "hcaiLabel": "Outpatient Visits Medicare-Managed Care",
+      "label": "Outpatient visits — Medicare Advantage",
+      "summary": "Outpatient visits (ED, clinic, referred, home health) for medicare beneficiaries enrolled in a private Medicare Advantage (managed care) plan.",
+      "unit": "count",
+      "payer": "MCAR_MC"
+    },
+    {
+      "code": "VIS_MCAL_TR",
+      "section": "outpatient_payer",
+      "hcaiLabel": "Outpatient Visits Medi-Cal-Traditional",
+      "label": "Outpatient visits — Medi-Cal fee-for-service",
+      "summary": "Outpatient visits (ED, clinic, referred, home health) for medi-Cal (California Medicaid) billed directly to the state, not through a health plan.",
+      "unit": "count",
+      "payer": "MCAL_TR"
+    },
+    {
+      "code": "VIS_MCAL_MC",
+      "section": "outpatient_payer",
+      "hcaiLabel": "Outpatient Visits Medi-Cal-Managed Care",
+      "label": "Outpatient visits — Medi-Cal managed care",
+      "summary": "Outpatient visits (ED, clinic, referred, home health) for medi-Cal members enrolled in a managed care plan, which covers most Medi-Cal enrollees.",
+      "unit": "count",
+      "payer": "MCAL_MC"
+    },
+    {
+      "code": "VIS_CNTY",
+      "section": "outpatient_payer",
+      "hcaiLabel": "Outpatient Visits County Indigent Programs-Traditional & Managed Care",
+      "label": "Outpatient visits — County indigent programs",
+      "summary": "Outpatient visits (ED, clinic, referred, home health) for low-income patients covered by county programs, traditional and managed care.",
+      "unit": "count",
+      "payer": "CNTY"
+    },
+    {
+      "code": "VIS_THRD_TR",
+      "section": "outpatient_payer",
+      "hcaiLabel": "Outpatient Visits Other Third Parties-Traditional",
+      "label": "Outpatient visits — Commercial & other, non-managed",
+      "summary": "Outpatient visits (ED, clinic, referred, home health) for other coverage without a managed-care contract: indemnity plans, workers' comp, TRICARE, California Children's Services.",
+      "unit": "count",
+      "payer": "THRD_TR"
+    },
+    {
+      "code": "VIS_THRD_MC",
+      "section": "outpatient_payer",
+      "hcaiLabel": "Outpatient Visits Other Third Parties-Managed Care",
+      "label": "Outpatient visits — Commercial managed care",
+      "summary": "Outpatient visits (ED, clinic, referred, home health) for private HMO/PPO plans not funded by Medicare, Medi-Cal, or a county.",
+      "unit": "count",
+      "payer": "THRD_MC"
+    },
+    {
+      "code": "VIS_OTH_IND",
+      "section": "outpatient_payer",
+      "hcaiLabel": "Outpatient Visits Other Indigent",
+      "label": "Outpatient visits — Other indigent (charity)",
+      "summary": "Outpatient visits (ED, clinic, referred, home health) for patients receiving charity care from the hospital outside county programs.",
+      "unit": "count",
+      "payer": "OTH_IND"
+    },
+    {
+      "code": "VIS_OTH",
+      "section": "outpatient_payer",
+      "hcaiLabel": "Outpatient Visits Other Payers",
+      "label": "Outpatient visits — Self-pay & other",
+      "summary": "Outpatient visits (ED, clinic, referred, home health) for everyone not in another category, mostly self-pay and uninsured patients.",
+      "unit": "count",
+      "payer": "OTH"
+    },
+    {
+      "code": "VIS_TOT",
+      "section": "outpatient_payer",
+      "hcaiLabel": "Outpatient Visits Total",
+      "label": "Outpatient visits — All payers",
+      "summary": "Outpatient visits (ED, clinic, referred, home health) for total across all payer categories.",
+      "unit": "count",
+      "payer": "TOT"
+    },
+    {
+      "code": "VIS_ER",
+      "section": "outpatient_visits",
+      "hcaiLabel": "Visits Emergency Room",
+      "label": "Emergency department visits",
+      "summary": "Every patient visit to the emergency department, whether or not the patient was then admitted.",
+      "unit": "count"
+    },
+    {
+      "code": "VIS_CLIN",
+      "section": "outpatient_visits",
+      "hcaiLabel": "Visits Clinic",
+      "label": "Clinic visits",
+      "summary": "Scheduled visits to the hospital's on-site or satellite clinics.",
+      "unit": "count"
+    },
+    {
+      "code": "VIS_HOME",
+      "section": "outpatient_visits",
+      "hcaiLabel": "Visits Home Health Care",
+      "label": "Home health visits",
+      "summary": "Visits by the hospital's home health staff to patients' homes.",
+      "unit": "count"
+    },
+    {
+      "code": "VIS_REF_OP",
+      "section": "outpatient_visits",
+      "hcaiLabel": "Visits Referred Outpatient",
+      "label": "Referred outpatient visits",
+      "summary": "Visits by patients sent by an outside physician for tests or therapy (e.g., imaging, lab, physical therapy).",
+      "unit": "count"
+    },
+    {
+      "code": "DAYS_PIPS",
+      "section": "outpatient_visits",
+      "hcaiLabel": "Purchased Inpatient Days",
+      "label": "Purchased inpatient days",
+      "summary": "Inpatient days the hospital bought from another hospital for its managed care members.",
+      "unit": "days"
+    },
+    {
+      "code": "OP_ROOM",
+      "section": "surgery",
+      "hcaiLabel": "Operating Rooms",
+      "label": "Operating rooms",
+      "summary": "Operating rooms at the hospital and its satellite surgery centers.",
+      "unit": "count"
+    },
+    {
+      "code": "OP_MIN_IP",
+      "section": "surgery",
+      "hcaiLabel": "Operating Minutes Inpatient",
+      "label": "Inpatient operating minutes",
+      "summary": "Total minutes of inpatient surgery, measured from start to end of anesthesia.",
+      "unit": "minutes"
+    },
+    {
+      "code": "OP_MIN_OP",
+      "section": "surgery",
+      "hcaiLabel": "Operating Minutes Outpatient",
+      "label": "Outpatient operating minutes",
+      "summary": "Total minutes of outpatient surgery, measured from start to end of anesthesia.",
+      "unit": "minutes"
+    },
+    {
+      "code": "SURG_IP",
+      "section": "surgery",
+      "hcaiLabel": "Surgeries Inpatient",
+      "label": "Inpatient surgeries",
+      "summary": "Inpatient surgical cases. One patient visit counts as one surgery regardless of procedures performed.",
+      "unit": "count"
+    },
+    {
+      "code": "SURG_OP",
+      "section": "surgery",
+      "hcaiLabel": "Surgeries Outpatient",
+      "label": "Outpatient surgeries",
+      "summary": "Same-day outpatient surgical cases.",
+      "unit": "count"
+    },
+    {
+      "code": "NAT_BIRTHS",
+      "section": "surgery",
+      "hcaiLabel": "Natural Births",
+      "label": "Vaginal births",
+      "summary": "Babies delivered without surgery.",
+      "unit": "count"
+    },
+    {
+      "code": "C_SECTIONS",
+      "section": "surgery",
+      "hcaiLabel": "Cesarean Sections",
+      "label": "C-sections",
+      "summary": "Babies delivered by cesarean section.",
+      "unit": "count"
+    },
+    {
+      "code": "GR_PT_REV",
+      "section": "income",
+      "hcaiLabel": "Gross Patient Revenue Total",
+      "label": "Gross patient revenue (charges)",
+      "summary": "All patient charges at full list price, before any discounts.",
+      "unit": "usd",
+      "caution": "List prices, not collections. Rises every year with price increases even when volume is flat."
+    },
+    {
+      "code": "DED_FR_REV",
+      "section": "income",
+      "hcaiLabel": "Deductions from Revenue Total",
+      "label": "Total deductions from revenue",
+      "summary": "All reductions from list price: contractual discounts, charity care, bad debt, and other adjustments.",
+      "unit": "usd"
+    },
+    {
+      "code": "TOT_CAP_REV",
+      "section": "income",
+      "hcaiLabel": "Total Capitation Premium Revenue",
+      "label": "Capitation revenue",
+      "summary": "Fixed per-member-per-month payments from managed care plans.",
+      "unit": "usd"
+    },
+    {
+      "code": "NET_PT_REV",
+      "section": "income",
+      "hcaiLabel": "Net Patient Revenue Total",
+      "label": "Net patient revenue",
+      "summary": "What the hospital expects to actually collect for patient care: charges + capitation − deductions. The best single measure of patient revenue.",
+      "unit": "usd"
+    },
+    {
+      "code": "OTH_OP_REV",
+      "section": "income",
+      "hcaiLabel": "Other Operating Revenue",
+      "label": "Other operating revenue",
+      "summary": "Revenue from non-patient activities tied to operations, such as cafeteria sales, parking, and rebates.",
+      "unit": "usd",
+      "drivers": [
+        "Grant income (some hospitals booked COVID relief funds here in 2020–21).",
+        "New or discontinued retail pharmacy, cafeteria, or parking operations."
+      ]
+    },
+    {
+      "code": "TOT_OP_EXP",
+      "section": "income",
+      "hcaiLabel": "Total Operating Expenses",
+      "label": "Total operating expenses",
+      "summary": "The full cost of running the hospital: labor, supplies, services, depreciation, and interest. Excludes bad debt.",
+      "unit": "usd"
+    },
+    {
+      "code": "NET_FRM_OP",
+      "section": "income",
+      "hcaiLabel": "Net from Operations",
+      "label": "Operating income",
+      "summary": "Operating revenue minus operating expenses — profit or loss from running the hospital, before investment income and other non-operating items.",
+      "unit": "usd"
+    },
+    {
+      "code": "NONOP_REV",
+      "section": "income",
+      "hcaiLabel": "Non-Operating Revenue",
+      "label": "Non-operating revenue",
+      "summary": "Income not tied to patient care: investment returns, donations, district taxes, county appropriations.",
+      "unit": "usd",
+      "drivers": [
+        "Investment market swings (e.g., 2022 losses, 2023 recovery).",
+        "One-time gifts or asset sales."
+      ]
+    },
+    {
+      "code": "NONOP_EXP",
+      "section": "income",
+      "hcaiLabel": "Non-Operating Expenses",
+      "label": "Non-operating expenses",
+      "summary": "Costs not tied to patient care, such as running a medical office building or gift shop.",
+      "unit": "usd"
+    },
+    {
+      "code": "INC_TAX",
+      "section": "income",
+      "hcaiLabel": "Provision for Income Taxes",
+      "label": "Income taxes",
+      "summary": "Income taxes. Only for investor-owned hospitals.",
+      "unit": "usd"
+    },
+    {
+      "code": "EXT_ITEM",
+      "section": "income",
+      "hcaiLabel": "Extraordinary Items",
+      "label": "Extraordinary items",
+      "summary": "Rare, one-time gains or losses (e.g., a fire). Positive = loss, negative = gain.",
+      "unit": "usd"
+    },
+    {
+      "code": "NET_INCOME",
+      "section": "income",
+      "hcaiLabel": "Net Income",
+      "label": "Net income (bottom line)",
+      "summary": "Operating income plus non-operating items, minus taxes and extraordinary items.",
+      "unit": "usd",
+      "caution": "Can be driven by investment returns rather than operations. Look at operating income for the underlying business."
+    },
+    {
+      "code": "GR_REV_DLY",
+      "section": "revenue_center",
+      "hcaiLabel": "Gross Patient Revenue Daily Hospital Services",
+      "label": "Room & board charges",
+      "summary": "Charges for inpatient nursing units and room & board at list price.",
+      "unit": "usd"
+    },
+    {
+      "code": "GR_REV_AMB",
+      "section": "revenue_center",
+      "hcaiLabel": "Gross Patient Revenue Ambulatory Services",
+      "label": "Ambulatory charges",
+      "summary": "Charges for the ED, clinics, observation, and home health at list price.",
+      "unit": "usd"
+    },
+    {
+      "code": "GR_REV_ANC",
+      "section": "revenue_center",
+      "hcaiLabel": "Gross Patient Revenue Ancillary Services",
+      "label": "Ancillary charges",
+      "summary": "Charges for lab, imaging, pharmacy, surgery, therapy, and other ancillary services at list price.",
+      "unit": "usd"
+    },
+    {
+      "code": "GR_IP_MCAR_TR",
+      "section": "gross_inpatient",
+      "hcaiLabel": "Gross Inpatient Revenue Medicare-Traditional",
+      "label": "Inpatient charges — Medicare fee-for-service",
+      "summary": "Inpatient charges at full list price for traditional Medicare, billed directly to the federal program, before discounts.",
+      "unit": "usd",
+      "payer": "MCAR_TR"
+    },
+    {
+      "code": "GR_IP_MCAR_MC",
+      "section": "gross_inpatient",
+      "hcaiLabel": "Gross Inpatient Revenue Medicare-Managed Care",
+      "label": "Inpatient charges — Medicare Advantage",
+      "summary": "Inpatient charges at full list price for medicare beneficiaries enrolled in a private Medicare Advantage (managed care) plan, before discounts.",
+      "unit": "usd",
+      "payer": "MCAR_MC"
+    },
+    {
+      "code": "GR_IP_MCAL_TR",
+      "section": "gross_inpatient",
+      "hcaiLabel": "Gross Inpatient Revenue Medi-Cal-Traditional",
+      "label": "Inpatient charges — Medi-Cal fee-for-service",
+      "summary": "Inpatient charges at full list price for medi-Cal (California Medicaid) billed directly to the state, not through a health plan, before discounts.",
+      "unit": "usd",
+      "payer": "MCAL_TR"
+    },
+    {
+      "code": "GR_IP_MCAL_MC",
+      "section": "gross_inpatient",
+      "hcaiLabel": "Gross Inpatient Revenue Medi-Cal-Managed Care",
+      "label": "Inpatient charges — Medi-Cal managed care",
+      "summary": "Inpatient charges at full list price for medi-Cal members enrolled in a managed care plan, which covers most Medi-Cal enrollees, before discounts.",
+      "unit": "usd",
+      "payer": "MCAL_MC"
+    },
+    {
+      "code": "GR_IP_CNTY",
+      "section": "gross_inpatient",
+      "hcaiLabel": "Gross Inpatient Revenue County Indigent Programs-Traditional & Managed Care",
+      "label": "Inpatient charges — County indigent programs",
+      "summary": "Inpatient charges at full list price for low-income patients covered by county programs, traditional and managed care, before discounts.",
+      "unit": "usd",
+      "payer": "CNTY"
+    },
+    {
+      "code": "GR_IP_THRD_TR",
+      "section": "gross_inpatient",
+      "hcaiLabel": "Gross Inpatient Revenue Other Third Parties-Traditional",
+      "label": "Inpatient charges — Commercial & other, non-managed",
+      "summary": "Inpatient charges at full list price for other coverage without a managed-care contract: indemnity plans, workers' comp, TRICARE, California Children's Services, before discounts.",
+      "unit": "usd",
+      "payer": "THRD_TR"
+    },
+    {
+      "code": "GR_IP_THRD_MC",
+      "section": "gross_inpatient",
+      "hcaiLabel": "Gross Inpatient Revenue Other Third Parties-Managed Care",
+      "label": "Inpatient charges — Commercial managed care",
+      "summary": "Inpatient charges at full list price for private HMO/PPO plans not funded by Medicare, Medi-Cal, or a county, before discounts.",
+      "unit": "usd",
+      "payer": "THRD_MC"
+    },
+    {
+      "code": "GR_IP_OTH_IND",
+      "section": "gross_inpatient",
+      "hcaiLabel": "Gross Inpatient Revenue Other Indigent",
+      "label": "Inpatient charges — Other indigent (charity)",
+      "summary": "Inpatient charges at full list price for patients receiving charity care from the hospital outside county programs, before discounts.",
+      "unit": "usd",
+      "payer": "OTH_IND"
+    },
+    {
+      "code": "GR_IP_OTH",
+      "section": "gross_inpatient",
+      "hcaiLabel": "Gross Inpatient Revenue Other Payers",
+      "label": "Inpatient charges — Self-pay & other",
+      "summary": "Inpatient charges at full list price for everyone not in another category, mostly self-pay and uninsured patients, before discounts.",
+      "unit": "usd",
+      "payer": "OTH"
+    },
+    {
+      "code": "GR_IP_TOT",
+      "section": "gross_inpatient",
+      "hcaiLabel": "Gross Inpatient Revenue Total",
+      "label": "Inpatient charges — All payers",
+      "summary": "Inpatient charges at full list price for total across all payer categories, before discounts.",
+      "unit": "usd",
+      "payer": "TOT"
+    },
+    {
+      "code": "GR_OP_MCAR_TR",
+      "section": "gross_outpatient",
+      "hcaiLabel": "Gross Outpatient Revenue Medicare-Traditional",
+      "label": "Outpatient charges — Medicare fee-for-service",
+      "summary": "Outpatient charges at full list price for traditional Medicare, billed directly to the federal program, before discounts.",
+      "unit": "usd",
+      "payer": "MCAR_TR"
+    },
+    {
+      "code": "GR_OP_MCAR_MC",
+      "section": "gross_outpatient",
+      "hcaiLabel": "Gross Outpatient Revenue Medicare-Managed Care",
+      "label": "Outpatient charges — Medicare Advantage",
+      "summary": "Outpatient charges at full list price for medicare beneficiaries enrolled in a private Medicare Advantage (managed care) plan, before discounts.",
+      "unit": "usd",
+      "payer": "MCAR_MC"
+    },
+    {
+      "code": "GR_OP_MCAL_TR",
+      "section": "gross_outpatient",
+      "hcaiLabel": "Gross Outpatient Revenue Medi-Cal-Traditional",
+      "label": "Outpatient charges — Medi-Cal fee-for-service",
+      "summary": "Outpatient charges at full list price for medi-Cal (California Medicaid) billed directly to the state, not through a health plan, before discounts.",
+      "unit": "usd",
+      "payer": "MCAL_TR"
+    },
+    {
+      "code": "GR_OP_MCAL_MC",
+      "section": "gross_outpatient",
+      "hcaiLabel": "Gross Outpatient Revenue Medi-Cal-Managed Care",
+      "label": "Outpatient charges — Medi-Cal managed care",
+      "summary": "Outpatient charges at full list price for medi-Cal members enrolled in a managed care plan, which covers most Medi-Cal enrollees, before discounts.",
+      "unit": "usd",
+      "payer": "MCAL_MC"
+    },
+    {
+      "code": "GR_OP_CNTY",
+      "section": "gross_outpatient",
+      "hcaiLabel": "Gross Outpatient Revenue County Indigent Programs-Traditional & Managed Care",
+      "label": "Outpatient charges — County indigent programs",
+      "summary": "Outpatient charges at full list price for low-income patients covered by county programs, traditional and managed care, before discounts.",
+      "unit": "usd",
+      "payer": "CNTY"
+    },
+    {
+      "code": "GR_OP_THRD_TR",
+      "section": "gross_outpatient",
+      "hcaiLabel": "Gross Outpatient Revenue Other Third Parties-Traditional",
+      "label": "Outpatient charges — Commercial & other, non-managed",
+      "summary": "Outpatient charges at full list price for other coverage without a managed-care contract: indemnity plans, workers' comp, TRICARE, California Children's Services, before discounts.",
+      "unit": "usd",
+      "payer": "THRD_TR"
+    },
+    {
+      "code": "GR_OP_THRD_MC",
+      "section": "gross_outpatient",
+      "hcaiLabel": "Gross Outpatient Revenue Other Third Parties-Managed Care",
+      "label": "Outpatient charges — Commercial managed care",
+      "summary": "Outpatient charges at full list price for private HMO/PPO plans not funded by Medicare, Medi-Cal, or a county, before discounts.",
+      "unit": "usd",
+      "payer": "THRD_MC"
+    },
+    {
+      "code": "GR_OP_OTH_IND",
+      "section": "gross_outpatient",
+      "hcaiLabel": "Gross Outpatient Revenue Other Indigent",
+      "label": "Outpatient charges — Other indigent (charity)",
+      "summary": "Outpatient charges at full list price for patients receiving charity care from the hospital outside county programs, before discounts.",
+      "unit": "usd",
+      "payer": "OTH_IND"
+    },
+    {
+      "code": "GR_OP_OTH",
+      "section": "gross_outpatient",
+      "hcaiLabel": "Gross Outpatient Revenue Other Payers",
+      "label": "Outpatient charges — Self-pay & other",
+      "summary": "Outpatient charges at full list price for everyone not in another category, mostly self-pay and uninsured patients, before discounts.",
+      "unit": "usd",
+      "payer": "OTH"
+    },
+    {
+      "code": "GR_OP_TOT",
+      "section": "gross_outpatient",
+      "hcaiLabel": "Gross Outpatient Revenue Total",
+      "label": "Outpatient charges — All payers",
+      "summary": "Outpatient charges at full list price for total across all payer categories, before discounts.",
+      "unit": "usd",
+      "payer": "TOT"
+    },
+    {
+      "code": "C_ADJ_MCAR_TR",
+      "section": "deductions",
+      "hcaiLabel": "Contractual Adjustments Medicare-Traditional",
+      "label": "Contractual discount — Medicare fee-for-service",
+      "summary": "The discount from list price that the hospital gives under its contract terms for traditional Medicare, billed directly to the federal program.",
+      "unit": "usd",
+      "payer": "MCAR_TR"
+    },
+    {
+      "code": "C_ADJ_MCAR_MC",
+      "section": "deductions",
+      "hcaiLabel": "Contractual Adjustments Medicare-Managed Care",
+      "label": "Contractual discount — Medicare Advantage",
+      "summary": "The discount from list price that the hospital gives under its contract terms for medicare beneficiaries enrolled in a private Medicare Advantage (managed care) plan.",
+      "unit": "usd",
+      "payer": "MCAR_MC"
+    },
+    {
+      "code": "C_ADJ_MCAL_TR",
+      "section": "deductions",
+      "hcaiLabel": "Contractual Adjustments Medi-Cal-Traditional",
+      "label": "Contractual discount — Medi-Cal fee-for-service",
+      "summary": "The discount from list price that the hospital gives under its contract terms for medi-Cal (California Medicaid) billed directly to the state, not through a health plan.",
+      "unit": "usd",
+      "payer": "MCAL_TR"
+    },
+    {
+      "code": "C_ADJ_MCAL_MC",
+      "section": "deductions",
+      "hcaiLabel": "Contractual Adjustments Medi-Cal-Managed Care",
+      "label": "Contractual discount — Medi-Cal managed care",
+      "summary": "The discount from list price that the hospital gives under its contract terms for medi-Cal members enrolled in a managed care plan, which covers most Medi-Cal enrollees.",
+      "unit": "usd",
+      "payer": "MCAL_MC"
+    },
+    {
+      "code": "DISP_855",
+      "section": "deductions",
+      "hcaiLabel": "Disproportionate Share Payments for Medi-Cal (SB 855)",
+      "label": "Medi-Cal DSH payments (SB 855)",
+      "summary": "Extra Medi-Cal payments to hospitals serving many low-income patients. Recorded as a negative deduction (it adds revenue).",
+      "unit": "usd",
+      "drivers": [
+        "Eligibility and payment amounts are recalculated each program year.",
+        "Timing of state payments can shift amounts between years."
+      ]
+    },
+    {
+      "code": "C_ADJ_CNTY",
+      "section": "deductions",
+      "hcaiLabel": "Contractual Adjustments County Indigent Programs-Traditional & Managed Care",
+      "label": "Contractual discount — County indigent programs",
+      "summary": "The discount from list price that the hospital gives under its contract terms for low-income patients covered by county programs, traditional and managed care.",
+      "unit": "usd",
+      "payer": "CNTY"
+    },
+    {
+      "code": "C_ADJ_THRD_TR",
+      "section": "deductions",
+      "hcaiLabel": "Contractual Adjustments Other Third Parties-Traditional",
+      "label": "Contractual discount — Commercial & other, non-managed",
+      "summary": "The discount from list price that the hospital gives under its contract terms for other coverage without a managed-care contract: indemnity plans, workers' comp, TRICARE, California Children's Services.",
+      "unit": "usd",
+      "payer": "THRD_TR"
+    },
+    {
+      "code": "C_ADJ_THRD_MC",
+      "section": "deductions",
+      "hcaiLabel": "Contractual Adjustments Other Third Parties-Managed Care",
+      "label": "Contractual discount — Commercial managed care",
+      "summary": "The discount from list price that the hospital gives under its contract terms for private HMO/PPO plans not funded by Medicare, Medi-Cal, or a county.",
+      "unit": "usd",
+      "payer": "THRD_MC"
+    },
+    {
+      "code": "BAD_DEBT",
+      "section": "deductions",
+      "hcaiLabel": "Provision for Bad Debts",
+      "label": "Bad debt",
+      "summary": "Bills the hospital expects patients who could pay won't pay.",
+      "unit": "usd",
+      "drivers": [
+        "Patients losing coverage (e.g., Medi-Cal redeterminations in 2023–24) or rising deductibles.",
+        "Changes in how accounts are classified between bad debt and charity care."
+      ]
+    },
+    {
+      "code": "CHAR_HB",
+      "section": "deductions",
+      "hcaiLabel": "Charity-Hill-Burton",
+      "label": "Charity care (Hill-Burton)",
+      "summary": "Free or reduced-price care provided to meet federal Hill-Burton obligations. Rare today.",
+      "unit": "usd"
+    },
+    {
+      "code": "CHAR_OTH",
+      "section": "deductions",
+      "hcaiLabel": "Charity-Other",
+      "label": "Charity care",
+      "summary": "Care provided free or at a discount to patients unable to pay, valued at list price.",
+      "unit": "usd",
+      "drivers": [
+        "Financial assistance policy changes (California's AB 1020 expanded eligibility starting 2024).",
+        "Changes in the uninsured population and Medi-Cal enrollment."
+      ]
+    },
+    {
+      "code": "SUB_INDGNT",
+      "section": "deductions",
+      "hcaiLabel": "Restricted Donations and Subsidies for Indigent Care",
+      "label": "Donations & subsidies for indigent care",
+      "summary": "Grants or subsidies designated for indigent patients' care. Recorded as a negative deduction.",
+      "unit": "usd"
+    },
+    {
+      "code": "DED_OTH",
+      "section": "deductions",
+      "hcaiLabel": "All Other Deductions from Revenue",
+      "label": "Other deductions",
+      "summary": "Other reductions from charges: policy discounts, administrative adjustments, and teaching allowances at UC hospitals.",
+      "unit": "usd"
+    },
+    {
+      "code": "CAP_REV_MCAR",
+      "section": "capitation",
+      "hcaiLabel": "Capitation Premium Revenue Medicare-Managed Care",
+      "label": "Capitation revenue — Medicare Advantage",
+      "summary": "Fixed per-member-per-month payments from Medicare Advantage plans.",
+      "unit": "usd"
+    },
+    {
+      "code": "CAP_REV_MCAL",
+      "section": "capitation",
+      "hcaiLabel": "Capitation Premium Revenue Medi-Cal-Managed Care",
+      "label": "Capitation revenue — Medi-Cal managed care",
+      "summary": "Fixed per-member-per-month payments from Medi-Cal managed care plans.",
+      "unit": "usd"
+    },
+    {
+      "code": "CAP_REV_CNTY",
+      "section": "capitation",
+      "hcaiLabel": "Capitation Premium Revenue County Indigent Programs-Managed Care",
+      "label": "Capitation revenue — county indigent managed care",
+      "summary": "Fixed per-member-per-month payments from county indigent managed care plans.",
+      "unit": "usd"
+    },
+    {
+      "code": "CAP_REV_THRD",
+      "section": "capitation",
+      "hcaiLabel": "Capitation Premium Revenue Other Third Parties-Managed Care",
+      "label": "Capitation revenue — commercial managed care",
+      "summary": "Fixed per-member-per-month payments from commercial managed care plans.",
+      "unit": "usd"
+    },
+    {
+      "code": "NETRV_MCAR_TR",
+      "section": "net_revenue_payer",
+      "hcaiLabel": "Net Patient Revenue Medicare-Traditional",
+      "label": "Net patient revenue — Medicare fee-for-service",
+      "summary": "What the hospital expects to collect for traditional Medicare, billed directly to the federal program, after discounts.",
+      "unit": "usd",
+      "payer": "MCAR_TR"
+    },
+    {
+      "code": "NETRV_MCAR_MC",
+      "section": "net_revenue_payer",
+      "hcaiLabel": "Net Patient Revenue Medicare-Managed Care",
+      "label": "Net patient revenue — Medicare Advantage",
+      "summary": "What the hospital expects to collect for medicare beneficiaries enrolled in a private Medicare Advantage (managed care) plan, after discounts.",
+      "unit": "usd",
+      "payer": "MCAR_MC"
+    },
+    {
+      "code": "NETRV_MCAL_TR",
+      "section": "net_revenue_payer",
+      "hcaiLabel": "Net Patient Revenue Medi-Cal-Traditional",
+      "label": "Net patient revenue — Medi-Cal fee-for-service",
+      "summary": "What the hospital expects to collect for medi-Cal (California Medicaid) billed directly to the state, not through a health plan, after discounts.",
+      "unit": "usd",
+      "payer": "MCAL_TR"
+    },
+    {
+      "code": "NETRV_MCAL_MC",
+      "section": "net_revenue_payer",
+      "hcaiLabel": "Net Patient Revenue Medi-Cal-Managed Care",
+      "label": "Net patient revenue — Medi-Cal managed care",
+      "summary": "What the hospital expects to collect for medi-Cal members enrolled in a managed care plan, which covers most Medi-Cal enrollees, after discounts.",
+      "unit": "usd",
+      "payer": "MCAL_MC"
+    },
+    {
+      "code": "NETRV_CNTY",
+      "section": "net_revenue_payer",
+      "hcaiLabel": "Net Patient Revenue County Indigent Programs-Traditional & Managed Care",
+      "label": "Net patient revenue — County indigent programs",
+      "summary": "What the hospital expects to collect for low-income patients covered by county programs, traditional and managed care, after discounts.",
+      "unit": "usd",
+      "payer": "CNTY"
+    },
+    {
+      "code": "NETRV_THRD_TR",
+      "section": "net_revenue_payer",
+      "hcaiLabel": "Net Patient Revenue Other Third Parties-Traditional",
+      "label": "Net patient revenue — Commercial & other, non-managed",
+      "summary": "What the hospital expects to collect for other coverage without a managed-care contract: indemnity plans, workers' comp, TRICARE, California Children's Services, after discounts.",
+      "unit": "usd",
+      "payer": "THRD_TR"
+    },
+    {
+      "code": "NETRV_THRD_MC",
+      "section": "net_revenue_payer",
+      "hcaiLabel": "Net Patient Revenue Other Third Parties-Managed Care",
+      "label": "Net patient revenue — Commercial managed care",
+      "summary": "What the hospital expects to collect for private HMO/PPO plans not funded by Medicare, Medi-Cal, or a county, after discounts.",
+      "unit": "usd",
+      "payer": "THRD_MC"
+    },
+    {
+      "code": "NETRV_OTH_IND",
+      "section": "net_revenue_payer",
+      "hcaiLabel": "Net Patient Revenue Other Indigent",
+      "label": "Net patient revenue — Other indigent (charity)",
+      "summary": "What the hospital expects to collect for patients receiving charity care from the hospital outside county programs, after discounts.",
+      "unit": "usd",
+      "payer": "OTH_IND"
+    },
+    {
+      "code": "NETRV_OTH",
+      "section": "net_revenue_payer",
+      "hcaiLabel": "Net Patient Revenue Other Payers",
+      "label": "Net patient revenue — Self-pay & other",
+      "summary": "What the hospital expects to collect for everyone not in another category, mostly self-pay and uninsured patients, after discounts.",
+      "unit": "usd",
+      "payer": "OTH"
+    },
+    {
+      "code": "DISP_TRNFR",
+      "section": "financial_other",
+      "hcaiLabel": "Dispro Share Funds Transferred to Related Public Entity",
+      "label": "DSH funds transferred out",
+      "summary": "Medi-Cal disproportionate share funds a public hospital passed back to a related public entity.",
+      "unit": "usd"
+    },
+    {
+      "code": "INTER_TFR",
+      "section": "financial_other",
+      "hcaiLabel": "Intercompany Transfers",
+      "label": "Transfers with parent/affiliates",
+      "summary": "Cash sent to (negative) or received from (positive) a related organization. Affects equity directly.",
+      "unit": "usd"
+    },
+    {
+      "code": "CONTRIBTNS",
+      "section": "financial_other",
+      "hcaiLabel": "Unrestricted Contributions",
+      "label": "Unrestricted donations",
+      "summary": "Gifts and grants with no donor restrictions.",
+      "unit": "usd"
+    },
+    {
+      "code": "INC_INVEST",
+      "section": "financial_other",
+      "hcaiLabel": "Incomes, Gains & Losses from Unrestricted Investments",
+      "label": "Investment income",
+      "summary": "Interest, dividends, and gains or losses on unrestricted investments.",
+      "unit": "usd"
+    },
+    {
+      "code": "DIST_REV",
+      "section": "financial_other",
+      "hcaiLabel": "District Assessment Revenue",
+      "label": "District tax revenue",
+      "summary": "Property-tax and assessment revenue received by healthcare district hospitals.",
+      "unit": "usd"
+    },
+    {
+      "code": "CNTY_APPRO",
+      "section": "financial_other",
+      "hcaiLabel": "County Appropriations",
+      "label": "County appropriations",
+      "summary": "General-fund support a county provides to its county hospital.",
+      "unit": "usd"
+    },
+    {
+      "code": "EXP_DLY",
+      "section": "expense_center",
+      "hcaiLabel": "Expenses Daily Hospital Services",
+      "label": "Inpatient unit expenses",
+      "summary": "Direct costs of inpatient nursing units.",
+      "unit": "usd"
+    },
+    {
+      "code": "EXP_AMB",
+      "section": "expense_center",
+      "hcaiLabel": "Expenses Ambulatory Services",
+      "label": "Ambulatory expenses",
+      "summary": "Direct costs of the ED, clinics, observation, and home health.",
+      "unit": "usd"
+    },
+    {
+      "code": "EXP_ANC",
+      "section": "expense_center",
+      "hcaiLabel": "Expenses Ancillary Services",
+      "label": "Ancillary expenses",
+      "summary": "Direct costs of lab, imaging, pharmacy, surgery, therapy, and other ancillary departments.",
+      "unit": "usd"
+    },
+    {
+      "code": "EXP_PIP",
+      "section": "expense_center",
+      "hcaiLabel": "Expenses Purchased Inpatient Services",
+      "label": "Purchased inpatient care",
+      "summary": "Cost of inpatient care bought from other hospitals for managed care members.",
+      "unit": "usd"
+    },
+    {
+      "code": "EXP_POP",
+      "section": "expense_center",
+      "hcaiLabel": "Expenses Purchased Outpatient Services",
+      "label": "Purchased outpatient care",
+      "summary": "Cost of outpatient care bought from other hospitals, usually under capitation contracts.",
+      "unit": "usd"
+    },
+    {
+      "code": "EXP_RES",
+      "section": "expense_center",
+      "hcaiLabel": "Research",
+      "label": "Research expenses",
+      "summary": "Direct costs of formal research programs.",
+      "unit": "usd"
+    },
+    {
+      "code": "EXP_ED",
+      "section": "expense_center",
+      "hcaiLabel": "Education",
+      "label": "Education expenses",
+      "summary": "Direct costs of formal education programs such as residency and nursing school (not in-service training).",
+      "unit": "usd"
+    },
+    {
+      "code": "EXP_GEN",
+      "section": "expense_center",
+      "hcaiLabel": "General Services",
+      "label": "General services expenses",
+      "summary": "Dietary, laundry, housekeeping, and plant operations.",
+      "unit": "usd"
+    },
+    {
+      "code": "EXP_FISC",
+      "section": "expense_center",
+      "hcaiLabel": "Fiscal Services",
+      "label": "Fiscal services expenses",
+      "summary": "Accounting, patient accounting (billing), and admitting.",
+      "unit": "usd"
+    },
+    {
+      "code": "EXP_ADM",
+      "section": "expense_center",
+      "hcaiLabel": "Administrative Services",
+      "label": "Administrative expenses",
+      "summary": "Administration, HR, medical records, and similar overhead departments.",
+      "unit": "usd",
+      "drivers": [
+        "Management fees charged by a parent health system often land here or in purchased services."
+      ]
+    },
+    {
+      "code": "EXP_UNASSG",
+      "section": "expense_center",
+      "hcaiLabel": "Unassigned Costs",
+      "label": "Unassigned costs",
+      "summary": "Costs not assigned to a department: building depreciation, building leases, and some interest.",
+      "unit": "usd"
+    },
+    {
+      "code": "EXP_SAL",
+      "section": "expense_natural",
+      "hcaiLabel": "Salaries and Wages",
+      "label": "Salaries & wages",
+      "summary": "Pay for employees' time worked, including overtime and on-call premiums. Usually the largest expense.",
+      "unit": "usd",
+      "drivers": [
+        "Wage increases from union contracts and market pressure.",
+        "California's health care worker minimum wage (SB 525), phased in starting October 2024.",
+        "Headcount changes and shifts between employed and contract staff."
+      ]
+    },
+    {
+      "code": "EXP_BEN",
+      "section": "expense_natural",
+      "hcaiLabel": "Employee Benefits",
+      "label": "Employee benefits",
+      "summary": "Paid time off, health insurance, retirement, workers' comp, and payroll taxes.",
+      "unit": "usd",
+      "drivers": [
+        "Health plan cost trends.",
+        "Pension actuarial changes, which can be large and one-time."
+      ]
+    },
+    {
+      "code": "EXP_PHYS",
+      "section": "expense_natural",
+      "hcaiLabel": "Physician Professional Fees",
+      "label": "Physician fees",
+      "summary": "Payments to physicians for professional services (e.g., ED coverage, hospitalists, call pay).",
+      "unit": "usd",
+      "drivers": [
+        "Physician coverage and stipend contracts, which have risen with specialist shortages."
+      ]
+    },
+    {
+      "code": "EXP_OTHPRO",
+      "section": "expense_natural",
+      "hcaiLabel": "Other Professional Fees",
+      "label": "Other professional fees",
+      "summary": "Fees for non-physician professionals: consultants, auditors, lawyers, therapists, and registry (travel) nurses.",
+      "unit": "usd",
+      "drivers": [
+        "Travel/registry nurse spending, which spiked in 2021–22 and has come down since.",
+        "Consulting projects and legal matters."
+      ]
+    },
+    {
+      "code": "EXP_SUPP",
+      "section": "expense_natural",
+      "hcaiLabel": "Supplies",
+      "label": "Supplies & drugs",
+      "summary": "Medical supplies, drugs, food, and office supplies.",
+      "unit": "usd",
+      "drivers": [
+        "Drug prices, especially specialty and oncology drugs.",
+        "Surgical volume and implant costs.",
+        "Supply-chain inflation."
+      ]
+    },
+    {
+      "code": "EXP_PURCH",
+      "section": "expense_natural",
+      "hcaiLabel": "Purchased Services",
+      "label": "Purchased services",
+      "summary": "Outside vendors: imaging reads, equipment maintenance, collection agencies, IT, and management fees paid to a parent system.",
+      "unit": "usd",
+      "drivers": [
+        "Outsourcing (moves cost out of salaries into this line).",
+        "Changes in parent-system management fee allocations."
+      ]
+    },
+    {
+      "code": "EXP_DEPRE",
+      "section": "expense_natural",
+      "hcaiLabel": "Depreciation",
+      "label": "Depreciation",
+      "summary": "The yearly cost of buildings and equipment spread over their useful life. A non-cash expense.",
+      "unit": "usd",
+      "drivers": [
+        "New buildings or equipment going into service (e.g., seismic replacement towers).",
+        "Older assets becoming fully depreciated."
+      ]
+    },
+    {
+      "code": "EXP_LEASES",
+      "section": "expense_natural",
+      "hcaiLabel": "Leases and Rentals",
+      "label": "Leases & rentals",
+      "summary": "Rent for buildings, equipment, and leasehold improvements.",
+      "unit": "usd"
+    },
+    {
+      "code": "EXP_INSUR",
+      "section": "expense_natural",
+      "hcaiLabel": "Insurance - Hospital and Professional Malpractice",
+      "label": "Malpractice insurance",
+      "summary": "Professional liability insurance and actuarially determined self-insurance costs.",
+      "unit": "usd"
+    },
+    {
+      "code": "EXP_INTRST",
+      "section": "expense_natural",
+      "hcaiLabel": "Interest - Working Capital and Other",
+      "label": "Interest expense",
+      "summary": "Interest on short- and long-term debt.",
+      "unit": "usd",
+      "drivers": [
+        "New bond issues or refinancing.",
+        "Variable-rate debt when interest rates change (e.g., 2022–23 increases)."
+      ]
+    },
+    {
+      "code": "EXP_OTH",
+      "section": "expense_natural",
+      "hcaiLabel": "All Other Expenses",
+      "label": "All other expenses",
+      "summary": "Everything else: utilities, non-malpractice insurance, telephones, and other costs.",
+      "unit": "usd"
+    },
+    {
+      "code": "CUR_ASST",
+      "section": "assets",
+      "hcaiLabel": "Current Assets",
+      "label": "Current assets",
+      "summary": "Cash, receivables, inventory, and other assets expected to turn into cash within a year.",
+      "unit": "usd"
+    },
+    {
+      "code": "ASST_LIMTD",
+      "section": "assets",
+      "hcaiLabel": "Assets Whose Use Is Limited",
+      "label": "Limited-use assets",
+      "summary": "Cash and investments set aside by the board, a bond trustee, or others — e.g., funded depreciation or bond reserves.",
+      "unit": "usd"
+    },
+    {
+      "code": "NET_PPE",
+      "section": "assets",
+      "hcaiLabel": "Net Property, Plant, and Equipment",
+      "label": "Net property & equipment",
+      "summary": "Land, buildings, and equipment at cost minus accumulated depreciation.",
+      "unit": "usd"
+    },
+    {
+      "code": "CONST_PROG",
+      "section": "assets",
+      "hcaiLabel": "Construction-in-Progress",
+      "label": "Construction in progress",
+      "summary": "Cost of projects under construction that aren't in service yet.",
+      "unit": "usd",
+      "drivers": [
+        "Seismic compliance and expansion projects starting or finishing (completed projects move into property & equipment)."
+      ]
+    },
+    {
+      "code": "INV_OTH",
+      "section": "assets",
+      "hcaiLabel": "Investments and Other Assets",
+      "label": "Investments & other assets",
+      "summary": "Long-term investments and other non-current assets, including long-term amounts owed by affiliates.",
+      "unit": "usd"
+    },
+    {
+      "code": "INTAN_ASST",
+      "section": "assets",
+      "hcaiLabel": "Intangible Assets",
+      "label": "Intangible assets",
+      "summary": "Goodwill, unamortized financing costs, and other non-physical assets.",
+      "unit": "usd"
+    },
+    {
+      "code": "TOT_ASST",
+      "section": "assets",
+      "hcaiLabel": "Total Assets",
+      "label": "Total assets",
+      "summary": "Everything the hospital owns. Equals total liabilities and equity.",
+      "unit": "usd"
+    },
+    {
+      "code": "CUR_LIAB",
+      "section": "liabilities",
+      "hcaiLabel": "Current Liabilities",
+      "label": "Current liabilities",
+      "summary": "Bills and obligations due within a year: accounts payable, accrued payroll, current debt payments.",
+      "unit": "usd"
+    },
+    {
+      "code": "DEF_CRED",
+      "section": "liabilities",
+      "hcaiLabel": "Deferred Credits",
+      "label": "Deferred credits",
+      "summary": "Money received or recorded before it's earned, such as deferred third-party income.",
+      "unit": "usd"
+    },
+    {
+      "code": "NET_LTDEBT",
+      "section": "liabilities",
+      "hcaiLabel": "Net Long-term Debt",
+      "label": "Long-term debt (net)",
+      "summary": "Debt due after one year, including long-term amounts owed to affiliates.",
+      "unit": "usd"
+    },
+    {
+      "code": "EQUITY",
+      "section": "liabilities",
+      "hcaiLabel": "Equity",
+      "label": "Equity (net assets)",
+      "summary": "Total assets minus total liabilities — the hospital's net worth. Nonprofits call this fund balance or net assets.",
+      "unit": "usd",
+      "caution": "Negative equity means liabilities exceed assets."
+    },
+    {
+      "code": "LIAB_EQ",
+      "section": "liabilities",
+      "hcaiLabel": "Total Liabilities and Equity",
+      "label": "Total liabilities & equity",
+      "summary": "Everything the hospital owes plus its equity. Equals total assets.",
+      "unit": "usd"
+    },
+    {
+      "code": "CASH",
+      "section": "balance_other",
+      "hcaiLabel": "Cash",
+      "label": "Cash",
+      "summary": "Cash in the bank and immediately available, including savings, CDs, and treasury notes.",
+      "unit": "usd",
+      "caution": "Many system-affiliated hospitals sweep cash to the parent daily, so hospital-level cash can be near zero even at financially strong systems."
+    },
+    {
+      "code": "ACCTS_REC",
+      "section": "balance_other",
+      "hcaiLabel": "Accounts and Notes Receivable",
+      "label": "Patient accounts receivable",
+      "summary": "Unpaid patient bills owed by patients and insurers, at charges.",
+      "unit": "usd"
+    },
+    {
+      "code": "ALLOW_UNCOLL",
+      "section": "balance_other",
+      "hcaiLabel": "Allowance for Uncollectible Receivables and Third Party Contractual Withholds",
+      "label": "Allowance for uncollectibles",
+      "summary": "The portion of receivables the hospital doesn't expect to collect.",
+      "unit": "usd"
+    },
+    {
+      "code": "BLDGS",
+      "section": "balance_other",
+      "hcaiLabel": "Buildings and Improvements",
+      "label": "Buildings (at cost)",
+      "summary": "Original cost of buildings, parking structures, and fixed equipment.",
+      "unit": "usd"
+    },
+    {
+      "code": "EQUIPMENT",
+      "section": "balance_other",
+      "hcaiLabel": "Equipment",
+      "label": "Equipment (at cost)",
+      "summary": "Original cost of movable and minor equipment.",
+      "unit": "usd"
+    },
+    {
+      "code": "TOT_PPE",
+      "section": "balance_other",
+      "hcaiLabel": "Total Property, Plant and Equipment",
+      "label": "Total property & equipment (at cost)",
+      "summary": "Original cost of land, buildings, and equipment before depreciation.",
+      "unit": "usd"
+    },
+    {
+      "code": "ACC_DEPRE",
+      "section": "balance_other",
+      "hcaiLabel": "Accumulated Depreciation",
+      "label": "Accumulated depreciation",
+      "summary": "Total depreciation recorded to date on property and equipment. High relative to cost means aging facilities.",
+      "unit": "usd"
+    },
+    {
+      "code": "MORT_PAY",
+      "section": "balance_other",
+      "hcaiLabel": "Mortgages Payable",
+      "label": "Mortgages",
+      "summary": "Unpaid mortgage principal.",
+      "unit": "usd"
+    },
+    {
+      "code": "CAP_LEASE",
+      "section": "balance_other",
+      "hcaiLabel": "Capital Lease Obligation",
+      "label": "Capital lease obligations",
+      "summary": "Unpaid principal on capital (finance) leases.",
+      "unit": "usd"
+    },
+    {
+      "code": "BOND_PAY",
+      "section": "balance_other",
+      "hcaiLabel": "Bonds Payable",
+      "label": "Bonds payable",
+      "summary": "Unpaid principal on bonds.",
+      "unit": "usd"
+    },
+    {
+      "code": "TOT_LTDEBT",
+      "section": "balance_other",
+      "hcaiLabel": "Total Long-Term Debt",
+      "label": "Total long-term debt",
+      "summary": "All long-term debt, including the portion due this year.",
+      "unit": "usd"
+    },
+    {
+      "code": "CUR_MAT",
+      "section": "balance_other",
+      "hcaiLabel": "Current Maturities on Long-term Debt",
+      "label": "Debt due within a year",
+      "summary": "The part of long-term debt that must be repaid in the next 12 months.",
+      "unit": "usd"
+    },
+    {
+      "code": "INTER_REC",
+      "section": "balance_other",
+      "hcaiLabel": "Intercompany Receivables (Current and Non-Current)",
+      "label": "Owed by affiliates",
+      "summary": "Amounts related organizations (e.g., the parent system) owe the hospital.",
+      "unit": "usd",
+      "caution": "At system-affiliated hospitals this often holds the cash swept to the parent."
+    },
+    {
+      "code": "INTER_PAY",
+      "section": "balance_other",
+      "hcaiLabel": "Intercompany Payables (Current and Non-Current)",
+      "label": "Owed to affiliates",
+      "summary": "Amounts the hospital owes related organizations.",
+      "unit": "usd"
+    },
+    {
+      "code": "HOSP_FTE",
+      "section": "labor",
+      "hcaiLabel": "Number of Hospital Paid FTEs",
+      "label": "Paid FTEs (employees)",
+      "summary": "Full-time-equivalent employees: total paid hours ÷ 2,080. Excludes registry and contract staff.",
+      "unit": "fte"
+    },
+    {
+      "code": "NURS_FTE",
+      "section": "labor",
+      "hcaiLabel": "Number of Nursing Service FTE Personnel",
+      "label": "Nursing FTEs",
+      "summary": "FTEs for nursing service personnel (RNs, LVNs, aides, orderlies, ward clerks), including registry nurses.",
+      "unit": "fte"
+    },
+    {
+      "code": "PROD_HRS",
+      "section": "labor",
+      "hcaiLabel": "Total Productive Hours",
+      "label": "Hours worked",
+      "summary": "Total hours actually worked, including contract staff.",
+      "unit": "hours"
+    },
+    {
+      "code": "NON_PRD_HR",
+      "section": "labor",
+      "hcaiLabel": "Total Non-Productive Hours",
+      "label": "Paid time off hours",
+      "summary": "Paid hours not worked: vacation, sick leave, holidays.",
+      "unit": "hours"
+    },
+    {
+      "code": "PAID_HRS",
+      "section": "labor",
+      "hcaiLabel": "Total Paid Hours",
+      "label": "Total paid hours",
+      "summary": "All paid hours, worked or not.",
+      "unit": "hours"
+    },
+    {
+      "code": "MED_STAFF",
+      "section": "labor",
+      "hcaiLabel": "Number of Active Medical Staff",
+      "label": "Active medical staff",
+      "summary": "Physicians who are voting members of the hospital's medical staff (employed or not).",
+      "unit": "count"
+    },
+    {
+      "code": "STDNT_FTE",
+      "section": "labor",
+      "hcaiLabel": "Number of Student FTEs",
+      "label": "Residents & fellows (FTE)",
+      "summary": "Full-time-equivalent residents and fellows in training.",
+      "unit": "fte"
+    },
+    {
+      "code": "PRD_HR_MGT",
+      "section": "hours_class",
+      "hcaiLabel": "Productive Hours Management and Supervision",
+      "label": "Hours worked — Managers & supervisors",
+      "summary": "Administrators, directors, managers, and supervisors: hours actually worked by employees.",
+      "unit": "hours"
+    },
+    {
+      "code": "PRD_HR_TCH",
+      "section": "hours_class",
+      "hcaiLabel": "Productive Hours Technical and Specialist",
+      "label": "Hours worked — Technical & specialist staff",
+      "summary": "Technologists, technicians, and other licensed or specialized roles: hours actually worked by employees.",
+      "unit": "hours"
+    },
+    {
+      "code": "PRD_HR_RN",
+      "section": "hours_class",
+      "hcaiLabel": "Productive Hours Registered Nurses",
+      "label": "Hours worked — Registered nurses",
+      "summary": "Employed RNs providing direct patient care: hours actually worked by employees.",
+      "unit": "hours"
+    },
+    {
+      "code": "PRD_HR_LVN",
+      "section": "hours_class",
+      "hcaiLabel": "Productive Hours Licensed Vocational Nurses",
+      "label": "Hours worked — Licensed vocational nurses",
+      "summary": "Employed LVNs providing direct patient care: hours actually worked by employees.",
+      "unit": "hours"
+    },
+    {
+      "code": "PRD_HR_AID",
+      "section": "hours_class",
+      "hcaiLabel": "Productive Hours Aides and Orderlies",
+      "label": "Hours worked — Aides & orderlies",
+      "summary": "Nursing assistants, aides, and orderlies: hours actually worked by employees.",
+      "unit": "hours"
+    },
+    {
+      "code": "PRD_HR_CLR",
+      "section": "hours_class",
+      "hcaiLabel": "Productive Hours Clerical and Other Administrative",
+      "label": "Hours worked — Clerical & administrative staff",
+      "summary": "Record-keeping, communication, and other administrative roles: hours actually worked by employees.",
+      "unit": "hours"
+    },
+    {
+      "code": "PRD_HR_ENV",
+      "section": "hours_class",
+      "hcaiLabel": "Productive Hours Environmental and Food Services",
+      "label": "Hours worked — Environmental & food service staff",
+      "summary": "Housekeeping, dietary, maintenance, and security: hours actually worked by employees.",
+      "unit": "hours"
+    },
+    {
+      "code": "PRD_HR_OTH",
+      "section": "hours_class",
+      "hcaiLabel": "Productive Hours All Other Employee Classifications",
+      "label": "Hours worked — All other employees",
+      "summary": "Salaried physicians, non-physician practitioners, and all other roles: hours actually worked by employees.",
+      "unit": "hours"
+    },
+    {
+      "code": "CNT_HR_RN",
+      "section": "contract_labor",
+      "hcaiLabel": "Registry Nurses",
+      "label": "Registry/travel nurse hours",
+      "summary": "Hours worked by registry or travel nursing staff (RNs, LVNs, aides) not on the hospital payroll.",
+      "unit": "hours"
+    },
+    {
+      "code": "CNT_HR_OTH",
+      "section": "contract_labor",
+      "hcaiLabel": "Other Contracted Services",
+      "label": "Other contract labor hours",
+      "summary": "Hours worked by other temporary contracted staff, such as therapists and clerical support.",
+      "unit": "hours"
+    },
+    {
+      "code": "PRD_HR_DLY",
+      "section": "hours_productive_center",
+      "hcaiLabel": "Productive Hours Daily Hospital Services",
+      "label": "Hours worked — Inpatient units",
+      "summary": "Hours actually worked (employees plus contract staff) in nursing units and room & board for admitted patients.",
+      "unit": "hours"
+    },
+    {
+      "code": "PRD_HR_AMB",
+      "section": "hours_productive_center",
+      "hcaiLabel": "Productive Hours Ambulatory Services",
+      "label": "Hours worked — Ambulatory services",
+      "summary": "Hours actually worked (employees plus contract staff) in the ED, clinics, observation, and home health.",
+      "unit": "hours"
+    },
+    {
+      "code": "PRD_HR_ANC",
+      "section": "hours_productive_center",
+      "hcaiLabel": "Productive Hours Ancillary Services",
+      "label": "Hours worked — Ancillary services",
+      "summary": "Hours actually worked (employees plus contract staff) in diagnostic and therapy departments: lab, imaging, pharmacy, surgery, therapy.",
+      "unit": "hours"
+    },
+    {
+      "code": "PRD_HR_ED",
+      "section": "hours_productive_center",
+      "hcaiLabel": "Productive Hours Research and Education",
+      "label": "Hours worked — Education & research",
+      "summary": "Hours actually worked (employees plus contract staff) in education and research programs.",
+      "unit": "hours"
+    },
+    {
+      "code": "PRD_HR_GEN",
+      "section": "hours_productive_center",
+      "hcaiLabel": "Productive Hours General Services",
+      "label": "Hours worked — General services",
+      "summary": "Hours actually worked (employees plus contract staff) in dietary, laundry, housekeeping, and plant operations.",
+      "unit": "hours"
+    },
+    {
+      "code": "PRD_HR_FIS",
+      "section": "hours_productive_center",
+      "hcaiLabel": "Productive Hours Fiscal Services",
+      "label": "Hours worked — Fiscal services",
+      "summary": "Hours actually worked (employees plus contract staff) in accounting, patient accounting, and admitting.",
+      "unit": "hours"
+    },
+    {
+      "code": "PRD_HR_ADM",
+      "section": "hours_productive_center",
+      "hcaiLabel": "Productive Hours Administrative Services",
+      "label": "Hours worked — Administration",
+      "summary": "Hours actually worked (employees plus contract staff) in administration, HR, medical records, and employee benefits.",
+      "unit": "hours"
+    },
+    {
+      "code": "PRD_HR_NON",
+      "section": "hours_productive_center",
+      "hcaiLabel": "Productive Hours Non-Operating Cost Centers",
+      "label": "Hours worked — Non-operating departments",
+      "summary": "Hours actually worked (employees plus contract staff) in activities outside patient care, such as gift shops and medical office buildings.",
+      "unit": "hours"
+    },
+    {
+      "code": "PD_HR_DLY",
+      "section": "hours_paid_center",
+      "hcaiLabel": "Paid Hours Daily Hospital Services",
+      "label": "Paid hours — Inpatient units",
+      "summary": "All paid hours, including time off, in nursing units and room & board for admitted patients.",
+      "unit": "hours"
+    },
+    {
+      "code": "PD_HR_AMB",
+      "section": "hours_paid_center",
+      "hcaiLabel": "Paid Hours Ambulatory Services",
+      "label": "Paid hours — Ambulatory services",
+      "summary": "All paid hours, including time off, in the ED, clinics, observation, and home health.",
+      "unit": "hours"
+    },
+    {
+      "code": "PD_HR_ANC",
+      "section": "hours_paid_center",
+      "hcaiLabel": "Paid Hours Ancillary Services",
+      "label": "Paid hours — Ancillary services",
+      "summary": "All paid hours, including time off, in diagnostic and therapy departments: lab, imaging, pharmacy, surgery, therapy.",
+      "unit": "hours"
+    },
+    {
+      "code": "PD_HR_ED",
+      "section": "hours_paid_center",
+      "hcaiLabel": "Paid Hours Research and Education",
+      "label": "Paid hours — Education & research",
+      "summary": "All paid hours, including time off, in education and research programs.",
+      "unit": "hours"
+    },
+    {
+      "code": "PD_HR_GEN",
+      "section": "hours_paid_center",
+      "hcaiLabel": "Paid Hours General Services",
+      "label": "Paid hours — General services",
+      "summary": "All paid hours, including time off, in dietary, laundry, housekeeping, and plant operations.",
+      "unit": "hours"
+    },
+    {
+      "code": "PD_HR_FIS",
+      "section": "hours_paid_center",
+      "hcaiLabel": "Paid Hours Fiscal Services",
+      "label": "Paid hours — Fiscal services",
+      "summary": "All paid hours, including time off, in accounting, patient accounting, and admitting.",
+      "unit": "hours"
+    },
+    {
+      "code": "PD_HR_ADM",
+      "section": "hours_paid_center",
+      "hcaiLabel": "Paid Hours Administrative Services",
+      "label": "Paid hours — Administration",
+      "summary": "All paid hours, including time off, in administration, HR, medical records, and employee benefits.",
+      "unit": "hours"
+    },
+    {
+      "code": "PD_HR_NON",
+      "section": "hours_paid_center",
+      "hcaiLabel": "Paid Hours Non-Operating Cost Centers",
+      "label": "Paid hours — Non-operating departments",
+      "summary": "All paid hours, including time off, in activities outside patient care, such as gift shops and medical office buildings.",
+      "unit": "hours"
+    }
+  ],
+  "metrics": [
+    {
+      "id": "operatingMargin",
+      "label": "Operating margin",
+      "unit": "ratio",
+      "summary": "Cents of operating profit per dollar of operating revenue.",
+      "formula": "NET_FRM_OP ÷ (NET_PT_REV + OTH_OP_REV)",
+      "inputs": [
+        "NET_FRM_OP",
+        "NET_PT_REV",
+        "OTH_OP_REV"
+      ],
+      "higherIsBetter": true,
+      "drivers": [
+        "Volume and payment-rate changes (annual Medicare updates, commercial contract renegotiations).",
+        "Medi-Cal supplemental payments such as the Hospital Quality Assurance Fee program arrive in lumpy, multi-year cycles and can swing results sharply year to year.",
+        "Labor costs: the 2021–22 travel-nurse surge and California's health care worker minimum wage (SB 525, phased in from October 2024).",
+        "One-time items: COVID relief grants in 2020–21, prior-year cost report settlements."
+      ]
+    },
+    {
+      "id": "daysCashOnHand",
+      "label": "Days cash on hand",
+      "unit": "days",
+      "summary": "How many days the hospital could pay its operating expenses from the cash on its own balance sheet.",
+      "formula": "CASH ÷ ((TOT_OP_EXP − EXP_DEPRE) ÷ days in period)",
+      "inputs": [
+        "CASH",
+        "TOT_OP_EXP",
+        "EXP_DEPRE",
+        "DAY_PER"
+      ],
+      "higherIsBetter": true,
+      "caution": "Hospital-level cash only. System-affiliated hospitals often sweep cash to the parent, so compare within similar ownership structures. Rating-agency figures (which include investments at the system level) are much higher.",
+      "drivers": [
+        "Operating results adding to or draining cash.",
+        "Cash swept to or from a parent system.",
+        "Timing of large receipts such as Medi-Cal supplemental payments.",
+        "Capital spending and debt service."
+      ]
+    },
+    {
+      "id": "occupancy",
+      "label": "Occupancy rate",
+      "unit": "pct",
+      "summary": "Share of licensed beds filled on an average day.",
+      "formula": "Patient days ÷ (licensed beds × days in period) — HCAI OCC_LIC",
+      "inputs": [
+        "OCC_LIC",
+        "DAY_TOT",
+        "BED_LIC"
+      ],
+      "higherIsBetter": null,
+      "drivers": [
+        "Occupancy moves with patient days (numerator) and bed counts (denominator) — a bed closure raises occupancy with no change in volume.",
+        "Length of stay rises when discharges to post-acute care are delayed or case mix gets sicker; it falls with care-management programs."
+      ]
+    },
+    {
+      "id": "edVisits",
+      "label": "ED visits",
+      "unit": "count",
+      "summary": "Emergency department visits in the year (annualized if the report didn't cover a full year).",
+      "formula": "VIS_ER",
+      "inputs": [
+        "VIS_ER"
+      ],
+      "higherIsBetter": null,
+      "drivers": [
+        "ED volume swings with respiratory-virus seasons, the 2020 COVID drop, and nearby urgent-care or ED openings/closures.",
+        "Clinic volume moves with sites being added, sold, or moved to an affiliated medical group."
+      ]
+    },
+    {
+      "id": "payerMix",
+      "label": "Payer mix",
+      "unit": "share",
+      "summary": "Share of the hospital's business by payer, measured by gross charges (inpatient + outpatient) or by inpatient days.",
+      "formula": "(GR_IP_<payer> + GR_OP_<payer>) ÷ Σ all payers; or DAY_<payer> ÷ Σ all payers",
+      "inputs": [
+        "GR_IP_*",
+        "GR_OP_*",
+        "DAY_*"
+      ],
+      "higherIsBetter": null,
+      "drivers": [
+        "Admission volume: service-line growth, physician recruitment or departures, a competitor opening or closing.",
+        "Length of stay: delays discharging patients to skilled nursing or home care add days without adding patients.",
+        "Payer shifts: Medicare Advantage growth moves volume from Medicare fee-for-service to Medicare managed care; Medi-Cal enrollment swings (the 2023–24 end of continuous coverage, the 2024 expansion to undocumented adults) move volume between Medi-Cal, county programs, and self-pay.",
+        "Partial reporting periods (opening, closure, fiscal-year change) — check Days in Report Period."
+      ]
+    }
+  ],
+  "payerGroups": [
+    {
+      "id": "medicare",
+      "label": "Medicare",
+      "includes": [
+        "MCAR_TR",
+        "MCAR_MC"
+      ]
+    },
+    {
+      "id": "medical",
+      "label": "Medi-Cal",
+      "includes": [
+        "MCAL_TR",
+        "MCAL_MC"
+      ]
+    },
+    {
+      "id": "commercial",
+      "label": "Commercial",
+      "includes": [
+        "THRD_TR",
+        "THRD_MC"
+      ]
+    },
+    {
+      "id": "indigent",
+      "label": "County & indigent",
+      "includes": [
+        "CNTY",
+        "OTH_IND"
+      ]
+    },
+    {
+      "id": "other",
+      "label": "Self-pay & other",
+      "includes": [
+        "OTH"
+      ]
+    }
+  ]
+}
