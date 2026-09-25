@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises"
 import path from "node:path"
 
 import type { FacilityOption } from "@/components/benchmark/facility-picker"
+import type { FacilityClosure } from "@/lib/facility-flag"
 
 import { HCAI_DATASETS, isTrendMetric, type MetricDef } from "./datasets"
 import type {
@@ -83,7 +84,7 @@ function inferHospitalType(u: UtilizationFacility) {
   return "Comparable"
 }
 
-function merge(fin: FinancialFacility | undefined, util: UtilizationFacility | undefined): Facility {
+function merge(fin: FinancialFacility | undefined, util: UtilizationFacility | undefined): Omit<Facility, "closure"> {
   const base = (fin ?? util)!
   const financialYears = fin?.years ?? []
   const utilizationYears = util?.years ?? []
@@ -123,14 +124,17 @@ function merge(fin: FinancialFacility | undefined, util: UtilizationFacility | u
 
 export function getFacilities(): Promise<Facility[]> {
   return memo("facilities", async () => {
-    const [fin, util] = await Promise.all([
+    const [fin, util, status] = await Promise.all([
       load<FinancialFacility[]>("hafd-selected", "facilities.json"),
       load<UtilizationFacility[]>("hau", "facilities.json"),
+      loadOptional<Record<string, { closure?: FacilityClosure }>>("hcai-facility-status", "status.json"),
     ])
     const finById = new Map(fin.map((f) => [f.id, f]))
     const utilById = new Map(util.map((f) => [f.id, f]))
     const ids = new Set([...finById.keys(), ...utilById.keys()])
-    return [...ids].map((id) => merge(finById.get(id), utilById.get(id))).sort((a, b) => a.name.localeCompare(b.name))
+    return [...ids]
+      .map((id) => ({ ...merge(finById.get(id), utilById.get(id)), closure: status?.[id]?.closure ?? null }))
+      .sort((a, b) => a.name.localeCompare(b.name))
   })
 }
 
@@ -154,6 +158,7 @@ export function toFacilityOption(f: Facility): FacilityOption {
     typeOfCare: f.typeOfCare,
     hospitalType: f.hospitalType,
     lastYear: lastReportedYear(f),
+    closure: f.closure,
   }
 }
 

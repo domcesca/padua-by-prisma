@@ -1,6 +1,8 @@
 // Shapes of the processed files written by the Python ETL (etl/hcai_etl).
 // Keep in sync with etl/hcai_etl/datasets/{hafd_selected,hau}.py.
 
+import type { FacilityClosure } from "@/lib/facility-flag"
+
 /** HCAI's own datasets: facility directories and raw fields (Translate) come from these. */
 export type HcaiDatasetId = "hafd-selected" | "hau"
 
@@ -72,6 +74,8 @@ export type Facility = FinancialFacility & {
   financialYears: number[]
   /** Calendar years with utilization data. */
   utilizationYears: number[]
+  /** Closure evidence from HCAI's Licensed Healthcare Facility Listing (lib/facility-flag.ts), or null. */
+  closure: FacilityClosure | null
 }
 
 export type PayerGroup = "medicare" | "medical" | "commercial" | "indigent" | "other"

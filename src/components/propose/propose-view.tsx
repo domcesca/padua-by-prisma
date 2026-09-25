@@ -4,9 +4,11 @@ import { Check, ChevronDown, Link2, Printer, TriangleAlert } from "lucide-react"
 import { useEffect, useMemo, useState, type CSSProperties } from "react"
 
 import { FacilityPicker, type FacilityOption } from "@/components/benchmark/facility-picker"
+import { FacilityFlagNote } from "@/components/shell/facility-flag-note"
 import { PaduaMark } from "@/components/shell/padua-mark"
 import { Segmented } from "@/components/shell/segmented"
 import { APP_FULL_NAME } from "@/lib/brand"
+import { facilityFlag } from "@/lib/facility-flag"
 import { formatPercent, formatUsd } from "@/lib/format"
 import {
   formatPayback,
@@ -80,6 +82,7 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
   const mod = MODULES.find((m) => m.id === spec.module) ?? MODULES[0]
   const state = states[mod.id]
   const facility = facilities.find((f) => f.id === spec.facilityId) ?? null
+  const facilityFlagNow = facility ? facilityFlag(facility, latestYear) : null
   const dataKey = `${mod.id}|${spec.facilityId ?? ""}`
   const moduleData = mod.hasData && data?.key === dataKey ? (data.value ?? null) : null
   const dataError = mod.hasData && data?.key === dataKey && !!data.failed
@@ -170,6 +173,7 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
         <p className="text-sm text-muted-foreground">
           {facility ? facility.name : "No hospital chosen"} · {mod.label} estimate · Useful life {spec.costs.life} years
         </p>
+        {facilityFlagNow && <FacilityFlagNote flag={facilityFlagNow} className="mt-2" />}
       </div>
 
       <section aria-labelledby="setup-title" className="space-y-3 print:hidden">
@@ -180,6 +184,7 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
           <div>
             <p className="mb-1 text-[13px] font-medium">Hospital</p>
             <FacilityPicker facilities={facilities} value={spec.facilityId} onChange={(id) => update({ facilityId: id })} latestYear={latestYear} />
+            {facilityFlagNow && <FacilityFlagNote flag={facilityFlagNow} className="mt-2" />}
           </div>
           <div>
             <label htmlFor="proposal-name" className="mb-1 block text-[13px] font-medium">

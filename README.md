@@ -181,6 +181,22 @@ used (they cover traditional Medicare only, by calendar year, and need a CCN cro
   fiscal-year and include long-term care units. Cards say so.
 - Medicare Advantage share (MA discharges ÷ all Medicare discharges) is available under the Medicare view and in Build.
 
+## Closed and outdated hospitals (V6.10)
+
+Wherever a hospital is picked or summarized, a flag says when its numbers shouldn't be read as current
+(`src/lib/facility-flag.ts`): a callout on Benchmark's hospital card (so every category and unit view) and under
+Propose's hospital picker (it prints), and a badge on the shared hospital picker on every tab.
+- **Closed?** HCAI's Licensed Healthcare Facility Listing (CHHS Open Data, `hcai-facility-status` ETL: the current
+  listing and every half-year snapshot since December 2016, keyed by OSHPD ID = HCAI facility number, so no
+  crosswalk) shows the license in Suspense (not operating) or Closed, now or when the hospital dropped off the listing.
+  The listing has no closure-date field; the date shown is that status's effective date. Adventist Health Feather River
+  (Paradise): Open through June 2019, Suspense from 2019-09-30, off the listing from December 2020. Six hospitals as of
+  the September 2026 listing.
+- **Outdated.** The hospital's newest report is more than two years behind the newest year any hospital has.
+Hospitals that dropped off the listing while still Open get only the outdated flag: a new license or facility number
+(CPMC's California campus, Modoc Medical Center's new building, campuses folded into another license) looks the same
+as a closure, so the listing alone doesn't prove one.
+
 ## Navigation and help (V6.9)
 
 - **Build hub.** "Build" in the nav opens `/build`, a landing page for its two tools: the report builder
@@ -350,6 +366,8 @@ every hospital in both, 3,074 for FY 2027), the Table 1A/1B labor splits, and th
 calendar year's OPPS final rule Hospital Impact File ("Post Reclassification Wage Index": the final FY IPPS index; checked
 against Table 2's prior-year column, 2,957 of 2,978 equal, the rest revised after the OPPS rule). OPPS's 60% labor
 share is a constant (it isn't restated in the files).
+`hcai-facility-status` (after the HCAI datasets): HCAI's Licensed Healthcare Facility Listing, current and half-year
+snapshots; writes only the app hospitals that aren't Open on the current listing (see "Closed and outdated hospitals").
 
 ## Similar hospitals (the default peer group)
 

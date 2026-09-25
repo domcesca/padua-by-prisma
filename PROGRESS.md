@@ -284,6 +284,13 @@ downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and
 - The Federal Register was unreachable from the build environment, so OPPS's 60% labor share is a documented constant.
 - Break-even and sensitivity reuse one model function (`analysis.ts`), which the page now uses for its results too.
 - The Propose walkthrough is unchanged: its targets didn't move.
+- Part B, closed/outdated hospital flag: the "Licensed Healthcare Facility Listing" (published by HCAI, keyed by OSHPD
+  ID) has a status (Open / Suspense / Closed) and status date but no closure date, and a closed hospital usually drops
+  off rather than staying as Closed. Of 467 app hospitals, 14 are off the current listing and 4 are in Suspense.
+  Closure is claimed only with Suspense/Closed evidence (6 hospitals, including the Feather River test case, dated
+  2019-09-30); 10 that dropped off while Open are staleness-only, because several are new license numbers, not closures.
+  Outdated = newest report more than 2 years behind the newest data (13 hospitals, some of them campuses now reported
+  under a parent).
 
 ## 3. Key decisions and why
 

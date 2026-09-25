@@ -12,6 +12,7 @@ from .cms_wage_index import CmsWageIndex
 from .dhcs_medi_cal import DhcsMediCal
 from .hafd_selected import HafdSelected
 from .hau import HospitalUtilization
+from .hcai_facility_status import HcaiFacilityStatus
 
 # Planned (build on the same core.Dataset contract when needed):
 #   "quarterly-financial"  – Hospital Quarterly Financial & Utilization Report, Complete Data Set
@@ -21,6 +22,8 @@ REGISTRY = {
     HospitalUtilization.id: HospitalUtilization,
     # Uses the utilization report's campus discharges to combine campuses.
     CaseMixIndex.id: CaseMixIndex,
+    # License status from HCAI's Licensed Healthcare Facility Listing, to flag closed hospitals.
+    HcaiFacilityStatus.id: HcaiFacilityStatus,
     # Non-HCAI sources, mapped onto HCAI facility numbers; build after the HCAI datasets.
     CdphHai.id: CdphHai,
     CmsCareCompare.id: CmsCareCompare,
