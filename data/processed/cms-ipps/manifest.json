@@ -1,0 +1,33 @@
+{
+  "id": "cms-ipps",
+  "title": "CMS IPPS Final Rule: MS-DRG relative weights and national standardized amount",
+  "sourcePage": "https://www.cms.gov/medicare/payment/prospective-payment-systems/acute-inpatient-pps/fy-2027-ipps-final-rule-home-page",
+  "fiscalYear": 2027,
+  "effective": "2026-10-01",
+  "drgCount": 766,
+  "standardizedAmount": {
+    "total": 6848.98,
+    "laborRelated": 4520.33,
+    "nonlaborRelated": 2328.65,
+    "laborShare": 0.66,
+    "update": 2.3,
+    "basis": "Hospital Submitted Quality Data and is a Meaningful EHR User (Update = 2.3 Percent)"
+  },
+  "capitalRate": 540.03,
+  "sources": [
+    {
+      "name": "FY 2027 final rule table5",
+      "url": "https://www.cms.gov/files/zip/fy2027-ipps-fr-table-5.zip"
+    },
+    {
+      "name": "FY 2027 final rule table1",
+      "url": "https://www.cms.gov/files/zip/fy2027-ipps-fr-table-1a-1e.zip"
+    }
+  ],
+  "generatedAt": "2026-09-25T06:53:25Z",
+  "notes": [
+    "Relative weights: Table 5 of the FY 2027 IPPS Final Rule (the 10%-capped weights CMS pays on).",
+    "National operating standardized amount: Table 1A, labor-related plus non-labor-related, for a hospital that submits quality data and is a meaningful EHR user.",
+    "Estimated payment = relative weight x national standardized amount. This is a national average, not a hospital's actual payment: wage index, DSH, IME, outliers, transfer adjustments, and capital are not applied."
+  ]
+}

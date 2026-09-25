@@ -1,0 +1,105 @@
+{
+  "id": "cms-inpatient",
+  "title": "CMS Medicare Inpatient Hospitals by Provider and Service (cases per MS-DRG)",
+  "sourcePage": "https://data.cms.gov/provider-summary-by-type-of-service/medicare-inpatient-hospitals/medicare-inpatient-hospitals-by-provider-and-service",
+  "years": [
+    2024
+  ],
+  "sources": [
+    {
+      "year": 2024,
+      "name": "Medicare Inpatient Hospitals - by Provider and Service : 2024-01-01",
+      "url": "https://data.cms.gov/sites/default/files/2026-04/828defb5-c9e6-4442-8c1b-f27bc0799daf/MUP_INP_RY26_P03_V10_DY24_PrvSvc.CSV"
+    }
+  ],
+  "crosswalk": [
+    {
+      "name": "Licensed and Certified Healthcare Facility Locations",
+      "url": "https://data.chhs.ca.gov/dataset/3b5b80e8-6b8d-4715-b3c0-2699af6e72e5/resource/f0ae5731-fef8-417f-839d-54a0ed3a126e/download/health_facility_locations.csv"
+    },
+    {
+      "name": "ELMS-OSHPD - Licensed and Certified Healthcare Facility Crosswalk",
+      "url": "https://data.chhs.ca.gov/dataset/e89100fd-1f1d-4a37-8205-d588aa42e5a1/resource/cf954841-9ca7-4914-a31f-29ca12c7b71a/download/elms_oshpd_cw_oct2024xlsx.xlsx"
+    }
+  ],
+  "generatedAt": "2026-09-25T06:52:10Z",
+  "sharedReporting": {
+    "106013619": {
+      "ccn": "050320",
+      "reportedWith": "106010846",
+      "reportedWithName": "Highland Hospital"
+    },
+    "106364014": {
+      "ccn": "050327",
+      "reportedWith": "106361246",
+      "reportedWithName": "Loma Linda University Medical Center"
+    },
+    "106190636": {
+      "ccn": "050382",
+      "reportedWith": "106190413",
+      "reportedWithName": "Emanate Health Inter-Community Hospital"
+    },
+    "106154101": {
+      "ccn": "050455",
+      "reportedWith": "106150788",
+      "reportedWithName": "Adventist Health Bakersfield"
+    },
+    "106190857": {
+      "ccn": "050763",
+      "reportedWith": "106190661",
+      "reportedWithName": "L.a. Downtown Medical Center"
+    }
+  },
+  "coverage": {
+    "cmsHospitals": 272,
+    "matchedHospitals": 271,
+    "matchedByNameAndZip": [
+      {
+        "ccn": "050115",
+        "cmsName": "Palomar Health Downtown Campus",
+        "hcaiId": "106370755",
+        "name": "Palomar Health Downtown Campus",
+        "score": 1.0,
+        "alsoHasCcn": false
+      },
+      {
+        "ccn": "050551",
+        "cmsName": "Uci Health-Los Alamitos",
+        "hcaiId": "106301248",
+        "name": "UCI Health-Los Alamitos",
+        "score": 1.0,
+        "alsoHasCcn": false
+      },
+      {
+        "ccn": "050570",
+        "cmsName": "Uci Health-Fountain Valley",
+        "hcaiId": "106301175",
+        "name": "UCI Health-Fountain Valley",
+        "score": 1.0,
+        "alsoHasCcn": true
+      },
+      {
+        "ccn": "050581",
+        "cmsName": "Uci Health-Lakewood",
+        "hcaiId": "106190240",
+        "name": "UCI Health-Lakewood",
+        "score": 1.0,
+        "alsoHasCcn": true
+      },
+      {
+        "ccn": "050589",
+        "cmsName": "Uci Health-Placentia Linda",
+        "hcaiId": "106301297",
+        "name": "UCI Health-Placentia Linda",
+        "score": 1.0,
+        "alsoHasCcn": false
+      }
+    ],
+    "unmatched": []
+  },
+  "notes": [
+    "Discharges of Original Medicare (fee-for-service Part A) patients only; Medicare Advantage and other payers aren't included.",
+    "IPPS hospitals only. CMS omits any hospital-DRG pair with fewer than 11 discharges, so a missing DRG means 0 to 10 cases.",
+    "Data year is the calendar year of discharge."
+  ]
+}
