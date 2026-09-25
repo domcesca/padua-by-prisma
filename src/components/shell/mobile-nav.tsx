@@ -32,6 +32,7 @@ export function MobileTabBar() {
   const items = NAV_ITEMS.filter((i) => !i.soon && !i.desktopOnly)
   return (
     <nav
+      data-tour="nav"
       aria-label="Sections"
       className="fixed inset-x-0 bottom-0 z-30 border-t border-sidebar-border bg-sidebar pb-[env(safe-area-inset-bottom)] backdrop-blur-2xl backdrop-saturate-150 md:hidden print:hidden"
     >

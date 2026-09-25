@@ -55,7 +55,7 @@ export function CorrelateView({
     const next = { ...spec, ...patch }
     setSpec(next)
     const params = correlateSpecToParams(next)
-    window.history.replaceState(null, "", `/correlate?${params}`)
+    window.history.replaceState(null, "", `/build/correlate?${params}`)
     if (!next.facilityId) {
       setResult(null)
       return
@@ -124,8 +124,10 @@ export function CorrelateView({
   return (
     <div className="space-y-6">
       <div className="space-y-3">
-        <FacilityPicker facilities={facilities} value={spec.facilityId} onChange={(id) => update({ facilityId: id, year: null })} latestYear={latestYear} />
-        <div className="flex flex-wrap items-center gap-2">
+        <div data-tour="correlate-hospital">
+          <FacilityPicker facilities={facilities} value={spec.facilityId} onChange={(id) => update({ facilityId: id, year: null })} latestYear={latestYear} />
+        </div>
+        <div data-tour="correlate-measures" className="flex flex-wrap items-center gap-2">
           <PickerPill
             noun="measures"
             label="Across (horizontal)"
@@ -156,7 +158,7 @@ export function CorrelateView({
             wide
           />
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div data-tour="correlate-peers" className="flex flex-wrap items-center gap-2">
           <Segmented
             label="Peer group"
             value={spec.peers}
@@ -208,7 +210,7 @@ export function CorrelateView({
       ) : current && rx && ry ? (
         <div className={cn("space-y-4 transition-opacity duration-200", loading && "opacity-60")}>
           <div className="grid gap-4 lg:grid-cols-3">
-            <section aria-label="Correlation" className="widget fade-up flex flex-col gap-1 p-5">
+            <section aria-label="Correlation" data-tour="correlate-r" className="widget fade-up flex flex-col gap-1 p-5">
               <p className="text-[11px] font-medium tracking-wide text-tertiary-foreground uppercase">Correlation · {current.year}</p>
               {stats ? (
                 <>
@@ -261,7 +263,7 @@ export function CorrelateView({
             </section>
           </div>
 
-          <section aria-label={`${ry.label} against ${rx.label}`} className="glass fade-up min-w-0 rounded-2xl p-5">
+          <section aria-label={`${ry.label} against ${rx.label}`} data-tour="correlate-chart" className="glass fade-up min-w-0 rounded-2xl p-5">
             <header className="mb-3 flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0 space-y-1">
                 <h2 className="text-[15px] font-semibold tracking-tight">
@@ -313,7 +315,7 @@ export function CorrelateView({
             </div>
           </section>
 
-          <p className="text-xs leading-relaxed text-tertiary-foreground">
+          <p data-tour="correlate-notes" className="text-xs leading-relaxed text-tertiary-foreground">
             r runs from −1 to 1: near 0 means no straight-line relationship, and the sign says whether the measures rise
             together or move in opposite directions. It shows association, not cause: hospitals differ in size, services,
             and patients all at once.

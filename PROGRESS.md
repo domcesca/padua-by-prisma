@@ -261,6 +261,18 @@ downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and
 - **Verified:** rendered results match `main` for all five modules with Advanced off, including links holding advanced
   settings; payer mix, ramp, escalation, and penalty timing checked numerically.
 
+### V6.9 (navigation and help; no calculation, data, or disclosure changes)
+- Build and Correlate merged under a Build landing page (`/build` → `/build/report`, `/build/correlate`), with
+  redirects for old URLs. Phone tab bar is now Home, Benchmark, Build, Propose, Translate.
+- "About this tool" on every tab (Home, Benchmark, Build, report builder, Correlate, Propose, Translate, Deadlines).
+  The spec's "Quality" tab is Benchmark's Quality view, covered in Benchmark's panel. Named "About this tool" (not a
+  second "?") because the floating "?" is already the glossary.
+- Welcome tour trimmed from five steps (topic, compare, Correlate, glossary) to three; the storage key is unchanged, so
+  people who finished it aren't shown it again.
+- Propose and Correlate walkthroughs, on demand. Correlate reports r, ρ, r², and a small-sample warning but no p-value,
+  so its walkthrough explains strength, sample size, outliers, and association vs cause without adding a significance
+  test.
+
 ## 3. Key decisions and why
 
 ### Peer groups: a proxy, not a PSA/SSA

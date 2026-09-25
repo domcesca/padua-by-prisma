@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 
 import { BenchmarkView } from "@/components/benchmark/benchmark-view"
 import type { FacilityOption } from "@/components/benchmark/facility-picker"
+import { AboutTool } from "@/components/shell/about-tool"
 import { PageHeader } from "@/components/shell/page-header"
 import { computeBenchmark } from "@/lib/benchmark/compute"
 import { parseFilters } from "@/lib/benchmark/filters"
@@ -50,6 +51,7 @@ export default async function BenchmarkPage({ searchParams }: PageProps<"/benchm
     <div className="space-y-8">
       <PageHeader
         title="Benchmark"
+        actions={<AboutTool id="benchmark" />}
         description="See how a California hospital compares with similar hospitals on its finances, volumes, and quality."
       />
       <BenchmarkView

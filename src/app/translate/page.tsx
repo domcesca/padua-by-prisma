@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 
+import { AboutTool } from "@/components/shell/about-tool"
 import { PageHeader } from "@/components/shell/page-header"
 import { TranslateView } from "@/components/translate/translate-view"
 import { DATASET_SLUG, parseDatasetSlug } from "@/lib/data/datasets"
@@ -44,6 +45,7 @@ export default async function TranslatePage({ searchParams }: PageProps<"/transl
     <div className="space-y-8">
       <PageHeader
         title="Translate"
+        actions={<AboutTool id="translate" />}
         description={
           <>
             {INTRO[dataset]}: what it means, what can make it move, and — for any hospital — how it changed year over
