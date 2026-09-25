@@ -28,7 +28,7 @@ RAW_DIR = REPO_ROOT / "data" / "raw"  # gitignored download cache
 PROCESSED_DIR = REPO_ROOT / "data" / "processed"  # committed; read by the app
 
 CKAN_API = "https://data.chhs.ca.gov/api/3/action"
-USER_AGENT = "hcai-insights-etl/0.1 (+https://github.com/)"
+USER_AGENT = "padua-etl/0.1 (+https://github.com/)"
 
 
 # --------------------------------------------------------------------------- #

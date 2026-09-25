@@ -7,16 +7,21 @@ import { Sidebar } from "@/components/shell/sidebar"
 import { ThemeProvider } from "@/components/shell/theme-provider"
 import { Tour } from "@/components/shell/tour"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { APP_FULL_NAME } from "@/lib/brand"
 import "./globals.css"
 
 // SF Pro isn't licensed for web use; Apple devices get it via -apple-system and
 // everyone else falls back to Inter (see --font-sans in globals.css).
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"], display: "swap" })
 
+const description =
+  "Peer benchmarking, business cases for new initiatives, plain-language field definitions, and a reporting calendar, built on public California hospital data (HCAI, CMS, CDPH)."
+
 export const metadata: Metadata = {
-  title: { default: "HCAI Insights", template: "%s · HCAI Insights" },
-  description:
-    "Peer benchmarking, plain-language field definitions, and a reporting calendar built on California HCAI hospital data.",
+  title: { default: APP_FULL_NAME, template: `%s · ${APP_FULL_NAME}` },
+  applicationName: APP_FULL_NAME,
+  description,
+  openGraph: { type: "website", siteName: APP_FULL_NAME, title: APP_FULL_NAME, description },
 }
 
 export const viewport: Viewport = {

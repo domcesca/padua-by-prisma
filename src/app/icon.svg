@@ -1,0 +1,9 @@
+<svg viewBox="0 0 240 240" fill="none" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+  <style>path{stroke:#1d1d1f}@media (prefers-color-scheme:dark){path{stroke:#f5f5f7}}</style>
+  <path d="M40 190 L200 190" />
+  <path d="M40 190 L120 130" />
+  <path d="M200 190 L120 130" />
+  <path d="M40 190 L120 20" />
+  <path d="M200 190 L120 20" />
+  <path d="M120 130 L120 20" />
+</svg>

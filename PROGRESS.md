@@ -1,10 +1,10 @@
 # PROGRESS — handoff for the next session
 
-_Last updated 2026-09-25, V5 (see §2 V5). Read this first, then `README.md` (run/refresh/deploy commands) and `AGENTS.md` (this is Next.js 16 — check `node_modules/next/dist/docs/` before writing Next code)._
+_Last updated 2026-09-25, V6.2 (see §2 V6.0–V6.2). Read this first, then `README.md` (run/refresh/deploy commands) and `AGENTS.md` (this is Next.js 16 — check `node_modules/next/dist/docs/` before writing Next code)._
 
 ## 1. Project overview
 
-**HCAI Insights** (working name; the repo is `usc-hcai-insights`) is a web app for California hospital administrators and finance leaders (CFO-level readers). It turns HCAI's public hospital financial and utilization files into peer benchmarks, a chart/table builder, a plain-language field guide, and a filing calendar. There are no accounts, no database and no API keys. All data is public HCAI open data, pre-processed by a Python ETL into committed JSON.
+**Padua by Prisma** ("Padua" in the nav; formerly "HCAI Insights"; GitHub repo `domcesca/padua-by-prisma`, formerly `usc-hcai-insights`) is a web app from Prisma Executive, an independent consulting firm (not HCAI-, agency-, or university-affiliated), for California hospital administrators and finance leaders (CFO-level readers). It turns HCAI's public hospital financial and utilization files into peer benchmarks, a chart/table builder, a plain-language field guide, a business-case builder (Propose), and a filing calendar. There are no accounts, no database and no API keys. All data is public HCAI open data, pre-processed by a Python ETL into committed JSON.
 
 ## 2. What's built
 
@@ -125,6 +125,74 @@ replay from another page). No horizontal overflow at 375px.
 Cloud sessions need data.cms.gov, data.chhs.ca.gov and api.census.gov allowed (the user added them); CHHS
 downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and aha.org were not.
 
+### V6.0 (Propose: proposal builder, core engine + two modules)
+- **Data (step 1):** two new ETL datasets.
+  - `cms-ipps`: FY 2027 IPPS Final Rule (effective 2026-10-01). Table 5 → `drgs.json` (766 MS-DRGs; 998/999 have no
+    weight and are dropped), weight = "Weights - 10% Cap Applied". Tables 1A–1E → manifest: national operating
+    standardized amount $6,848.98 (1A: $4,520.33 labor + $2,328.65 non-labor, "submitted quality data and meaningful
+    EHR user", update 2.3%; 1B splits the same total), capital rate $540.03 (not used in the estimate; mentioned).
+  - `cms-inpatient`: Medicare Inpatient Hospitals by Provider and Service, data year 2024 → `cases.json`
+    (hospital → year → DRG → Original Medicare discharges). 271 of 272 California IPPS CCNs matched. The CCN matcher
+    moved from `cms_care_compare.py` into `crosswalk.match_ccns` (re-ran Care Compare: metrics.json byte-identical).
+  - www.cms.gov was blocked in the cloud environment at first; the user allowed it.
+- **Engine (step 2):** `src/lib/propose/engine.ts`. Cash view (year 0 outlay, full benefit − maintenance each year,
+  no ramp-up) for payback / cumulative / ROI / NPV; straight-line amortization shown as the accounting view. NPV
+  was cheap, so it's in (discount rate input, default 5%).
+- **Modules (steps 3–4):** `ProposalModule` contract (`src/lib/propose/module.ts`), registry in
+  `src/components/propose/modules/index.ts`, server data via `MODULE_DATA` in `src/lib/propose/module-data.ts` and
+  `/api/propose/[module]`. Reimbursement: `GroupedPicker` over 766 DRGs grouped by MDC (up to 20), per-DRG added
+  cases or % of the hospital's 2024 Medicare cases, peer median as context (step 7), optional cost-of-care %. That defaults to 0 on purpose (user's call): a "typical" ratio
+  varies too much by service line to be a defensible default, so the page labels the result as revenue, not margin.
+  Custom: up to 20 lines, quantity × rate or flat.
+- **Scenarios, results, print (steps 5–6):** three scenario cards side by side (0.7× / 1× / 1.3× benefit; clicking one
+  or the segmented control picks the highlighted line and the year-by-year table), cumulative chart, "What went in",
+  caveats. Browser print-to-PDF with print CSS (light palette even from dark mode; chrome, inputs, and controls hidden).
+- **Persistence:** user agreed to URL state (session-only plus a shareable link). Every module's inputs are in the URL.
+- **Nav (step 8):** Propose (Calculator icon) after Correlate; carries the remembered hospital. On phones, Deadlines
+  left the tab bar (`desktopOnly` in `nav.ts`; user's call) so it stays at six tabs; it's still in the desktop sidebar
+  and linked from the home page.
+- Checked: typecheck, lint, `next build`; Playwright at 1280 and 375, light and dark; reload restores the proposal;
+  PDF output reviewed. No horizontal overflow at 375px.
+- **Deferred to V6.5:** two more modules, slider sensitivity. Not done: hospital-specific payment (wage index,
+  DSH/IME), ramp-up years, payer mix.
+
+### V6.1 (plain-language DRG search; findability only, no calculation changes)
+- **Body system browse:** Table 5's MDC is present for 760 of 766 DRGs (981–989, "procedures unrelated to principal
+  diagnosis", have none by CMS design and are grouped as such). A "Body system" `FilterPill` next to "Add DRGs" narrows
+  the picker to one MDC (with counts); search still works inside it. Local UI state, not in the URL.
+- **Search terms:** `src/lib/propose/drg-search-terms.ts`, 85 entries / 342 terms covering neuro, cardiac, vascular,
+  ortho/spine, oncology, GI, respiratory, imaging/interventional, robotic surgery, sepsis/critical care, plus kidney,
+  urology, women's, behavioral, trauma, transplant. 479 of 766 DRGs carry at least one term. `drgs` (direct) vs
+  `related` (touched) decides ranking; e.g. "tavr" puts 266–267 above open valve surgery 216–221.
+  `drgTerms` in `module-data.ts` resolves codes/ranges against the live table, logging unknown codes and ranges that
+  span MDCs (that check caught two of my own range mistakes: 447–451 swept in 449, 820–850 swept in 831–833).
+- **Imaging:** scans aren't DRGs (outpatient APCs). "Imaging and interventional" maps interventional/hybrid-OR terms;
+  `DRG_SEARCH_NOTES` answers MRI/CT/PET/outpatient searches with an explanation and a pointer to Custom.
+- **Shared picker:** `PickerOption` gained optional `tags` / `leadTags` (searchable; a tag match shows "Matches
+  “aneurysm”" and ranks under label matches, lead tags above other tags) and `GroupedPicker` an `emptyText`. Metric
+  pickers set neither, so their ranking is unchanged (Build "stay" checked). Labels wrap to two lines instead of
+  truncating, for long DRG titles on phones.
+- Also fixed: a blank proposal showed payback "Immediate" (0 cost, 0 benefit); it shows "—" until something is entered.
+
+### V6.2 (editable scenario rates; rebrand to Padua by Prisma)
+- **Scenario rates:** Conservative / Expected / Optimistic are now editable percents (default 70 / 100 / 130) above the
+  scenario cards; the engine applies them exactly as the old fixed multipliers (`projectAll(benefit, costs, rates)`).
+  In the URL as `scen=` only when changed. Conservative > Optimistic shows a soft note, no validation beyond that.
+  Cards show the rate ("Conservative · 70%"); "What went in" lists the rates; its benefit heading now says "estimate,
+  before scenario rates" (the Expected rate can differ from 100%).
+- **Rebrand:** "HCAI Insights" → "Padua" (nav wordmark, mobile header) / "Padua by Prisma" (page title template,
+  Open Graph site name, nav subline, home eyebrow, proposal print header). Name constants in `src/lib/brand.ts`.
+  Data sourcing and disclosure copy unchanged. `package.json` (and lockfile) name → `padua`; ETL user agent →
+  `padua-etl`. Kept on purpose: `etl/hcai_etl`, storage keys `hcai-selection-v1` / `hcai-tour-v1` (data-named; renaming
+  resets viewers' saved hospital and replays the tour).
+- **Logo:** `PaduaMark` (stroke thickens at small sizes) in the sidebar (30px), mobile header (22px), and proposal print
+  header. Favicons generated from it: `src/app/icon.svg` (light/dark aware), `favicon.ico`, `apple-icon.png` (the old
+  Next.js default favicon is gone).
+- **Placeholder to confirm:** the attribution line at the foot of the home page (`APP_ATTRIBUTION`). No copyright text.
+- **Outside this repo (for the owner):** the GitHub repo is now `domcesca/padua-by-prisma` (renamed by the owner; old
+  URLs redirect). Still to do there: the Vercel project name and its `usc-hcai-insights*.vercel.app` URLs, and the
+  repo's listed homepage. Nothing in the code depends on them.
+
 ## 3. Key decisions and why
 
 ### Peer groups: a proxy, not a PSA/SSA
@@ -217,7 +285,7 @@ The utilities are all in `src/app/globals.css`. **Reuse them; don't invent new o
 - **More HCAI datasets:** Quarterly Financial & Utilization and the complete Annual Disclosure set are planned but not started.
 
 ## 5. Deployment state (checked 2026-09-24)
-- **GitHub:** https://github.com/domcesca/usc-hcai-insights (public). `main` is pushed and in sync with `origin/main` at `b09ba3a`.
+- **GitHub:** https://github.com/domcesca/padua-by-prisma (public; renamed from `usc-hcai-insights` in V6.2, old URLs redirect). `main` is pushed and in sync with `origin/main` at `b09ba3a`.
 - **Vercel:** the project is connected through the GitHub integration, and pushes to `main` deploy to Production.
   - The latest deployment, for `b09ba3a`, succeeded: https://usc-hcai-insights-ahr9mluhr-dom-2e75.vercel.app.
   - **It is not publicly viewable.** Every `*.vercel.app` URL for the project redirects to Vercel SSO (Deployment Protection is on).

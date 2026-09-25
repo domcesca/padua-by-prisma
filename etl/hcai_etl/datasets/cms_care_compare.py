@@ -23,7 +23,6 @@ as "reported with" it rather than given a copy of the number.
 
 from __future__ import annotations
 
-import difflib
 import json
 import re
 import zipfile
@@ -32,7 +31,7 @@ from datetime import datetime
 import pandas as pd
 
 from ..core import PROCESSED_DIR, USER_AGENT, Dataset, Resource, clean_value, utc_now_iso, write_json
-from ..crosswalk import FacilityCrosswalk
+from ..crosswalk import FacilityCrosswalk, match_ccns
 from ..dictionary import cms_care_compare as dictionary
 
 import requests
@@ -278,59 +277,7 @@ class CmsCareCompare(Dataset):
         )
 
     def _match_ccns(self, ccns) -> tuple[dict[str, str], dict[str, dict], list[dict]]:
-        groups = self.crosswalk.ccn_groups()
-        facilities = self._app_facilities()
-        similarity = lambda a, b: difflib.SequenceMatcher(None, a.lower(), b.lower()).ratio()  # noqa: E731
-
-        def name_score(cms_name: str, hcai_id: str) -> float:
-            candidates = [facilities.get(hcai_id, {}).get("name", "")] + self.crosswalk.cdph_names(hcai_id)
-            return max(similarity(cms_name, n) for n in candidates if n)
-
-        ccn_to_hcai: dict[str, str] = {}
-        shared: dict[str, dict] = {}
-        for ccn in ccns:
-            ids = groups.get(ccn)
-            if not ids:
-                continue
-            main = ids[0] if len(ids) == 1 else max(ids, key=lambda i: name_score(str(self.cms_names.get(ccn, "")), i))
-            ccn_to_hcai[ccn] = main
-            for other in ids:
-                if other != main:
-                    shared[other] = {"ccn": ccn, "reportedWith": main, "reportedWithName": facilities[main]["name"]}
-
-        # Fallback for CCNs missing from CDPH's current listing (retired after an
-        # ownership change): same ZIP code and a close name.
-        taken = set(ccn_to_hcai.values()) | set(shared)
-        by_name: list[dict] = []
-        for ccn in ccns:
-            if ccn in ccn_to_hcai or ccn not in self.cms_zips:
-                continue
-            cms_name = str(self.cms_names.get(ccn, ""))
-            best, score = None, 0.0
-            for hcai_id, f in facilities.items():
-                if f.get("zip") != self.cms_zips[ccn]:
-                    continue
-                s = name_score(cms_name, hcai_id)
-                if s > score:
-                    best, score = hcai_id, s
-            if best and score >= 0.6:
-                ccn_to_hcai[ccn] = best
-                by_name.append({"ccn": ccn, "cmsName": cms_name, "hcaiId": best, "name": facilities[best]["name"], "score": round(score, 2), "alsoHasCcn": best in taken})
-        # A hospital that still reports under a CCN of its own isn't "reported with" anyone.
-        shared = {k: v for k, v in shared.items() if k not in set(ccn_to_hcai.values())}
-        return ccn_to_hcai, shared, by_name
-
-    @staticmethod
-    def _app_facilities() -> dict[str, dict]:
-        out: dict[str, dict] = {}
-        for dataset in ("hafd-selected", "hau"):
-            path = PROCESSED_DIR / dataset / "facilities.json"
-            for f in json.loads(path.read_text(encoding="utf-8")):
-                entry = out.setdefault(f["id"], {"name": f["name"], "zip": None})
-                entry["zip"] = entry["zip"] or (str(f.get("zip"))[:5] if f.get("zip") else None)
-                if dataset == "hau":
-                    entry["name"] = f["name"]
-        return out
+        return match_ccns(self.crosswalk, ccns, self.cms_names, self.cms_zips)
 
     @staticmethod
     def _app_names() -> dict[str, str]:

@@ -83,6 +83,7 @@ export function hrefWithSelection(href: string, selection: Selection | null) {
       break
     case "/deadlines":
     case "/correlate":
+    case "/propose":
       break
     default:
       return href

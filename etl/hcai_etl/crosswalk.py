@@ -16,6 +16,7 @@ license that the app has.
 
 from __future__ import annotations
 
+import difflib
 import json
 from dataclasses import dataclass, field
 
@@ -122,3 +123,68 @@ class FacilityCrosswalk:
                 if hcai:
                     out.setdefault(r.CCN, set()).add(hcai)
         return {ccn: sorted(ids) for ccn, ids in out.items()}
+
+
+def app_facilities() -> dict[str, dict]:
+    """HCAI facility number -> {name, zip} for every hospital the app knows."""
+    out: dict[str, dict] = {}
+    for dataset in ("hafd-selected", "hau"):
+        path = PROCESSED_DIR / dataset / "facilities.json"
+        for f in json.loads(path.read_text(encoding="utf-8")):
+            entry = out.setdefault(f["id"], {"name": f["name"], "zip": None})
+            entry["zip"] = entry["zip"] or (str(f.get("zip"))[:5] if f.get("zip") else None)
+            if dataset == "hau":
+                entry["name"] = f["name"]
+    return out
+
+
+def match_ccns(
+    crosswalk: FacilityCrosswalk, ccns, cms_names: dict[str, str], cms_zips: dict[str, str]
+) -> tuple[dict[str, str], dict[str, dict], list[dict]]:
+    """Map CMS CCNs onto app hospitals.
+
+    Returns (ccn -> HCAI id, hospitals reported under another's CCN, CCNs matched on ZIP + name).
+    Where one CCN covers several licensed hospitals, CMS's figures go to the one whose name
+    matches CMS's best; the others are "reported with" it.
+    """
+    groups = crosswalk.ccn_groups()
+    facilities = app_facilities()
+    similarity = lambda a, b: difflib.SequenceMatcher(None, a.lower(), b.lower()).ratio()  # noqa: E731
+
+    def name_score(cms_name: str, hcai_id: str) -> float:
+        candidates = [facilities.get(hcai_id, {}).get("name", "")] + crosswalk.cdph_names(hcai_id)
+        return max(similarity(cms_name, n) for n in candidates if n)
+
+    ccn_to_hcai: dict[str, str] = {}
+    shared: dict[str, dict] = {}
+    for ccn in ccns:
+        ids = groups.get(ccn)
+        if not ids:
+            continue
+        main = ids[0] if len(ids) == 1 else max(ids, key=lambda i: name_score(str(cms_names.get(ccn, "")), i))
+        ccn_to_hcai[ccn] = main
+        for other in ids:
+            if other != main:
+                shared[other] = {"ccn": ccn, "reportedWith": main, "reportedWithName": facilities[main]["name"]}
+
+    # Fallback for CCNs missing from CDPH's current listing (retired after an
+    # ownership change): same ZIP code and a close name.
+    taken = set(ccn_to_hcai.values()) | set(shared)
+    by_name: list[dict] = []
+    for ccn in ccns:
+        if ccn in ccn_to_hcai or ccn not in cms_zips:
+            continue
+        cms_name = str(cms_names.get(ccn, ""))
+        best, score = None, 0.0
+        for hcai_id, f in facilities.items():
+            if f.get("zip") != cms_zips[ccn]:
+                continue
+            s = name_score(cms_name, hcai_id)
+            if s > score:
+                best, score = hcai_id, s
+        if best and score >= 0.6:
+            ccn_to_hcai[ccn] = best
+            by_name.append({"ccn": ccn, "cmsName": cms_name, "hcaiId": best, "name": facilities[best]["name"], "score": round(score, 2), "alsoHasCcn": best in taken})
+    # A hospital that still reports under a CCN of its own isn't "reported with" anyone.
+    shared = {k: v for k, v in shared.items() if k not in set(ccn_to_hcai.values())}
+    return ccn_to_hcai, shared, by_name

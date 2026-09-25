@@ -4,6 +4,8 @@ from .acs_county import AcsCounty
 from .case_mix_index import CaseMixIndex
 from .cdph_hai import CdphHai
 from .cms_care_compare import CmsCareCompare
+from .cms_inpatient import CmsInpatient
+from .cms_ipps import CmsIpps
 from .dhcs_medi_cal import DhcsMediCal
 from .hafd_selected import HafdSelected
 from .hau import HospitalUtilization
@@ -19,6 +21,9 @@ REGISTRY = {
     # Non-HCAI sources, mapped onto HCAI facility numbers; build after the HCAI datasets.
     CdphHai.id: CdphHai,
     CmsCareCompare.id: CmsCareCompare,
+    CmsInpatient.id: CmsInpatient,
+    # Reference tables (not per-hospital): MS-DRG weights for Propose.
+    CmsIpps.id: CmsIpps,
     # County context (not hospital metrics).
     DhcsMediCal.id: DhcsMediCal,
     AcsCounty.id: AcsCounty,

@@ -5,7 +5,9 @@ import { usePathname } from "next/navigation"
 
 import { isActivePath, NAV_ITEMS } from "@/lib/nav"
 import { hrefWithSelection, useSelection } from "@/lib/selection"
+import { APP_FULL_NAME, APP_NAME } from "@/lib/brand"
 import { cn } from "@/lib/utils"
+import { PaduaMark } from "./padua-mark"
 import { ThemeToggle } from "./theme-toggle"
 
 export function Sidebar() {
@@ -13,14 +15,18 @@ export function Sidebar() {
   const selection = useSelection()
 
   return (
-    <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar backdrop-blur-2xl backdrop-saturate-150 md:flex">
+    <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar backdrop-blur-2xl backdrop-saturate-150 md:flex print:hidden">
       <div className="px-5 pt-6 pb-5">
         <Link
           href="/"
-          className="block rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          aria-label={`${APP_FULL_NAME}: home`}
+          className="flex items-center gap-2.5 rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
         >
-          <p className="text-[15px] font-semibold tracking-tight">HCAI Insights</p>
-          <p className="text-xs text-muted-foreground">California hospital data, made usable</p>
+          <PaduaMark size={30} />
+          <span>
+            <span className="block text-[17px] leading-tight font-semibold tracking-tight">{APP_NAME}</span>
+            <span className="block text-xs text-muted-foreground">{APP_FULL_NAME}</span>
+          </span>
         </Link>
       </div>
 

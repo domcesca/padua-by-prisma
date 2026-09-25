@@ -1,8 +1,9 @@
-# HCAI Insights
+# Padua by Prisma
 
-A web app for California hospital administrators that turns HCAI's public hospital financial and utilization data
+**Padua** is a web app from Prisma Executive for California hospital administrators. It is an independent tool, not
+an HCAI, CMS, CDPH, or DHCS product. It turns HCAI's public hospital financial and utilization data
 into something usable: a guided front door, peer benchmarking against similar hospitals, a chart and table builder, a
-plain-language field guide, and a reporting calendar.
+business-case builder for new initiatives, a plain-language field guide, and a reporting calendar.
 
 | Tab | What it does |
 | --- | --- |
@@ -10,8 +11,9 @@ plain-language field guide, and a reporting calendar.
 | **Benchmark** | A hospital against its peer group on financial metrics (operating margin, days cash on hand, cost and revenue per adjusted discharge, payer mix) utilization metrics (occupancy, ALOS, ED visits and flow, surgeries, cath volume), or quality (CMS readmissions, mortality, patient experience, star ratings; CDPH infection ratios). A collapsible panel shows the county's Census and Medi-Cal context. Default peers are **similar hospitals** (see below); switch to all of California or set filters yourself. A **Payer view** toggle (All payers / Medicare) narrows the metrics to Medicare where HCAI reports a Medicare split. Every view is a shareable URL. |
 | **Build** | A guided chart and table builder: up to four metrics from the catalog, line / bar / table, grouped by year, by hospital, or against the peer group. Legend, table view, CSV download, and a copyable link on every result. |
 | **Correlate** | Any two catalog metrics (Financial, Utilization, Quality, Medicare lens) plotted against each other across a hospital's similar hospitals or all of California for one year: scatter, least-squares trend line, Pearson r, and Spearman rank ρ (robust to outliers). Fewer than 8 hospitals gets "Small sample size — interpret with caution"; fewer than 3, no r. Pairing years of different kinds (fiscal vs. calendar vs. CMS periods) is called out. Table view, CSV, shareable link. |
+| **Propose** | The financial case for a new technology, service, or piece of equipment. Enter capital, implementation, and yearly running costs and a useful life; pick how the benefit is estimated (**Reimbursement**: MS-DRGs × added cases × a national Medicare payment estimate, with the hospital's own Medicare cases and its peers' as context; or **Custom**: your own benefit lines). Payback, ROI, NPV, amortized and cumulative net for Conservative / Expected / Optimistic side by side (70% / 100% / 130% of the estimated benefit by default; each rate is editable), a cumulative chart, a year-by-year table, and a print-to-PDF layout. The proposal lives in the link; nothing is saved. |
 | **Translate** | Every field in either dataset in plain language, with why it moves. Pick a hospital to see year-over-year changes, or paste/upload a raw HCAI extract (.xlsx/.csv, including the utilization workbook) to translate its columns. Parsing happens in the browser. |
-| **Deadlines** | Quarterly and annual financial report due dates for a hospital's fiscal year, the Annual Utilization Report (Feb 15), extension limits, off-cycle report periods, and filed/extended tracking (saved in the browser). |
+| **Deadlines** | (Desktop sidebar and the home page; not in the phone tab bar.) Quarterly and annual financial report due dates for a hospital's fiscal year, the Annual Utilization Report (Feb 15), extension limits, off-cycle report periods, and filed/extended tracking (saved in the browser). |
 | **Ask** / **Watch** | Placeholders for natural-language queries and anomaly detection on uploaded data. |
 | **Help (?)** | On every page (bottom corner, or press <kbd>?</kbd>): a search-as-you-type glossary of every metric and HCAI field, read from the same dictionaries as Translate. A lookup, not a chat. Also replays the tour. |
 
@@ -26,6 +28,7 @@ Data, calendar/report years 2019–2024:
 - [CMS Care Compare – Hospitals](https://data.cms.gov/provider-data/topics/hospitals) (archived snapshots, 2019–2026)
 - [CDPH Healthcare-Associated Infections](https://www.cdph.ca.gov/Programs/CHCQ/HAI/Pages/HAIreport.aspx) (CLABSI, C. diff, MRSA, VRE; 2019–2025)
 - [DHCS Medi-Cal Certified Eligibles by month](https://data.chhs.ca.gov/dataset/medi-cal-certified-eligibles-with-demographics-by-month) and the [Census ACS 5-year API](https://www.census.gov/data/developers/data-sets/acs-5year.html) (county context)
+- [CMS IPPS Final Rule](https://www.cms.gov/medicare/payment/prospective-payment-systems/acute-inpatient-pps) Table 5 (MS-DRG relative weights) and Tables 1A–1E (standardized amount), FY 2027, and [Medicare Inpatient Hospitals by Provider and Service](https://data.cms.gov/provider-summary-by-type-of-service/medicare-inpatient-hospitals/medicare-inpatient-hospitals-by-provider-and-service) (Medicare cases per DRG, 2024), for Propose
 - [CDPH Licensed and Certified Healthcare Facility Listing](https://data.chhs.ca.gov/dataset/healthcare-facility-locations) and [crosswalk](https://data.chhs.ca.gov/dataset/licensed-facility-crosswalk) (to match CMS and CDPH IDs to HCAI)
 
 ## Running locally
@@ -178,6 +181,47 @@ used (they cover traditional Medicare only, by calendar year, and need a CCN cro
   fiscal-year and include long-term care units. Cards say so.
 - Medicare Advantage share (MA discharges ÷ all Medicare discharges) is available under the Medicare view and in Build.
 
+## Propose (business cases)
+
+`/propose` builds the case for a new initiative. The **core engine** (`src/lib/propose/engine.ts`, pure functions) is
+the same for every proposal: year 0 is capital + implementation; years 1..life each get the full annual benefit minus
+maintenance (no ramp-up, inflation, or taxes). It returns payback (fractional years, from cumulative cash), simple ROI
+((total benefit − total cost) ÷ total cost over the life), NPV at the entered discount rate, and straight-line
+amortized net. Scenarios multiply the module's annual benefit by an editable rate per scenario (default 70% / 100% /
+130%, in the link as `scen=70,100,130` when changed); costs are unchanged. A Conservative rate above Optimistic gets a
+non-blocking note, nothing more.
+
+**Benefit modules are plug-ins.** Each is a `ProposalModule` (`src/lib/propose/module.ts`): its inputs, how they go
+in the URL, its benefit calculation, and its editor. Register it in `src/components/propose/modules/index.ts`; if it
+needs server data, add a loader to `src/lib/propose/module-data.ts` (served at `/api/propose/<id>?facility=`). The
+engine and page don't change.
+
+- **Reimbursement**: estimated payment per case = FY MS-DRG relative weight (Table 5, the 10%-capped column CMS pays
+  on) × the national operating standardized amount (Table 1A labor + non-labor, full update: $6,848.98 for FY 2027).
+  It is labeled everywhere as a **national Medicare estimate, not the hospital's actual reimbursement**: wage index,
+  DSH/IME, outliers, transfers, capital (≈ weight × $540), and other payers aren't applied. Added volume is entered as
+  cases a year, or as a % of the hospital's own 2024 Medicare fee-for-service cases for that DRG (from CMS's
+  by-provider-and-service file; CMS hides counts under 11). The hospital's Benchmark peer group's median for each DRG
+  is shown as context. An optional "cost of caring for the added patients" (% of payment) turns revenue into margin;
+  at 0 the result counts revenue, and the page says so.
+- **Finding DRGs** (for people who don't speak billing): a **Body system** filter (CMS's Major Diagnostic Category,
+  from Table 5) narrows the picker, and search matches DRG code, title, body system, and **plain-language terms** from
+  `src/lib/propose/drg-search-terms.ts`: "aneurysm" → intracranial vascular procedures, "tavr" → endovascular valve
+  replacement, "robotic" → the inpatient DRGs where robotic approaches are common. Each entry lists the DRGs its terms
+  mean directly (`drgs`, ranked first) and ones they touch (`related`). Adding terms means editing that file only; the
+  server logs any code that isn't in the current Table 5 or any range that crosses body systems. A search with no
+  inpatient DRG (MRI, CT, outpatient) explains why and points to the Custom module.
+- **Custom**: named lines, each quantity × rate or a flat amount a year. No data.
+
+No persistence by design (no accounts): the whole proposal, including every module's inputs, is in the URL, so
+reloading keeps it and the link can be shared. "Print or save PDF" uses the browser; print styles
+(`@media print` in `globals.css`) force the light palette, flatten the glass, and hide the app chrome and inputs.
+
+ETL: `cms-ipps` (scrapes CMS's IPPS page for the newest final rule and downloads its Table 5 and Tables 1A–1E zips;
+`--years 2026` picks another FY; checks that 1A and 1B agree) and `cms-inpatient` (the data.cms.gov catalog's newest
+CSV; CCNs mapped like Care Compare through the shared `crosswalk.match_ccns`). Needs www.cms.gov and data.cms.gov
+reachable.
+
 ## Similar hospitals (the default peer group)
 
 Same type of care, same county, same bed-size band (under 100 / 100–299 / 300+), and same ownership group (nonprofit,
@@ -202,8 +246,9 @@ src/lib/report/        ReportSpec (spec.ts) and its runner (run.ts) for the Buil
 src/lib/deadlines/     HCAI filing rules with citations
 src/lib/selection.ts   the remembered hospital + topic (browser storage, per viewer)
 src/lib/glossary.ts    the help panel's glossary, built from the dataset dictionaries (no second copy)
+src/lib/propose/       Propose: the financial engine, the module contract, URL state, module data loaders
 src/app/api/           /api/benchmark, /api/peers, /api/report, /api/correlate, /api/glossary,
-                       /api/facilities/[id]/fields
+                       /api/propose/[module], /api/facilities/[id]/fields
 src/app/<tab>/         one route per tab; / is the guided home page
 ```
 
@@ -233,6 +278,18 @@ Apple-style restraint with a "Liquid Glass" layer (utilities in `src/app/globals
 - Long lists (metrics, units, counties) all use one picker, `GroupedPicker` / `PickerPill`
   (`src/components/shell/grouped-picker.tsx`): a search box over groups that stay collapsed until opened. Short fixed
   lists (years, distance, bed size) use `FilterPill`.
+
+## Brand
+
+The name lives in `src/lib/brand.ts` (`APP_NAME` "Padua" for the nav wordmark, `APP_FULL_NAME` "Padua by Prisma" for
+the page title, printouts, and the nav subline). The mark is `src/components/shell/padua-mark.tsx`: a thin-line SVG in
+`currentColor` that thickens its stroke below ~64px. Favicons in `src/app/`: `icon.svg` (switches stroke color with the
+browser's light/dark setting), plus `favicon.ico` (16/32/48) and `apple-icon.png` (180) on a dark tile. The home page's
+attribution line (`APP_ATTRIBUTION`) is placeholder wording awaiting confirmation.
+
+Internal names that still say "hcai" refer to the **data**, not the product, and are kept on purpose: the `etl/hcai_etl`
+package, and the browser-storage keys `hcai-selection-v1` / `hcai-tour-v1` (renaming them would forget every viewer's
+chosen hospital and replay the tour).
 
 ## Deploying (Vercel)
 

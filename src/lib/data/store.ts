@@ -270,3 +270,37 @@ export async function getCommunityContext(county: string | null): Promise<Commun
     mediCal: m && fullYear != null ? { ...m.latest, year: fullYear, annual: m.years[fullYear] ?? null } : null,
   }
 }
+
+// -- Propose: CMS reference data (not hospital metrics) ------------------------
+
+export type IppsDrg = {
+  code: string
+  title: string
+  weight: number
+  type: "MED" | "SURG" | null
+  mdc: string | null
+  gmlos: number | null
+  amlos: number | null
+  postAcute: boolean
+  specialPay: boolean
+}
+
+export type IppsManifest = {
+  fiscalYear: number
+  effective: string
+  sourcePage: string
+  standardizedAmount: { total: number; laborRelated: number; nonlaborRelated: number; update: number | null; basis: string }
+  capitalRate: number
+}
+
+export type InpatientCasesManifest = { years: number[]; sourcePage: string; sharedReporting: Record<string, { reportedWith: string; reportedWithName: string }> }
+
+const loadReference = <T>(dir: string, file: string) =>
+  memo(`${dir}/${file}`, () => readFile(path.join(PROCESSED_DIR, dir, file), "utf8").then((text) => JSON.parse(text) as T))
+
+/** MS-DRGs with relative weights, from the latest IPPS Final Rule (Table 5). */
+export const getIppsDrgs = () => loadReference<IppsDrg[]>("cms-ipps", "drgs.json")
+export const getIppsManifest = () => loadReference<IppsManifest>("cms-ipps", "manifest.json")
+/** Medicare fee-for-service cases per hospital, year, and MS-DRG (11+ cases only). */
+export const getInpatientCases = () => loadReference<Record<string, Record<string, Record<string, number>>>>("cms-inpatient", "cases.json")
+export const getInpatientCasesManifest = () => loadReference<InpatientCasesManifest>("cms-inpatient", "manifest.json")

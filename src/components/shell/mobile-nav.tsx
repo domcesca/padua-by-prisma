@@ -5,30 +5,33 @@ import { usePathname } from "next/navigation"
 
 import { isActivePath, NAV_ITEMS } from "@/lib/nav"
 import { hrefWithSelection, useSelection } from "@/lib/selection"
+import { APP_FULL_NAME, APP_NAME } from "@/lib/brand"
 import { cn } from "@/lib/utils"
+import { PaduaMark } from "./padua-mark"
 import { ThemeToggle } from "./theme-toggle"
 
 /** Compact title bar shown above the content on small screens. */
 export function MobileHeader() {
   return (
-    <header className="sticky top-0 z-30 flex h-12 items-center justify-between border-b border-sidebar-border bg-sidebar px-4 backdrop-blur-2xl backdrop-saturate-150 md:hidden">
-      <Link href="/" className="text-[15px] font-semibold tracking-tight">
-        HCAI Insights
+    <header className="sticky top-0 z-30 flex h-12 items-center justify-between border-b border-sidebar-border bg-sidebar px-4 backdrop-blur-2xl backdrop-saturate-150 md:hidden print:hidden">
+      <Link href="/" aria-label={`${APP_FULL_NAME}: home`} className="flex items-center gap-2 text-[16px] font-semibold tracking-tight">
+        <PaduaMark size={22} />
+        {APP_NAME}
       </Link>
       <ThemeToggle />
     </header>
   )
 }
 
-/** iOS-style bottom tab bar; "coming soon" sections are left to the desktop sidebar. */
+/** iOS-style bottom tab bar; "coming soon" and desktop-only sections are left to the desktop sidebar. */
 export function MobileTabBar() {
   const pathname = usePathname()
   const selection = useSelection()
-  const items = NAV_ITEMS.filter((i) => !i.soon)
+  const items = NAV_ITEMS.filter((i) => !i.soon && !i.desktopOnly)
   return (
     <nav
       aria-label="Sections"
-      className="fixed inset-x-0 bottom-0 z-30 border-t border-sidebar-border bg-sidebar pb-[env(safe-area-inset-bottom)] backdrop-blur-2xl backdrop-saturate-150 md:hidden"
+      className="fixed inset-x-0 bottom-0 z-30 border-t border-sidebar-border bg-sidebar pb-[env(safe-area-inset-bottom)] backdrop-blur-2xl backdrop-saturate-150 md:hidden print:hidden"
     >
       <ul className="grid" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
         {items.map(({ href, label, icon: Icon }) => {
