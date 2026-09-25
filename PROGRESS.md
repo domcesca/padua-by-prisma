@@ -250,6 +250,17 @@ downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and
   links open as Finance; new proposals start on Board. Sections toggle and reorder for print only (CSS `order` in a
   print-only flex column); disclosures can't be turned off.
 
+### V6.8 (Propose: Advanced mode)
+- Payer mix (reimbursement modules), ramp-up (all modules; penalties keep CMS timing but it can be moved), escalation
+  (benefit and running costs). Off by default and inert at defaults.
+- **Engine:** one additive change, optional per-year benefit/cost factors, needed for ramp-up and escalation. Default
+  path verified identical to the old engine on 1.2M randomized comparisons (worst difference 7.5e-11, float order).
+  Payback generalized to "after the last year cumulative cash is negative", which equals the old rule for flat years.
+- **Not split:** the ramp generalization didn't need the penalty logic reworked. Penalties keep their own phase-in
+  (averaged, as approved in V6.5); Advanced only lets the proposer move its years.
+- **Verified:** rendered results match `main` for all five modules with Advanced off, including links holding advanced
+  settings; payer mix, ramp, escalation, and penalty timing checked numerically.
+
 ## 3. Key decisions and why
 
 ### Peer groups: a proxy, not a PSA/SSA

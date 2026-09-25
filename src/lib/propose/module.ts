@@ -31,12 +31,16 @@ export type ModuleContext = {
   facilityName: string | null
   /** Useful life in years, from the cost inputs. */
   life: number
+  /** Advanced mode is on: show advanced-only inputs. */
+  advanced: boolean
 }
 
 /** What a module's benefit may depend on besides its own inputs. */
 export type BenefitContext = {
   /** Useful life in years, from the cost inputs: for benefits that phase in, averaged over it. */
   life: number
+  /** Advanced mode is on: apply advanced-only inputs (off: ignore them, whatever they hold). */
+  advanced: boolean
 }
 
 export type ModuleEditorProps<State, Data> = {
@@ -60,6 +64,10 @@ export type ProposalModule<State = unknown, Data = unknown> = {
   toParams: (state: State) => Record<string, string>
   fromParams: (params: URLSearchParams) => State
   benefit: (state: State, data: Data | null, context: BenefitContext) => Benefit
+  /** Advanced mode's payer-mix weighting applies (reimbursement modules: their estimate is a Medicare rate). */
+  payerMix?: boolean
+  /** The module phases its benefit in itself, so Advanced mode's generic ramp-up doesn't apply. */
+  ownTiming?: boolean
   Editor: ComponentType<ModuleEditorProps<State, Data>>
 }
 

@@ -305,6 +305,7 @@ function MethodInfo({ data }: { data: ReimbursementData }) {
 export const reimbursementModule = defineModule<State, ReimbursementData>({
   id: "reimbursement",
   label: "Inpatient reimbursement",
+  payerMix: true,
   summary: "New technology or service that adds inpatient cases, valued by MS-DRG.",
   icon: Receipt,
   hasData: true,
