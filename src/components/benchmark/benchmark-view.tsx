@@ -249,11 +249,7 @@ export function BenchmarkView({
                           quality ? DATASETS[meta.dataset].shortLabel : null,
                           meta.estimate ? "Estimate" : null,
                           !quality && view.payer !== "all" && !meta.lens ? "All payers" : null,
-                          primaryDataset && meta.dataset !== primaryDataset
-                            ? meta.dataset === "hau"
-                              ? "Calendar years"
-                              : "Fiscal years"
-                            : null,
+                          primaryDataset && meta.dataset !== primaryDataset ? DATASETS[meta.dataset].yearTag : null,
                         ].filter((t): t is string => t != null)}
                       />
                     )
@@ -274,6 +270,7 @@ export function BenchmarkView({
 
 function FacilitySummary({ result, lastYear }: { result: BenchmarkResult; lastYear: number }) {
   const f = result.facility
+  const snapshot = result.snapshot
   const facts = [
     f.city && f.county ? `${f.city}, ${f.county} County` : f.county,
     OWNERSHIP_LABEL[f.ownership],
@@ -327,7 +324,7 @@ function FacilitySummary({ result, lastYear }: { result: BenchmarkResult; lastYe
             {f.hospitalType === "Kaiser" && " Kaiser hospitals report financials differently from other hospitals."}
           </p>
         )}
-        <dl className="mt-auto grid grid-cols-3 gap-3 border-t border-black/6 pt-3 dark:border-white/8">
+        <dl className="mt-auto grid grid-cols-3 gap-x-3 gap-y-3.5 border-t border-black/6 pt-3 dark:border-white/8">
           <Stat label="Licensed beds" value={f.licensedBeds != null ? f.licensedBeds.toLocaleString("en-US") : "—"} />
           <Stat
             label="Fiscal year ends"
@@ -340,6 +337,21 @@ function FacilitySummary({ result, lastYear }: { result: BenchmarkResult; lastYe
           <Stat
             label={{ financial: "Financial data", utilization: "Utilization data", quality: "Quality data" }[result.category]}
             value={yearRange(dataYears) ?? "None"}
+          />
+          <Stat
+            label="Length of stay"
+            value={snapshot.alos ? `${snapshot.alos.value.toFixed(1)} days` : "—"}
+            sub={snapshot.alos ? `Acute · ${snapshot.alos.year}` : undefined}
+          />
+          <Stat
+            label="Avg. daily census"
+            value={snapshot.adc ? Math.round(snapshot.adc.value).toLocaleString("en-US") : "—"}
+            sub={snapshot.adc ? `Acute · ${snapshot.adc.year}` : undefined}
+          />
+          <Stat
+            label="Case mix index"
+            value={snapshot.caseMixIndex ? snapshot.caseMixIndex.value.toFixed(2) : "—"}
+            sub={snapshot.caseMixIndex ? `FFY ${snapshot.caseMixIndex.year}` : undefined}
           />
         </dl>
       </section>
@@ -359,11 +371,12 @@ function FacilitySummary({ result, lastYear }: { result: BenchmarkResult; lastYe
   )
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <div className="min-w-0">
       <dt className="truncate text-[11px] text-tertiary-foreground">{label}</dt>
       <dd className="num truncate text-[15px] font-semibold tracking-tight">{value}</dd>
+      {sub && <dd className="truncate text-[11px] text-tertiary-foreground">{sub}</dd>}
     </div>
   )
 }

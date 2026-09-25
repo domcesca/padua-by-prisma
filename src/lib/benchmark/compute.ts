@@ -2,7 +2,7 @@ import "server-only"
 
 import { applyPayerView, CATEGORY_BY_ID, type MetricDef, type PayerView } from "@/lib/data/datasets"
 import { getCommunityContext, getFacilities, getManifest, getMetricCatalog, getMetrics, getPublishedYears } from "@/lib/data/store"
-import type { CommunityContext, Facility, MetricCategory, MetricsFile, PayerGroup, PayerMix, PointDetail } from "@/lib/data/types"
+import type { CommunityContext, DatasetId, Facility, MetricCategory, MetricsFile, PayerGroup, PayerMix, PointDetail } from "@/lib/data/types"
 import type { PeerFilters } from "./filters"
 import { milesBetween, resolvePeerGroup } from "./peers"
 
@@ -30,6 +30,9 @@ export type PayerMixComparison = {
   days: { facility: PayerMix | null; peers: PayerMix | null; n: number }
 }
 
+/** The hospital's latest value of a headline metric, for the summary card. */
+export type Snapshot = { value: number; year: number } | null
+
 export type PeerSummary = { id: string; name: string; county: string | null; beds: number | null; distance?: number | null }
 
 export type BenchmarkResult = {
@@ -44,6 +47,8 @@ export type BenchmarkResult = {
   peers: PeerSummary[]
   /** metric id -> one point per year of that metric's dataset (companions included). */
   series: Record<string, SeriesPoint[]>
+  /** Latest acute length of stay, average daily census, and case mix index, whatever the topic. */
+  snapshot: { alos: Snapshot; adc: Snapshot; caseMixIndex: Snapshot }
   /** The hospital's county: Census demographics and Medi-Cal enrollment. Context, not a benchmark. */
   community: CommunityContext | null
   /** Caveats about this hospital's data in this category (e.g. reported together with another hospital). */
@@ -173,6 +178,11 @@ export async function computeBenchmark({
     metrics: metrics.map((m) => m.id),
     notes: category === "quality" ? await qualityNotes(facility.id) : [],
     community: await getCommunityContext(facility.county),
+    snapshot: {
+      alos: await latestValue("hau", "alos", facility.id),
+      adc: await latestValue("hau", "adc", facility.id),
+      caseMixIndex: await latestValue("case-mix-index", "caseMixIndex", facility.id),
+    },
     filters: group.filters,
     peerGroup: { description: group.description, note: group.note },
     peers: peers
@@ -184,6 +194,16 @@ export async function computeBenchmark({
     series,
     payerMix: category === "financial" ? await payerMix(facility.id, peerIds) : null,
   }
+}
+
+async function latestValue(dataset: DatasetId, key: string, facilityId: string): Promise<Snapshot> {
+  const file = await getMetrics(dataset)
+  const years = Object.keys(file[facilityId] ?? {}).map(Number).sort((a, b) => b - a)
+  for (const year of years) {
+    const value = metricValue(file, facilityId, year, key)
+    if (value != null) return { value, year }
+  }
+  return null
 }
 
 /** Hospitals whose CMS measures are published under another hospital's Medicare number. */
