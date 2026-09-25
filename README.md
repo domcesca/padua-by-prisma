@@ -267,6 +267,23 @@ assumptions, and up/down order. The screen always shows everything; only print c
 text always print. In the link as `out=board|finance|<sections in order>`; links from before this (a proposal with no
 `out`) open as Finance, so what they printed doesn't change; new proposals start on Board.
 
+**Advanced mode** (`src/lib/propose/advanced.ts`, `advanced-panel.tsx`): a switch under Costs, off by default. Off, or on
+with every field at its default, results are identical to the basic model (checked against `main` on the rendered
+results of every module, including links that carry advanced settings while it's off). On, three folded sections:
+- **Payer mix** (inpatient and outpatient reimbursement only; `payerMix: true` on the module): share and a "pays vs
+  Medicare" multiplier per payer (Medicare, Medi-Cal, Commercial, Other and self-pay). Medicare is 1.00 by definition;
+  the others are blank until the proposer enters them (no invented contract rates). "Use this hospital's payer mix"
+  fills the shares from HCAI (gross charges). The estimate is multiplied by Σ share × multiplier (shares scaled to
+  100%), shown as a "Payer mix adjustment (advanced)" line so the lines still add up.
+- **Ramp-up**: straight line from "starts in year" to "full from year" (default 1 → 1). Avoided penalties
+  (`ownTiming: true`) keeps its CMS scoring-window phase-in; in Advanced mode its editor gets "Phase-in timing" per
+  program, and setting years other than CMS's switches that program to a straight line.
+- **Escalation**: benefit and running-cost growth, % a year, compounding from year 2; the up-front cost isn't escalated.
+Ramp-up and escalation reach the engine as optional per-year factors (`YearFactors`); without them the engine's math is
+the original (checked on 1.2M random inputs). With them, "benefit a year" and "net a year" on the cards read "avg".
+In the link: `adv=1`, `pm=`, `ramp=`, `esc=`, and the penalty module's `ptime=`; kept when Advanced is off, applied only
+when on.
+
 No persistence by design (no accounts): the whole proposal, including every module's inputs, is in the URL, so
 reloading keeps it and the link can be shared. "Print or save PDF" uses the browser; print styles
 (`@media print` in `globals.css`) force the light palette, flatten the glass, and hide the app chrome and inputs.

@@ -19,12 +19,14 @@ import {
   type ScenarioId,
   type ScenarioRates,
 } from "@/lib/propose/engine"
+import { missingText, payerBlend, rampActive, yearFactors, type AdvancedSettings } from "@/lib/propose/advanced"
 import { suggestModule } from "@/lib/propose/intake"
-import type { ProposalModule } from "@/lib/propose/module"
+import type { Benefit, ProposalModule } from "@/lib/propose/module"
 import { matchingPreset, PRESETS, type SectionId } from "@/lib/propose/output"
 import { parseProposalSpec, proposalSpecToParams, type ProposalSpec } from "@/lib/propose/spec"
 import { rememberSelection, useSelection } from "@/lib/selection"
 import { cn } from "@/lib/utils"
+import { AdvancedPanel } from "./advanced-panel"
 import { CumulativeChart, SCENARIO_COLOR } from "./cumulative-chart"
 import { ModuleIntake } from "./module-intake"
 import { MODULE_IDS, MODULES } from "./modules"
@@ -114,8 +116,11 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
   const pickModule = (id: string) => update({ module: id, manualModule: id !== suggestion?.module })
   const setCost = (key: keyof CostInputs, value: number) => setSpec({ ...spec, costs: { ...spec.costs, [key]: value } })
 
-  const benefit = mod.benefit(state, moduleData, { life: spec.costs.life })
-  const projections = projectAll(benefit.annual, spec.costs, spec.rates)
+  const adv = spec.advanced
+  const benefit = withPayerMix(mod.benefit(state, moduleData, { life: spec.costs.life, advanced: adv.on }), mod, adv)
+  const factors = yearFactors(adv, spec.costs.life, !!mod.ownTiming)
+  const projections = projectAll(benefit.annual, spec.costs, spec.rates, factors)
+  const advancedNotes = advancedNotesFor(adv, mod)
   const focused = projections.find((p) => p.scenario === focus)!
   const hasCost = spec.costs.capital + spec.costs.implementation + spec.costs.maintenance > 0
   const ready = !benefit.incomplete && hasCost
@@ -207,7 +212,7 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
               state={state}
               onChange={(next) => setStates((s) => ({ ...s, [mod.id]: next }))}
               data={moduleData}
-              context={{ facilityId: facility?.id ?? null, facilityName: facility?.name ?? null, life: spec.costs.life }}
+              context={{ facilityId: facility?.id ?? null, facilityName: facility?.name ?? null, life: spec.costs.life, advanced: adv.on }}
             />
           )}
         </section>
@@ -237,6 +242,8 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
           </div>
         </section>
       </div>
+
+      <AdvancedPanel value={adv} onChange={(advanced) => update({ advanced })} module={mod} facilityId={spec.facilityId} />
 
       <section aria-labelledby="results-title" className="space-y-4">
         <header className="flex flex-wrap items-end justify-between gap-3">
@@ -312,7 +319,15 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
 
         <div {...printSlot("scenarios")} className={cn("grid gap-3 md:grid-cols-3 print:grid-cols-3", printSlot("scenarios").className)}>
           {projections.map((p) => (
-            <ScenarioCard key={p.scenario} p={p} life={spec.costs.life} blank={!benefit.annual && !hasCost} focused={p.scenario === focus} onFocus={() => setFocus(p.scenario)} />
+            <ScenarioCard
+              key={p.scenario}
+              p={p}
+              life={spec.costs.life}
+              averaged={!!factors}
+              blank={!benefit.annual && !hasCost}
+              focused={p.scenario === focus}
+              onFocus={() => setFocus(p.scenario)}
+            />
           ))}
         </div>
 
@@ -370,19 +385,19 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
             <h3 id="inputs-title" className="mb-3 text-[15px] font-semibold tracking-tight">
               What went in
             </h3>
-            <Inputs costs={spec.costs} rates={spec.rates} lines={benefit.lines} annual={benefit.annual} />
+            <Inputs costs={spec.costs} rates={spec.rates} lines={benefit.lines} annual={benefit.annual} advanced={advancedRows(adv, mod)} />
           </section>
         </div>
 
         {/* The board summary's short assumptions box: printout only (the screen always has the full list). */}
         {keyAssumptions && (
           <section style={assumptions.style} className={cn("hidden print:block print:break-inside-avoid", assumptions.className)} aria-label="Key assumptions">
-            <KeyAssumptions costs={spec.costs} rates={spec.rates} annual={benefit.annual} moduleLabel={mod.label} />
+            <KeyAssumptions costs={spec.costs} rates={spec.rates} annual={benefit.annual} moduleLabel={mod.label} advanced={advancedRows(adv, mod)} />
           </section>
         )}
 
         <div className="space-y-1.5 text-xs leading-relaxed text-tertiary-foreground print:order-last">
-          {benefit.notes.map((n) => (
+          {[...benefit.notes, ...advancedNotes].map((n) => (
             <p key={n}>{n}</p>
           ))}
           <p>
@@ -402,18 +417,60 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
   )
 }
 
+// -- Advanced mode ----------------------------------------------------------------------------------------------------
+
+/** Payer-mix weighting for reimbursement modules: one more benefit line, so the lines still add up to the total. */
+function withPayerMix(benefit: Benefit, mod: ProposalModule, adv: AdvancedSettings): Benefit {
+  const blend = adv.on && mod.payerMix ? payerBlend(adv.payerMix) : null
+  if (!blend || !benefit.annual) return benefit
+  if (blend.missing.length)
+    return { ...benefit, incomplete: benefit.incomplete ?? `Advanced payer mix: enter what ${missingText(blend.missing)} vs Medicare.` }
+  return {
+    ...benefit,
+    annual: benefit.annual * blend.factor,
+    lines: [...benefit.lines, { label: "Payer mix adjustment (advanced)", detail: `× ${blend.factor.toFixed(3)} blended: ${blend.detail}`, amount: benefit.annual * (blend.factor - 1) }],
+  }
+}
+
+function advancedNotesFor(adv: AdvancedSettings, mod: ProposalModule) {
+  if (!adv.on) return []
+  const notes: string[] = []
+  const blend = mod.payerMix ? payerBlend(adv.payerMix) : null
+  if (blend && !blend.missing.length)
+    notes.push(`Advanced: payer mix applied to the national Medicare estimate (blended × ${blend.factor.toFixed(3)}). Shares and rate multipliers are the proposer’s assumptions, not published rates.`)
+  if (!mod.ownTiming && rampActive(adv))
+    notes.push(`Advanced: the benefit ramps up straight-line from year ${adv.ramp.start} to full in year ${adv.ramp.full} (proposer’s assumption).`)
+  if (adv.escalation.benefit || adv.escalation.cost)
+    notes.push(`Advanced: benefits change ${adv.escalation.benefit}% and running costs ${adv.escalation.cost}% a year, compounding from year 2 (proposer’s assumption); card figures marked “avg” are averages over the useful life.`)
+  return notes
+}
+
+/** Advanced settings in force, for "What went in" and the key-assumptions box. */
+function advancedRows(adv: AdvancedSettings, mod: ProposalModule): [string, string][] {
+  if (!adv.on) return []
+  const rows: [string, string][] = []
+  const blend = mod.payerMix ? payerBlend(adv.payerMix) : null
+  if (blend && !blend.missing.length) rows.push(["Payer mix", `× ${blend.factor.toFixed(3)} blended`])
+  if (!mod.ownTiming && rampActive(adv)) rows.push(["Ramp-up", `Year ${adv.ramp.start} → full in year ${adv.ramp.full}`])
+  if (adv.escalation.benefit || adv.escalation.cost) rows.push(["Escalation", `Benefit ${adv.escalation.benefit}% · costs ${adv.escalation.cost}% a year`])
+  return rows
+}
+
 /** A scenario multiplier as a percent: 0.7 → "70%". */
 const formatRate = (multiplier: number) => `${Number((multiplier * 100).toFixed(1))}%`
 
 function ScenarioCard({
   p,
   life,
+  averaged,
   blank,
   focused,
   onFocus,
 }: {
   p: Projection
   life: number
+  /** Benefits or costs vary by year (Advanced), so the per-year stats are averages. */
+  averaged: boolean
   /** Nothing entered yet: no payback to speak of. */
   blank: boolean
   focused: boolean
@@ -442,8 +499,8 @@ function ScenarioCard({
       <dl className="num grid grid-cols-2 gap-x-3 gap-y-1.5 text-[13px]">
         <Stat label="ROI" value={p.roi == null ? "—" : formatPercent(p.roi, 0)} tone={p.roi} />
         <Stat label="NPV" value={formatUsd(p.npv, { compact: true })} tone={p.npv} />
-        <Stat label="Benefit a year" value={formatUsd(p.annualBenefit, { compact: true })} />
-        <Stat label="Net a year" value={formatUsd(p.annualNet, { compact: true })} tone={p.annualNet} />
+        <Stat label={averaged ? "Avg benefit a year" : "Benefit a year"} value={formatUsd(p.annualBenefit, { compact: true })} />
+        <Stat label={averaged ? "Avg net a year" : "Net a year"} value={formatUsd(p.annualNet, { compact: true })} tone={p.annualNet} />
         <Stat label="Amortized net" value={formatUsd(p.annualNetAfterAmortization, { compact: true })} tone={p.annualNetAfterAmortization} />
         <Stat label={`Net over ${life} yr`} value={formatUsd(p.cumulativeNet, { compact: true })} tone={p.cumulativeNet} />
       </dl>
@@ -509,11 +566,13 @@ function Inputs({
   rates,
   lines,
   annual,
+  advanced,
 }: {
   costs: CostInputs
   rates: ScenarioRates
   lines: { label: string; detail?: string; amount: number }[]
   annual: number
+  advanced: [string, string][]
 }) {
   const row = (label: string, value: string, detail?: string) => (
     <div className="flex items-baseline justify-between gap-3 py-1">
@@ -544,18 +603,37 @@ function Inputs({
           {row("Scenario rates", SCENARIOS.map((s) => `${rates[s.id]}%`).join(" / "), "Conservative / Expected / Optimistic, of the estimate")}
         </dl>
       </div>
+      {advanced.length > 0 && (
+        <div>
+          <p className="text-[11px] font-medium tracking-wide text-tertiary-foreground uppercase">Advanced settings</p>
+          <dl className="divide-y divide-border/60">{advanced.map(([label, value]) => <div key={label}>{row(label, value)}</div>)}</dl>
+        </div>
+      )}
     </div>
   )
 }
 
 /** The board summary's assumptions: the few numbers a reader needs, with the full list left to the finance version. */
-function KeyAssumptions({ costs, rates, annual, moduleLabel }: { costs: CostInputs; rates: ScenarioRates; annual: number; moduleLabel: string }) {
+function KeyAssumptions({
+  costs,
+  rates,
+  annual,
+  moduleLabel,
+  advanced,
+}: {
+  costs: CostInputs
+  rates: ScenarioRates
+  annual: number
+  moduleLabel: string
+  advanced: [string, string][]
+}) {
   const items: [string, string][] = [
     ["Benefit a year (estimate)", `${formatUsd(annual)} · ${moduleLabel.toLowerCase()}`],
     ["Up-front cost", formatUsd(costs.capital + costs.implementation)],
     ["Running cost a year", formatUsd(costs.maintenance)],
     ["Useful life · discount rate", `${costs.life} ${costs.life === 1 ? "year" : "years"} · ${costs.discountRate}%`],
     ["Scenario rates", SCENARIOS.map((s) => `${rates[s.id]}%`).join(" / ")],
+    ...advanced,
   ]
   return (
     <div className="rounded-2xl border border-border p-4">

@@ -21,6 +21,7 @@ import {
   type PenaltyData,
   type Period,
   type ReadmissionCuts,
+  type Timing,
 } from "@/lib/propose/penalty"
 import { cn } from "@/lib/utils"
 import { NumberField } from "../number-field"
@@ -31,7 +32,8 @@ import { SourceTag } from "../source-tag"
 // results and CMS's formulas (lib/propose/penalty.ts) do the rest, phased in over the years the
 // programs take to see it.
 
-type State = { readm: ReadmissionCuts; hai: InfectionCuts }
+/** `timing`: Advanced mode's phase-in years per program; unset = CMS's scoring windows. Ignored when Advanced is off. */
+type State = { readm: ReadmissionCuts; hai: InfectionCuts; timing: { readm?: Timing; hai?: Timing } }
 
 const READM_KEYS = HRRP_CONDITIONS.map((c) => c.key) as string[]
 const HAI_KEYS = HAC_MEASURES.map((m) => m.key) as string[]
@@ -56,12 +58,26 @@ function toParams(s: State): Record<string, string> {
   const out: Record<string, string> = {}
   if (encode(s.readm)) out.readm = encode(s.readm)
   if (encode(s.hai)) out.hai = encode(s.hai)
+  const t = (["readm", "hai"] as const).filter((k) => s.timing[k]).map((k) => `${k}:${s.timing[k]!.start}-${s.timing[k]!.full}`)
+  if (t.length) out.ptime = t.join(",")
+  return out
+}
+
+function parseTiming(raw: string | null): State["timing"] {
+  const out: State["timing"] = {}
+  for (const part of (raw ?? "").split(",")) {
+    const m = part.match(/^(readm|hai):(\d+)-(\d+)$/)
+    if (!m) continue
+    const start = Math.min(30, Math.max(1, Number(m[2])))
+    out[m[1] as "readm" | "hai"] = { start, full: Math.min(30, Math.max(start, Number(m[3]))) }
+  }
   return out
 }
 
 const fromParams = (params: URLSearchParams): State => ({
   readm: decode<HrrpConditionKey>(params.get("readm"), READM_KEYS, 100),
   hai: decode<HaiKey>(params.get("hai"), HAI_KEYS, 100),
+  timing: parseTiming(params.get("ptime")),
 })
 
 const hasCuts = (s: State) => Object.values(s.readm).some(Boolean) || Object.values(s.hai).some(Boolean)
@@ -69,11 +85,15 @@ const hasCuts = (s: State) => Object.values(s.readm).some(Boolean) || Object.val
 const monthYear = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString("en-US", { month: "short", year: "numeric" })
 const periodText = (p: Period) => `${monthYear(p.start)}–${monthYear(p.end)}`
 
-/** First year a program sees any of the improvement, and first year it sees all of it. */
-function timing(period: Period, fiscalYear: number) {
+/** First year a program sees any of the improvement, and first year it sees all of it (CMS's windows, or the override). */
+function timing(period: Period, fiscalYear: number, override?: Timing) {
+  if (override) return { first: override.start, full: override.full }
   const shares = phaseIn(period, fiscalYear, 12)
   return { first: shares.findIndex((s) => s > 0) + 1, full: shares.findIndex((s) => s >= 1) + 1 }
 }
+
+/** The phase-in overrides in force: only in Advanced mode. */
+const overrides = (s: State, advanced: boolean) => (advanced ? s.timing : {})
 
 type Summary = {
   years: ReturnType<typeof avoidedByYear>
@@ -83,8 +103,8 @@ type Summary = {
   hacAverage: number
 }
 
-function summarize(s: State, data: PenaltyData, life: number): Summary {
-  const years = avoidedByYear(data, s.readm, s.hai, life)
+function summarize(s: State, data: PenaltyData, life: number, advanced: boolean): Summary {
+  const years = avoidedByYear(data, s.readm, s.hai, life, overrides(s, advanced))
   const pay = data.payments.hospital
   const hrrpFull = pay ? (hrrpReduction(data.hrrp, s.readm, 0) - hrrpReduction(data.hrrp, s.readm)) * pay.baseOperating : 0
   const hacFull =
@@ -408,8 +428,8 @@ function MethodInfo({ data }: { data: PenaltyData }) {
 }
 
 /** The editor's totals and phase-in table, which need the useful life (only `benefit` gets it). */
-function Totals({ state, data, life }: { state: State; data: PenaltyData; life: number }) {
-  const s = summarize(state, data, life)
+function Totals({ state, data, life, advanced, onChange }: { state: State; data: PenaltyData; life: number; advanced: boolean; onChange: (s: State) => void }) {
+  const s = summarize(state, data, life, advanced)
   const average = s.hrrpAverage + s.hacAverage
   const full = s.hrrpFull + s.hacFull
   return (
@@ -426,7 +446,49 @@ function Totals({ state, data, life }: { state: State; data: PenaltyData; life: 
           <p className="num text-[20px] font-semibold tracking-tight">{formatUsd(average)}</p>
         </div>
       </div>
+      {advanced && <TimingEditor state={state} data={data} onChange={onChange} />}
       {full > 0 && <Timeline summary={s} />}
+    </div>
+  )
+}
+
+/** Advanced mode: move each program's phase-in. Left at CMS's years, CMS's scoring-window shares are used. */
+function TimingEditor({ state, data, onChange }: { state: State; data: PenaltyData; onChange: (s: State) => void }) {
+  const programs = [
+    { key: "readm" as const, label: "Readmission savings", cms: timing(data.hrrp.period, data.hrrp.fiscalYear) },
+    { key: "hai" as const, label: "Infection savings", cms: timing(data.hac.periods.hai, data.hac.fiscalYear) },
+  ]
+  const set = (key: "readm" | "hai", start: number, full: number, cms: { first: number; full: number }) => {
+    const s = Math.min(30, Math.max(1, Math.round(start) || 1))
+    const f = Math.min(30, Math.max(s, Math.round(full) || s))
+    // Back at CMS's years: drop the override, so CMS's own shares apply again.
+    const next = s === cms.first && f === cms.full ? undefined : { start: s, full: f }
+    onChange({ ...state, timing: { ...state.timing, [key]: next } })
+  }
+  return (
+    <div className="space-y-2 rounded-xl border border-dashed border-border p-3">
+      <p className="flex flex-wrap items-center gap-2 text-[13px] font-medium">
+        Phase-in timing <SourceTag kind="assumption">Advanced · optional</SourceTag>
+      </p>
+      {programs.map(({ key, label, cms }) => {
+        const t = state.timing[key]
+        return (
+          <div key={key} className="flex flex-wrap items-end gap-2.5">
+            <p className="w-40 pb-2.5 text-[13px]">{label}</p>
+            <NumberField label="Starts in year" value={t?.start ?? cms.first} onChange={(v) => set(key, v, Math.max(v, t?.full ?? cms.full), cms)} min={1} max={30} className="w-32" />
+            <NumberField label="Full in year" value={t?.full ?? cms.full} onChange={(v) => set(key, t?.start ?? cms.first, v, cms)} min={1} max={30} className="w-32" />
+            {t && (
+              <button type="button" onClick={() => onChange({ ...state, timing: { ...state.timing, [key]: undefined } })} className="mb-2 text-[12px] font-medium text-primary hover:underline">
+                Use CMS timing
+              </button>
+            )}
+          </div>
+        )
+      })}
+      <p className="text-xs leading-relaxed text-muted-foreground">
+        Defaults follow CMS’s scoring windows (e.g. 25% → 58% → 92% → 100% for readmissions). Changing a year switches that
+        program to a straight-line ramp between the two years.
+      </p>
     </div>
   )
 }
@@ -437,19 +499,21 @@ export const penaltyModule = defineModule<State, PenaltyData>({
   summary: "Readmission or infection reduction, valued by the Medicare penalties it avoids.",
   icon: ShieldCheck,
   hasData: true,
-  initial: () => ({ readm: {}, hai: {} }),
+  initial: () => ({ readm: {}, hai: {}, timing: {} }),
+  ownTiming: true,
   toParams,
   fromParams,
-  benefit: (s, data, { life }) => {
+  benefit: (s, data, { life, advanced }) => {
     if (!data) return { annual: 0, lines: [], notes: [], incomplete: "Pick a hospital to load its CMS penalty results." }
     if (!data.hrrp.hospital && !data.hac.hospital)
       return { annual: 0, lines: [], notes: [], incomplete: "CMS has no readmission or HAC penalty results for this hospital." }
     if (!data.payments.hospital)
       return { annual: 0, lines: [], notes: [], incomplete: "CMS has no payment data for this hospital, so penalties can’t be put in dollars." }
 
-    const sum = summarize(s, data, life)
-    const r = timing(data.hrrp.period, data.hrrp.fiscalYear)
-    const h = timing(data.hac.periods.hai, data.hac.fiscalYear)
+    const sum = summarize(s, data, life, advanced)
+    const o = overrides(s, advanced)
+    const r = timing(data.hrrp.period, data.hrrp.fiscalYear, o.readm)
+    const h = timing(data.hac.periods.hai, data.hac.fiscalYear, o.hai)
     const over = `averaged over ${life} ${life === 1 ? "year" : "years"}`
     const lines: BenefitLine[] = []
     if (Object.values(s.readm).some(Boolean))
@@ -465,9 +529,11 @@ export const penaltyModule = defineModule<State, PenaltyData>({
         amount: sum.hacAverage,
       })
 
+    const custom = [o.readm && `readmissions years ${o.readm.start}–${o.readm.full}`, o.hai && `infections years ${o.hai.start}–${o.hai.full}`].filter(Boolean)
     const notes = [
       `Estimate. Re-runs CMS’s HRRP and HAC Reduction Program formulas on the hospital’s published FY ${data.hrrp.fiscalYear} results with the proposer’s assumed reductions; peer medians and the HAC cutoff (${data.hac.cutoff.toFixed(4)}) are held at FY ${data.hac.fiscalYear} levels, though they move every year.`,
       `Penalties lag performance: savings begin in year ${Math.min(r.first, h.first)} and reach full effect by year ${Math.max(r.full, h.full)} (assuming the work starts October 1 of year 1). The yearly benefit is the average over the useful life.`,
+      ...(custom.length ? [`Advanced: phase-in timing set by the proposer (${custom.join("; ")}, straight-line), instead of CMS’s scoring windows.`] : []),
       `Penalty dollars use FY ${data.payments.fiscalYear} Medicare fee-for-service payments estimated from CMS’s IPPS Impact File. Lost payments for the readmissions avoided, and care costs saved, aren’t counted.`,
     ]
     return {
@@ -483,7 +549,7 @@ export const penaltyModule = defineModule<State, PenaltyData>({
       <div className="space-y-4">
         <Editor {...props} />
         {data && data.payments.hospital && (data.hrrp.hospital || data.hac.hospital) && hasCuts(state) && (
-          <Totals state={state} data={data} life={props.context.life} />
+          <Totals state={state} data={data} life={props.context.life} advanced={props.context.advanced} onChange={props.onChange} />
         )}
       </div>
     )

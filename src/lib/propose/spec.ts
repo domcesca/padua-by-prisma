@@ -7,6 +7,7 @@ import {
   type CostInputs,
   type ScenarioRates,
 } from "./engine"
+import { advancedToParams, parseAdvanced, type AdvancedSettings } from "./advanced"
 import { outputToParam, parseOutput, type OutputConfig } from "./output"
 
 // A proposal lives in the URL: no accounts, nothing saved on the server. Reloading keeps it and
@@ -25,6 +26,8 @@ export type ProposalSpec = {
   rates: ScenarioRates
   /** What the printout includes, and in what order. */
   output: OutputConfig
+  /** Advanced mode: payer mix, ramp-up, escalation. Off (and inert) by default. */
+  advanced: AdvancedSettings
 }
 
 export const DEFAULT_MODULE = "reimbursement"
@@ -61,6 +64,7 @@ export function parseProposalSpec(params: URLSearchParams, modules: string[]): P
     rates: parseRates(params.get("scen")),
     // A link with a proposal but no output setting predates it: keep its full printout.
     output: parseOutput(params.get("out"), params.has("module")),
+    advanced: parseAdvanced(params, MAX_LIFE),
   }
 }
 
@@ -86,6 +90,7 @@ export function proposalSpecToParams(spec: ProposalSpec, moduleParams: Record<st
     params.set("scen", SCENARIOS.map((s) => spec.rates[s.id]).join(","))
   }
   params.set("out", outputToParam(spec.output))
+  advancedToParams(spec.advanced, params)
   for (const [k, v] of Object.entries(moduleParams)) if (v) params.set(k, v)
   return params
 }

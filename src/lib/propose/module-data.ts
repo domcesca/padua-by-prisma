@@ -10,6 +10,7 @@ import {
   getIppsDrgs,
   getIppsManifest,
   getManifest,
+  getMetrics,
   getOppsApcs,
   getOppsManifest,
   getOutpatientServices,
@@ -32,6 +33,8 @@ export const MODULE_DATA: Record<string, Loader> = {
   outpatient: loadOutpatient,
   savings: loadSavings,
   penalty: loadPenalty,
+  // Not a module: the hospital's payer mix, for Advanced mode's "use this hospital's mix".
+  payermix: loadPayerMix,
 }
 
 const MDC_NAMES: Record<string, string> = {
@@ -321,5 +324,26 @@ async function loadOutpatient(facilityId: string | null): Promise<OutpatientData
     baselineApcs: manifest.services.apcs,
     baseline,
     peers,
+  }
+}
+
+// -- Advanced mode: the hospital's payer mix (HCAI, by gross charges) --------------------------------------------------
+
+export type PayerMixData = { year: number; shares: { medicare: number; medical: number; commercial: number; other: number } } | null
+
+async function loadPayerMix(facilityId: string | null): Promise<PayerMixData> {
+  if (!facilityId) return null
+  const metrics = await getMetrics("hafd-selected")
+  const years = Object.entries(metrics[facilityId] ?? {})
+    .filter(([, m]) => (m as unknown as { payerMixRevenue?: unknown }).payerMixRevenue)
+    .sort(([a], [b]) => Number(b) - Number(a))
+  if (!years.length) return null
+  const [year, m] = years[0]
+  const mix = (m as unknown as { payerMixRevenue: Record<string, number> }).payerMixRevenue
+  const pct = (v: number | undefined) => Math.round((v ?? 0) * 1000) / 10
+  return {
+    year: Number(year),
+    // HCAI's "indigent" (county programs and charity) goes with other and self-pay.
+    shares: { medicare: pct(mix.medicare), medical: pct(mix.medical), commercial: pct(mix.commercial), other: pct((mix.indigent ?? 0) + (mix.other ?? 0)) },
   }
 }

@@ -397,6 +397,7 @@ function MethodInfo({ data }: { data: OutpatientData }) {
 export const outpatientModule = defineModule<State, OutpatientData>({
   id: "outpatient",
   label: "Outpatient reimbursement",
+  payerMix: true,
   summary: "Added outpatient visits, scans, or procedures, valued by APC; physician fees optional.",
   icon: Stethoscope,
   hasData: true,

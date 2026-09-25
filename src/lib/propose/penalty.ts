@@ -1,3 +1,5 @@
+import { rampShare } from "./advanced"
+
 // Types and math for the avoided-penalty module, shared by its server loader and its editor.
 // Pure functions: the editor re-runs CMS's formulas on the hospital's own published components
 // as the proposer types.
@@ -174,11 +176,24 @@ export function phaseIn(period: Period, fiscalYear: number, life: number) {
 
 export type PenaltyYear = { year: number; hrrpShare: number; haiShare: number; hrrp: number; hac: number }
 
+/** A proposer-set phase-in (Advanced mode): the first year with any effect and the first at full effect. */
+export type Timing = { start: number; full: number }
+
+/** Shares per year: CMS's scoring windows, or a straight line from `start` to `full` when the proposer sets one. */
+const shares = (period: Period, fiscalYear: number, life: number, timing?: Timing) =>
+  timing ? Array.from({ length: life }, (_, i) => rampShare(i + 1, timing.start, timing.full)) : phaseIn(period, fiscalYear, life)
+
 /** Avoided penalty dollars for each proposal year, with how far each program has phased in. */
-export function avoidedByYear(data: PenaltyData, readm: ReadmissionCuts, hai: InfectionCuts, life: number): PenaltyYear[] {
+export function avoidedByYear(
+  data: PenaltyData,
+  readm: ReadmissionCuts,
+  hai: InfectionCuts,
+  life: number,
+  timing: { readm?: Timing; hai?: Timing } = {}
+): PenaltyYear[] {
   const pay = data.payments.hospital
-  const hrrpShares = phaseIn(data.hrrp.period, data.hrrp.fiscalYear, life)
-  const haiShares = phaseIn(data.hac.periods.hai, data.hac.fiscalYear, life)
+  const hrrpShares = shares(data.hrrp.period, data.hrrp.fiscalYear, life, timing.readm)
+  const haiShares = shares(data.hac.periods.hai, data.hac.fiscalYear, life, timing.hai)
   const hrrpNow = hrrpReduction(data.hrrp, readm, 0)
   const hacNow = data.hac.hospital?.penalized ?? false
   return hrrpShares.map((hrrpShare, i) => {
