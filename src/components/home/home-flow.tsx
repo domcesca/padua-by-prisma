@@ -56,13 +56,11 @@ export function HomeFlow({
   catalog,
   years,
   latestYear,
-  suggestions,
 }: {
   facilities: FacilityOption[]
   catalog: MetricDef[]
   years: number[]
   latestYear: number
-  suggestions: FacilityOption[]
 }) {
   const [category, setCategory] = useState<MetricCategory | null>(null)
   const [facilityId, setFacilityId] = useState<string | null>(null)
@@ -186,21 +184,6 @@ export function HomeFlow({
       <Step n={1} title="Which hospital?" done={facilityId != null}>
         <div className="max-w-2xl space-y-3">
           <FacilityPicker facilities={facilities} value={facilityId} onChange={chooseFacility} latestYear={latestYear} />
-          {!facilityId && (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs text-tertiary-foreground">Or try</span>
-              {suggestions.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => chooseFacility(s.id)}
-                  className="glass-subtle rounded-full px-3 py-1.5 text-[13px] transition-colors hover:bg-white/80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none dark:hover:bg-white/10"
-                >
-                  {s.name}
-                </button>
-              ))}
-            </div>
-          )}
           {facility && (
             <p className="fade-up text-[13px] text-muted-foreground" aria-live="polite">
               {previewLoading && !preview ? (
