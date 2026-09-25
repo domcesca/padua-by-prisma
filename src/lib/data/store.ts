@@ -345,3 +345,17 @@ export type PenaltyManifest = {
 
 export const getPenaltyHospitals = () => loadReference<Record<string, PenaltyHospital>>("cms-penalties", "hospitals.json")
 export const getPenaltyManifest = () => loadReference<PenaltyManifest>("cms-penalties", "manifest.json")
+
+/** OPPS service APCs with national payment rates (cms-opps; Addendum A only, no CPT content). */
+export type OppsApc = { code: string; title: string; si: string; weight: number | null; rate: number }
+export type OppsManifest = {
+  calendarYear: number
+  quarter: string
+  sourcePage: string
+  conversionFactor: number | null
+  services: { year: number; sourcePage: string; apcs: string[]; sharedReporting: Record<string, { reportedWith: string; reportedWithName: string }> }
+}
+export const getOppsApcs = () => loadReference<OppsApc[]>("cms-opps", "apcs.json")
+export const getOppsManifest = () => loadReference<OppsManifest>("cms-opps", "manifest.json")
+/** Medicare fee-for-service outpatient services per hospital, year, and comprehensive APC (11+ only). */
+export const getOutpatientServices = () => loadReference<Record<string, Record<string, Record<string, number>>>>("cms-opps", "services.json")

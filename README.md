@@ -11,7 +11,7 @@ business-case builder for new initiatives, a plain-language field guide, and a r
 | **Benchmark** | A hospital against its peer group on financial metrics (operating margin, days cash on hand, cost and revenue per adjusted discharge, payer mix) utilization metrics (occupancy, ALOS, ED visits and flow, surgeries, cath volume), or quality (CMS readmissions, mortality, patient experience, star ratings; CDPH infection ratios). A collapsible panel shows the county's Census and Medi-Cal context. Default peers are **similar hospitals** (see below); switch to all of California or set filters yourself. A **Payer view** toggle (All payers / Medicare) narrows the metrics to Medicare where HCAI reports a Medicare split. Every view is a shareable URL. |
 | **Build** | A guided chart and table builder: up to four metrics from the catalog, line / bar / table, grouped by year, by hospital, or against the peer group. Legend, table view, CSV download, and a copyable link on every result. |
 | **Correlate** | Any two catalog metrics (Financial, Utilization, Quality, Medicare lens) plotted against each other across a hospital's similar hospitals or all of California for one year: scatter, least-squares trend line, Pearson r, and Spearman rank ρ (robust to outliers). Fewer than 8 hospitals gets "Small sample size — interpret with caution"; fewer than 3, no r. Pairing years of different kinds (fiscal vs. calendar vs. CMS periods) is called out. Table view, CSV, shareable link. |
-| **Propose** | The financial case for a new technology, service, or piece of equipment. Enter capital, implementation, and yearly running costs and a useful life; pick how the benefit is estimated (**Reimbursement**: MS-DRGs × added cases × a national Medicare payment estimate, with the hospital's own Medicare cases and its peers' as context; **Cost savings**: staff time, shorter stays, supplies; **Avoided penalties**: the Medicare readmission (HRRP) and hospital-acquired condition (HAC) penalties a quality initiative would avoid; or **Custom**: your own benefit lines). Payback, ROI, NPV, amortized and cumulative net for Conservative / Expected / Optimistic side by side (70% / 100% / 130% of the estimated benefit by default; each rate is editable), a cumulative chart, a year-by-year table, and a print-to-PDF layout. The proposal lives in the link; nothing is saved. |
+| **Propose** | The financial case for a new technology, service, or piece of equipment. Enter capital, implementation, and yearly running costs and a useful life; pick how the benefit is estimated (**Inpatient reimbursement**: MS-DRGs × added cases × a national Medicare payment estimate, with the hospital's own Medicare cases and its peers' as context; **Outpatient reimbursement**: APCs × added services × the national OPPS rate, with physician fees optional; **Cost savings**: staff time, shorter stays, supplies; **Avoided penalties**: the Medicare readmission (HRRP) and hospital-acquired condition (HAC) penalties a quality initiative would avoid; or **Custom**: your own benefit lines). Payback, ROI, NPV, amortized and cumulative net for Conservative / Expected / Optimistic side by side (70% / 100% / 130% of the estimated benefit by default; each rate is editable), a cumulative chart, a year-by-year table, and a print-to-PDF layout. The proposal lives in the link; nothing is saved. |
 | **Translate** | Every field in either dataset in plain language, with why it moves. Pick a hospital to see year-over-year changes, or paste/upload a raw HCAI extract (.xlsx/.csv, including the utilization workbook) to translate its columns. Parsing happens in the browser. |
 | **Deadlines** | (Desktop sidebar and the home page; not in the phone tab bar.) Quarterly and annual financial report due dates for a hospital's fiscal year, the Annual Utilization Report (Feb 15), extension limits, off-cycle report periods, and filed/extended tracking (saved in the browser). |
 | **Ask** / **Watch** | Placeholders for natural-language queries and anomaly detection on uploaded data. |
@@ -196,7 +196,7 @@ in the URL, its benefit calculation, and its editor. Register it in `src/compone
 needs server data, add a loader to `src/lib/propose/module-data.ts` (served at `/api/propose/<id>?facility=`). The
 engine and page don't change. A module's `benefit` also gets the useful life, for benefits that phase in.
 
-- **Reimbursement**: estimated payment per case = FY MS-DRG relative weight (Table 5, the 10%-capped column CMS pays
+- **Inpatient reimbursement** (id `reimbursement`): estimated payment per case = FY MS-DRG relative weight (Table 5, the 10%-capped column CMS pays
   on) × the national operating standardized amount (Table 1A labor + non-labor, full update: $6,848.98 for FY 2027).
   It is labeled everywhere as a **national Medicare estimate, not the hospital's actual reimbursement**: wage index,
   DSH/IME, outliers, transfers, capital (≈ weight × $540), and other payers aren't applied. Added volume is entered as
@@ -206,11 +206,28 @@ engine and page don't change. A module's `benefit` also gets the useful life, fo
   at 0 the result counts revenue, and the page says so.
 - **Finding DRGs** (for people who don't speak billing): a **Body system** filter (CMS's Major Diagnostic Category,
   from Table 5) narrows the picker, and search matches DRG code, title, body system, and **plain-language terms** from
-  `src/lib/propose/drg-search-terms.ts`: "aneurysm" → intracranial vascular procedures, "tavr" → endovascular valve
+  `src/lib/propose/search-terms.ts`: "aneurysm" → intracranial vascular procedures, "tavr" → endovascular valve
   replacement, "robotic" → the inpatient DRGs where robotic approaches are common. Each entry lists the DRGs its terms
   mean directly (`drgs`, ranked first) and ones they touch (`related`). Adding terms means editing that file only; the
   server logs any code that isn't in the current Table 5 or any range that crosses body systems. A search with no
-  inpatient DRG (MRI, CT, outpatient) explains why and points to the Custom module.
+  inpatient DRG (MRI, CT, outpatient) explains why and points to Outpatient reimbursement.
+- **Outpatient reimbursement** (`outpatient`): pick APCs (CMS's outpatient payment groups) and the added services a year
+  (or a % of the hospital's own 2024 Medicare services, where CMS publishes them). The hospital (facility) side is each
+  APC's national unadjusted OPPS payment rate from Addendum A, labeled as a national estimate like the DRG module (no
+  wage index, multiple-procedure discounts, packaging, or outliers). A "Whose revenue counts" toggle picks **Hospital
+  only** (default; independent physicians bill for themselves), **Hospital + physician** (employed physicians), or
+  **Physician only**; physician payments are entered per APC by the proposer, tagged as their assumption, with a link to
+  CMS's Physician Fee Schedule Look-Up. Picker groups (Imaging, Visits/ED, Surgery and procedures, …) and plain-language
+  terms come from the same `search-terms.ts` entries as DRGs (`apcs` / `relatedApcs`). **Why APCs, not CPT codes:**
+  CMS serves the OPPS addenda and PFS RVU files under the AMA's CPT license (internal, non-commercial use only; no
+  redistribution or derivative works), so Padua carries no CPT content: the ETL takes Addendum A only, keeps APC-level
+  fields, and fails if the file ever contains CPT-like columns or titles. APCs are levels ("Level 3 Imaging without
+  Contrast"), so terms point at the family. A "confirm each APC level with your coding team" caution sits above the APC list, at the
+  top of the results (a module can set `caution` on its benefit; it prints too), and on each APC line in "What went in".
+  The baseline (data.cms.gov "Medicare Outpatient Hospitals – by Provider and Service") covers only the 72
+  comprehensive APCs (procedures, observation); imaging, ED, and clinic APCs have no per-hospital counts, and the page
+  says so. Professional claims are published per clinician (NPI), with no clean hospital link, so there's no physician
+  baseline.
 - **Cost savings**: staff hours saved a week × loaded hourly cost × 52, patient days avoided a year × cost of a patient
   day, and a flat supplies/other amount. The cost of a day is pre-filled with the hospital's latest HCAI average: operating
   expense ÷ adjusted patient days (patient days × gross ÷ inpatient charges, the per-day twin of Benchmark's expense per
@@ -250,7 +267,10 @@ doesn't publish the HAC measures' national mean, SD, and Winsorization bounds, s
 file and fails unless they reproduce every hospital's z-scores; it also fails unless the HRRP formula reproduces every
 published penalty. The hospital-level files trail the fiscal year (a year's HRRP supplemental file comes with or after
 its final rule; its HAC file the following January), so the newest complete year is used: FY 2026 as of September 2026.
-Needs www.cms.gov and data.cms.gov reachable.
+`cms-opps`: the newest quarterly OPPS Addendum A (through CMS's AMA click-through; APC rows only, service status
+indicators only, so drug/device/biological APCs are dropped; 299 APCs in July 2026, conversion factor $91.415) and the
+newest outpatient provider-and-service CSV (suppressed counts under 11 are left out, not zeroed). Needs www.cms.gov and
+data.cms.gov reachable.
 
 ## Similar hospitals (the default peer group)
 

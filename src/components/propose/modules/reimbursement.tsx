@@ -9,7 +9,7 @@ import { Segmented } from "@/components/shell/segmented"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { formatInt, formatUsd } from "@/lib/format"
 import { defineModule, type BenefitLine, type ModuleEditorProps } from "@/lib/propose/module"
-import { DRG_SEARCH_NOTES } from "@/lib/propose/drg-search-terms"
+import { DRG_SEARCH_NOTES } from "@/lib/propose/search-terms"
 import { estimatedPayment, type ReimbursementData } from "@/lib/propose/reimbursement"
 import { NumberField } from "../number-field"
 
@@ -304,7 +304,7 @@ function MethodInfo({ data }: { data: ReimbursementData }) {
 
 export const reimbursementModule = defineModule<State, ReimbursementData>({
   id: "reimbursement",
-  label: "Reimbursement",
+  label: "Inpatient reimbursement",
   summary: "New technology or service that adds inpatient cases, valued by MS-DRG.",
   icon: Receipt,
   hasData: true,

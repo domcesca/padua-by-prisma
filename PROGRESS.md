@@ -160,7 +160,7 @@ downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and
 - **Body system browse:** Table 5's MDC is present for 760 of 766 DRGs (981–989, "procedures unrelated to principal
   diagnosis", have none by CMS design and are grouped as such). A "Body system" `FilterPill` next to "Add DRGs" narrows
   the picker to one MDC (with counts); search still works inside it. Local UI state, not in the URL.
-- **Search terms:** `src/lib/propose/drg-search-terms.ts`, 85 entries / 342 terms covering neuro, cardiac, vascular,
+- **Search terms:** `src/lib/propose/drg-search-terms.ts` (now `search-terms.ts`), 85 entries / 342 terms covering neuro, cardiac, vascular,
   ortho/spine, oncology, GI, respiratory, imaging/interventional, robotic surgery, sepsis/critical care, plus kidney,
   urology, women's, behavioral, trauma, transplant. 479 of 766 DRGs carry at least one term. `drgs` (direct) vs
   `related` (touched) decides ranking; e.g. "tavr" puts 266–267 above open valve surgery 216–221.
@@ -214,6 +214,23 @@ downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and
   when they post; it picks the Provider Data Catalog's fiscal year and that year's supplemental file.
 - **Refactor:** `cms_ipps.parse_table1` is shared and also returns Table 1B's labor split (wage index ≤ 1); `cms-ipps`
   output is unchanged.
+
+### V6.6 (Propose: Outpatient reimbursement module)
+- **Licensing finding (owner's decision):** OPPS Addendum B and the PFS RVU files carry AMA CPT content, licensed only
+  for internal, non-commercial use with no redistribution or derivative works: incompatible with a public app. Owner
+  chose a license-free build at the APC level, and approved taking Addendum A (CMS's APC table, no CPT) through CMS's
+  click-through, APC fields only. The ETL refuses the file if it ever carries CPT-like content. Addendum B is never
+  downloaded; physician payments are the proposer's figures. Code-level CPT search needs an AMA distribution license.
+- **Module:** a separate `outpatient` module (less disruptive than a mode inside the DRG module, whose state and URL
+  keys stay as they were); the DRG module is relabeled "Inpatient reimbursement" (id unchanged, links still work).
+  Module cards go 3 across on wide screens. "Whose revenue counts": Hospital only (default) / Hospital + physician /
+  Physician only, with the effect spelled out in the editor and the notes.
+- **Search terms:** `drg-search-terms.ts` → `search-terms.ts`; entries can carry `apcs` / `relatedApcs` alongside
+  `drgs` / `related`, matched by one shared function (`codeTerms`). ~45 outpatient entries (visits/ED, imaging,
+  diagnostics, oncology/infusion, procedures, wound care, rehab, behavioral health) plus notes for searches that aren't
+  APC-paid (mammography, lab, therapy: fee schedules) and for "cpt".
+- **Baseline:** comprehensive APCs only (72), 2024; 22 hospitals have every count suppressed and show "fewer than 11".
+  No per-hospital baseline for imaging/ED/clinic APCs or for professional services (published per clinician only).
 
 ## 3. Key decisions and why
 

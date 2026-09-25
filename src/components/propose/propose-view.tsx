@@ -154,7 +154,7 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
           <p id="module-label" className="mb-1 text-[13px] font-medium">
             How the benefit is estimated
           </p>
-          <div role="radiogroup" aria-labelledby="module-label" className="grid gap-2 sm:grid-cols-2">
+          <div role="radiogroup" aria-labelledby="module-label" className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
             {MODULES.map((m) => {
               const on = m.id === mod.id
               const Icon = m.icon
@@ -251,6 +251,13 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
               {[benefit.incomplete, !hasCost && "Enter at least one cost."].filter(Boolean).join(" ")}{" "}
               <span className="text-muted-foreground">Results update as you type.</span>
             </span>
+          </p>
+        )}
+
+        {benefit.caution && (
+          <p className="flex items-start gap-2 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-[13px] leading-relaxed print:break-inside-avoid">
+            <TriangleAlert className="mt-0.5 size-3.5 shrink-0 text-warning" aria-hidden />
+            <span>{benefit.caution}</span>
           </p>
         )}
 
