@@ -61,9 +61,7 @@ class CmsIpps(Dataset):
     source_page = IPPS_PAGE
 
     def resources(self) -> list[Resource]:
-        years = sorted({int(y) for y in re.findall(r"/fy-(\d{4})-ipps-final-rule-home-page", _get(IPPS_PAGE))})
-        if not years:
-            raise RuntimeError("No final rule home pages linked from the IPPS page; its layout changed.")
+        years = final_rule_years()
         fy = self.years[-1] if self.years else years[-1]
         self.fiscal_year = fy
         self.rule_page = f"{IPPS_PAGE}/fy-{fy}-ipps-final-rule-home-page"
@@ -80,61 +78,7 @@ class CmsIpps(Dataset):
     def load(self, files):
         paths = {res.tags["table"]: path for res, path in files}
         self.sources = [{"name": res.name, "url": res.url} for res, _ in files]
-        return {"drgs": self._table5(_xlsx(paths["table5"])), "rates": self._table1(_xlsx(paths["table1"]))}
-
-    def _table5(self, rows: list[tuple]) -> list[dict]:
-        header_at = next(
-            (i for i, r in enumerate(rows) if _text(r[0]).upper() == "MS-DRG" and any("weight" in _text(c).lower() for c in r)),
-            None,
-        )
-        if header_at is None:
-            raise RuntimeError("Table 5: header row (MS-DRG ... Weights) not found; the layout changed.")
-        header = [_text(c).lower() for c in rows[header_at]]
-
-        def col(*needles: str) -> int:
-            for i, h in enumerate(header):
-                if all(n in h for n in needles):
-                    return i
-            raise RuntimeError(f"Table 5: no column matching {needles} in {header}")
-
-        capped = next((i for i, h in enumerate(header) if "weight" in h and "cap applied" in h), None)
-        c = {
-            "code": 0,
-            "postAcute": col("post-acute"),
-            "specialPay": col("special pay"),
-            "mdc": col("mdc"),
-            "type": col("type"),
-            "title": col("title"),
-            # Capped weight when the table has one (FY 2023 on); the plain weight otherwise.
-            "weight": capped if capped is not None else col("weight"),
-            "gmlos": col("geometric"),
-            "amlos": col("arithmetic"),
-        }
-        drgs = []
-        for r in rows[header_at + 1 :]:
-            code = _text(r[0])
-            if not re.fullmatch(r"\d{1,3}", code):
-                continue
-            weight = r[c["weight"]]
-            if not isinstance(weight, (int, float)):
-                continue
-            num = lambda v: round(float(v), 1) if isinstance(v, (int, float)) else None  # noqa: E731
-            drgs.append(
-                {
-                    "code": code.zfill(3),
-                    "title": _text(r[c["title"]]),
-                    "weight": round(float(weight), 4),
-                    "type": _text(r[c["type"]]).upper() or None,
-                    "mdc": _text(r[c["mdc"]]) or None,
-                    "gmlos": num(r[c["gmlos"]]),
-                    "amlos": num(r[c["amlos"]]),
-                    "postAcute": _text(r[c["postAcute"]]).lower() == "yes",
-                    "specialPay": _text(r[c["specialPay"]]).lower() == "yes",
-                }
-            )
-        if len(drgs) < 700:
-            raise RuntimeError(f"Table 5: only {len(drgs)} MS-DRGs parsed; expected ~770.")
-        return drgs
+        return {"drgs": parse_table5(_xlsx(paths["table5"])), "rates": self._table1(_xlsx(paths["table1"]))}
 
     def _table1(self, rows: list[tuple]) -> dict:
         return parse_table1(rows)
@@ -164,6 +108,89 @@ class CmsIpps(Dataset):
             },
             compact=False,
         )
+
+
+def parse_table5(rows: list[tuple]) -> list[dict]:
+    """Table 5: every MS-DRG with its weight, type, MDC, and mean lengths of stay."""
+    header_at = next(
+        (i for i, r in enumerate(rows) if _text(r[0]).upper() == "MS-DRG" and any("weight" in _text(c).lower() for c in r)),
+        None,
+    )
+    if header_at is None:
+        raise RuntimeError("Table 5: header row (MS-DRG ... Weights) not found; the layout changed.")
+    header = [_text(c).lower() for c in rows[header_at]]
+
+    def col(*needles: str) -> int:
+        for i, h in enumerate(header):
+            if all(n in h for n in needles):
+                return i
+        raise RuntimeError(f"Table 5: no column matching {needles} in {header}")
+
+    capped = next((i for i, h in enumerate(header) if "weight" in h and "cap applied" in h), None)
+    c = {
+        "code": 0,
+        "postAcute": col("post-acute"),
+        "specialPay": col("special pay"),
+        "mdc": col("mdc"),
+        "type": col("type"),
+        "title": col("title"),
+        # Capped weight when the table has one (FY 2023 on); the plain weight otherwise.
+        "weight": capped if capped is not None else col("weight"),
+        "gmlos": col("geometric"),
+        "amlos": col("arithmetic"),
+    }
+    drgs = []
+    for r in rows[header_at + 1 :]:
+        code = _text(r[0])
+        if not re.fullmatch(r"\d{1,3}", code):
+            continue
+        weight = r[c["weight"]]
+        if not isinstance(weight, (int, float)):
+            continue
+        num = lambda v: round(float(v), 1) if isinstance(v, (int, float)) else None  # noqa: E731
+        drgs.append(
+            {
+                "code": code.zfill(3),
+                "title": _text(r[c["title"]]),
+                "weight": round(float(weight), 4),
+                "type": _text(r[c["type"]]).upper() or None,
+                "mdc": _text(r[c["mdc"]]) or None,
+                "gmlos": num(r[c["gmlos"]]),
+                "amlos": num(r[c["amlos"]]),
+                "postAcute": _text(r[c["postAcute"]]).lower() == "yes",
+                "specialPay": _text(r[c["specialPay"]]).lower() == "yes",
+            }
+        )
+    if len(drgs) < 700:
+        raise RuntimeError(f"Table 5: only {len(drgs)} MS-DRGs parsed; expected ~770.")
+    return drgs
+
+
+def final_rule_years() -> list[int]:
+    """Fiscal years whose final rule home page CMS links from the IPPS page (the newest few)."""
+    years = sorted({int(y) for y in re.findall(r"/fy-(\d{4})-ipps-final-rule-home-page", _get(IPPS_PAGE))})
+    if not years:
+        raise RuntimeError("No final rule home pages linked from the IPPS page; its layout changed.")
+    return years
+
+
+def table5_url(fy: int) -> str:
+    """Table 5's zip for a fiscal year: linked from the year's final rule home page, or, for years CMS no longer links
+    from the IPPS page, at one of the file names CMS has used."""
+    pattern = rf"/files/zip/fy-?{fy}-ipps-(?:fr|final-rule)-table-5\.zip$"
+    try:
+        links = set(re.findall(r'href="(/files/zip/[^"]+\.zip)"', _get(f"{IPPS_PAGE}/fy-{fy}-ipps-final-rule-home-page")))
+        hit = [link for link in links if re.search(pattern, link)]
+        if len(hit) == 1:
+            return CMS + hit[0]
+    except requests.HTTPError:
+        pass
+    for name in (f"fy{fy}-ipps-fr-table-5.zip", f"fy-{fy}-ipps-final-rule-table-5.zip", f"fy-{fy}-ipps-fr-table-5.zip"):
+        url = f"{CMS}/files/zip/{name}"
+        resp = requests.head(url, headers={"User-Agent": USER_AGENT}, timeout=60, allow_redirects=True)
+        if resp.ok and "zip" in resp.headers.get("Content-Type", ""):
+            return url
+    raise RuntimeError(f"FY {fy}: Table 5 not found on its final rule page or at CMS's usual file names.")
 
 
 def parse_table1(rows: list[tuple]) -> dict:

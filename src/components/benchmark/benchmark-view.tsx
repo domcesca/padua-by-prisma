@@ -28,6 +28,8 @@ import { metricPickerOptions } from "@/lib/data/metric-options"
 import { facilityFlag, type FacilityFlag } from "@/lib/facility-flag"
 import type { MetricCategory, PayerGroup } from "@/lib/data/types"
 import { rememberSelection } from "@/lib/selection"
+import type { SpecialtyResult } from "@/lib/specialty/compute"
+import { MDCS } from "@/lib/specialty/mdc"
 import { cn } from "@/lib/utils"
 import { CommunityPanel } from "./community-panel"
 import { FacilityPicker, type FacilityOption } from "./facility-picker"
@@ -35,6 +37,7 @@ import { FilterPill } from "./filter-pill"
 import { MetricCard } from "./metric-card"
 import { PayerMixCard } from "./payer-mix-card"
 import { PeerFilterBar } from "./peer-filters"
+import { SpecialtyPanel } from "./specialty-panel"
 import { TrendLegend } from "./trend-chart"
 
 type State = { facilityId: string | null; filters: PeerFilters; view: BenchmarkViewState }
@@ -50,6 +53,7 @@ export function BenchmarkView({
   initialFilters,
   initialView,
   initialResult,
+  initialSpecialty,
   suggestions,
 }: {
   facilities: FacilityOption[]
@@ -64,10 +68,13 @@ export function BenchmarkView({
   initialFilters: PeerFilters
   initialView: BenchmarkViewState
   initialResult: BenchmarkResult | null
+  /** Medicare specialty (MDC) data, when the URL asks for the specialty view. */
+  initialSpecialty: SpecialtyResult | null
   suggestions: FacilityOption[]
 }) {
   const [state, setState] = useState<State>({ facilityId: initialFacilityId, filters: initialFilters, view: initialView })
   const [result, setResult] = useState(initialResult)
+  const [specialty, setSpecialtyResult] = useState(initialSpecialty)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const request = useRef<AbortController | null>(null)
@@ -111,10 +118,18 @@ export function BenchmarkView({
     setError(null)
     const apiParams = new URLSearchParams(params)
     apiParams.set("metrics", metricsFor(next.view).join(","))
-    try {
-      const res = await fetch(`/api/benchmark?${apiParams}`, { signal: controller.signal })
+    const getJson = async <T,>(url: string) => {
+      const res = await fetch(url, { signal: controller.signal })
       if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? res.statusText)
-      const body = (await res.json()) as BenchmarkResult
+      return (await res.json()) as T
+    }
+    try {
+      // The specialty view keeps the hospital and peer cards, so it loads both.
+      const [body, specialtyBody] = await Promise.all([
+        getJson<BenchmarkResult>(`/api/benchmark?${apiParams}`),
+        next.view.specialty ? getJson<SpecialtyResult>(`/api/specialty?${params}`) : Promise.resolve(null),
+      ])
+      if (specialtyBody) setSpecialtyResult(specialtyBody)
       // A unit this hospital doesn't have (e.g. after switching hospitals): show the whole hospital instead.
       if (next.view.unit && !body.unit) {
         void apply({ ...next, view: { ...next.view, unit: null } })
@@ -129,8 +144,19 @@ export function BenchmarkView({
   }
 
   const setCategory = (category: MetricCategory) =>
-    apply({ view: { ...view, category, metrics: null, unit: supportsUnits(category) ? view.unit : null } })
-  const setUnit = (unit: string | null) => apply({ view: { ...view, unit, payer: unit ? "all" : view.payer } })
+    apply({
+      view: {
+        ...view,
+        category,
+        metrics: null,
+        unit: supportsUnits(category) ? view.unit : null,
+        specialty: supportsUnits(category) ? view.specialty : null,
+        compare: supportsUnits(category) ? view.compare : [],
+      },
+    })
+  const setUnit = (unit: string | null) => apply({ view: { ...view, unit, specialty: null, compare: [], payer: unit ? "all" : view.payer } })
+  const setSpecialty = (key: string | null) =>
+    apply({ view: { ...view, specialty: key, unit: null, compare: key ? view.compare : [], payer: key ? "all" : view.payer } })
   const setPayer = (payer: PayerView) => apply({ view: { ...view, payer } })
   const setMetrics = (metrics: string[]) => {
     const valid = metrics.filter((id) => metaById[id]?.category === view.category && (!view.unit || UNIT_METRICS.includes(id)))
@@ -145,6 +171,11 @@ export function BenchmarkView({
     (result.unit?.id ?? null) === view.unit
       ? result
       : null
+  const shownSpecialty =
+    view.specialty && specialty && specialty.facility.id === facilityId && specialty.mdc === (view.specialty === "all" ? null : view.specialty)
+      ? specialty
+      : null
+  const specialtyView = !!view.specialty && view.category === "utilization"
   const primaryDataset = PRIMARY_DATASET[view.category]
   const quality = view.category === "quality"
   const payerInfo = PAYER_VIEWS.find((p) => p.value === view.payer)!
@@ -171,7 +202,38 @@ export function BenchmarkView({
             onChange={setCategory}
             options={CATEGORIES.map((c) => ({ value: c.id, label: c.label }))}
           />
-          {supportsUnits(view.category) && units.length > 0 && (
+          {supportsUnits(view.category) && facilityId && (
+            <PickerPill
+              noun="specialties"
+              label="Medicare specialty"
+              summary={
+                view.specialty === "all"
+                  ? "Medicare specialties"
+                  : view.specialty
+                    ? `Medicare: ${MDCS.find((m) => m.code === view.specialty)?.name ?? view.specialty}`
+                    : null
+              }
+              active={!!view.specialty}
+              options={[
+                { value: "off", label: "Off (HCAI utilization, all payers)" },
+                { value: "all", label: "All specialties (Medicare cases by MDC)" },
+                ...MDCS.map((m) => {
+                  const cell = shownSpecialty?.hospital?.cells[m.code]
+                  return {
+                    value: m.code,
+                    label: m.code === "none" ? m.name : `${m.name} (${m.plain})`,
+                    group: "One specialty",
+                    keywords: [m.official, m.code === "PRE" || m.code === "none" ? m.code : `MDC ${m.code}`],
+                    hint: cell ? `${cell.cases.toLocaleString("en-US")} cases` : undefined,
+                  }
+                }),
+              ]}
+              selected={[view.specialty ?? "off"]}
+              onChange={([v]) => setSpecialty(v === "off" ? null : v)}
+              wide
+            />
+          )}
+          {supportsUnits(view.category) && !view.specialty && units.length > 0 && (
             <PickerPill
               noun="units"
               label="Unit"
@@ -190,7 +252,7 @@ export function BenchmarkView({
               wide
             />
           )}
-          {!quality && !view.unit && (
+          {!quality && !view.unit && !specialtyView && (
             <Segmented
               label="Payer view"
               value={view.payer}
@@ -198,6 +260,7 @@ export function BenchmarkView({
               options={PAYER_VIEWS.map((p) => ({ value: p.value, label: p.label }))}
             />
           )}
+          {!specialtyView && (
           <PickerPill
             noun="metrics"
             label="Metrics"
@@ -208,6 +271,8 @@ export function BenchmarkView({
             multiple
             actions={isDefaultMetrics ? undefined : [{ label: "Back to the standard set", onSelect: () => setMetrics([]) }]}
           />
+          )}
+          {!specialtyView && (
           <FilterPill
             label="Years"
             summary={view.since != null ? `Since ${view.since}` : null}
@@ -218,6 +283,7 @@ export function BenchmarkView({
             selected={[view.since != null ? String(view.since) : "all"]}
             onChange={([v]) => apply({ view: { ...view, since: v === "all" ? null : Number(v) } })}
           />
+          )}
           {loading && (
             <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground" role="status">
               <Loader2 className="size-3.5 animate-spin" /> Updating
@@ -254,9 +320,25 @@ export function BenchmarkView({
       {shown && (
         <div className={cn("space-y-6 transition-opacity duration-200", loading && "opacity-60")}>
           <FacilitySummary result={shown} lastYear={facility?.lastYear ?? latestYear} flag={facility ? facilityFlag(facility, latestYear) : null} />
-          {shown.community && <CommunityPanel context={shown.community} />}
+          {!specialtyView && shown.community && <CommunityPanel context={shown.community} />}
 
-          {shown.peers.length === 0 ? (
+          {specialtyView ? (
+            shownSpecialty ? (
+              <>
+                <SpecialtyPanel
+                  result={shownSpecialty}
+                  specialty={view.specialty!}
+                  onSpecialty={(key) => setSpecialty(key)}
+                  facilities={facilities}
+                  onCompare={(ids) => apply({ view: { ...view, compare: ids } })}
+                  loading={loading}
+                />
+                {shown.peers.length > 0 && <PeerList peers={shown.peers} />}
+              </>
+            ) : (
+              !error && <LoadingState count={2} />
+            )
+          ) : shown.peers.length === 0 ? (
             <div className="glass rounded-2xl p-8 text-center">
               <p className="font-medium">No hospitals match these filters.</p>
               <p className="mt-1 text-sm text-muted-foreground">Remove a filter to widen the peer group.</p>

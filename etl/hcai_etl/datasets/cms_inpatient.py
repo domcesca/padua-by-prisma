@@ -16,6 +16,12 @@ hospital metric and not a count of all patients:
 CCNs are mapped to HCAI facility numbers the same way as Care Compare (crosswalk.match_ccns).
 The CMS payment columns are left out on purpose: Propose's payment estimate comes from the
 IPPS relative weights (cms-ipps), not from past claims.
+
+drgs.json: each DRG in the data with its MDC (body system), for Benchmark's specialty view. A calendar year's cases
+were grouped under two MS-DRG versions (the fiscal year starts October 1), and CMS retires and renumbers DRGs, so the
+current Table 5 doesn't know every code in older data (the 2024 cases include spinal fusion DRGs 453-460, retired in
+FY 2025). So this reads Table 5 of every fiscal year from the first data year to the newest final rule, takes each
+code's MDC (checked to agree across versions), and records the last year's weight for codes since retired.
 """
 
 from __future__ import annotations
@@ -27,6 +33,7 @@ import requests
 
 from ..core import USER_AGENT, Dataset, Resource, utc_now_iso, write_json
 from ..crosswalk import FacilityCrosswalk, match_ccns
+from .cms_ipps import _xlsx, final_rule_years, parse_table5, table5_url
 
 CATALOG = "https://data.cms.gov/data.json"
 TITLE = "Medicare Inpatient Hospitals - by Provider and Service"
@@ -57,11 +64,19 @@ class CmsInpatient(Dataset):
         missing = [y for y in years if y not in by_year]
         if missing:
             raise RuntimeError(f"No CSV for data year(s) {missing}; available: {sorted(by_year)}")
-        return [by_year[y] for y in years]
+        # Table 5 for every fiscal year from the first data year's (it starts the October before) to the newest rule.
+        tables = [
+            Resource(name=f"FY {fy} IPPS final rule Table 5", url=table5_url(fy), format="ZIP", tags={"table5": fy})
+            for fy in range(min(years), max(final_rule_years()) + 1)
+        ]
+        return [by_year[y] for y in years] + tables
 
     def load(self, files):
         self.crosswalk = FacilityCrosswalk.load(self.refresh)
         frames = []
+        self.table5_sources = [{"fiscalYear": res.tags["table5"], "url": res.url} for res, _ in files if "table5" in res.tags]
+        self.table5 = {res.tags["table5"]: {d["code"]: d for d in parse_table5(_xlsx(path))} for res, path in files if "table5" in res.tags}
+        files = [(res, path) for res, path in files if "table5" not in res.tags]
         for res, path in files:
             df = pd.read_csv(path, dtype=str, encoding="latin1")
             df.columns = [c.strip() for c in df.columns]
@@ -94,7 +109,9 @@ class CmsInpatient(Dataset):
             cases.setdefault(hcai, {}).setdefault(str(year), {})[drg] = int(n)
 
         unmatched = sorted(set(names) - set(ccn_to_hcai))
+        drgs = self._drgs(sorted(matched["drg"].unique()), sorted(matched["year"].unique()))
         write_json(self.out_dir / "cases.json", cases)
+        write_json(self.out_dir / "drgs.json", drgs)
         write_json(
             self.out_dir / "manifest.json",
             {
@@ -104,6 +121,7 @@ class CmsInpatient(Dataset):
                 "years": sorted({int(y) for fac in cases.values() for y in fac}),
                 "sources": self.sources,
                 "crosswalk": self.crosswalk.sources,
+                "table5": self.table5_sources,
                 "generatedAt": utc_now_iso(),
                 "sharedReporting": shared,
                 "coverage": {
@@ -116,7 +134,35 @@ class CmsInpatient(Dataset):
                     "Discharges of Original Medicare (fee-for-service Part A) patients only; Medicare Advantage and other payers aren't included.",
                     "IPPS hospitals only. CMS omits any hospital-DRG pair with fewer than 11 discharges, so a missing DRG means 0 to 10 cases.",
                     "Data year is the calendar year of discharge.",
+                    "drgs.json: each DRG's MDC from IPPS Table 5 (the same in every fiscal year read), and for DRGs CMS has since retired, the weight in the last Table 5 that listed them.",
                 ],
             },
             compact=False,
         )
+
+    def _drgs(self, codes: list[str], years: list[int]) -> dict[str, dict]:
+        """Each DRG in the data: its MDC and title, and its last weight when the newest Table 5 no longer has it."""
+        newest = max(self.table5)
+        out: dict[str, dict] = {}
+        missing, conflicts = [], []
+        for code in codes:
+            seen = {fy: t[code] for fy, t in sorted(self.table5.items()) if code in t}
+            # Only the versions a data year's discharges were grouped under must have it (Oct of Y-1 to Sep of Y+1).
+            if not any(y <= fy <= y + 1 for fy in seen for y in years):
+                missing.append(code)
+                continue
+            mdcs = {d["mdc"] for d in seen.values()}
+            if len(mdcs) > 1:
+                conflicts.append(f"{code}: {mdcs}")
+            last_fy = max(seen)
+            entry = {"mdc": seen[last_fy]["mdc"], "title": seen[last_fy]["title"]}
+            if last_fy < newest:
+                entry |= {"retiredAfter": last_fy, "lastWeight": seen[last_fy]["weight"]}
+            out[code] = entry
+        if missing:
+            raise RuntimeError(f"DRGs in the data but in no Table 5 in effect for those years: {missing}")
+        if conflicts:
+            raise RuntimeError(f"DRGs whose MDC changed between Table 5 versions (can't assign one body system): {conflicts}")
+        retired = {c: d for c, d in out.items() if "retiredAfter" in d}
+        print(f"  {len(out)} DRGs; MDC agrees across FY {min(self.table5)}-{newest}; {len(retired)} retired since: {sorted(retired)}")
+        return out

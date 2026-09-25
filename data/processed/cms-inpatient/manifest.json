@@ -22,7 +22,25 @@
       "url": "https://data.chhs.ca.gov/dataset/e89100fd-1f1d-4a37-8205-d588aa42e5a1/resource/cf954841-9ca7-4914-a31f-29ca12c7b71a/download/elms_oshpd_cw_oct2024xlsx.xlsx"
     }
   ],
-  "generatedAt": "2026-09-25T06:52:10Z",
+  "table5": [
+    {
+      "fiscalYear": 2024,
+      "url": "https://www.cms.gov/files/zip/fy2024-ipps-fr-table-5.zip"
+    },
+    {
+      "fiscalYear": 2025,
+      "url": "https://www.cms.gov/files/zip/fy-2025-ipps-final-rule-table-5.zip"
+    },
+    {
+      "fiscalYear": 2026,
+      "url": "https://www.cms.gov/files/zip/fy2026-ipps-fr-table-5.zip"
+    },
+    {
+      "fiscalYear": 2027,
+      "url": "https://www.cms.gov/files/zip/fy2027-ipps-fr-table-5.zip"
+    }
+  ],
+  "generatedAt": "2026-09-25T19:54:50Z",
   "sharedReporting": {
     "106013619": {
       "ccn": "050320",
@@ -100,6 +118,7 @@
   "notes": [
     "Discharges of Original Medicare (fee-for-service Part A) patients only; Medicare Advantage and other payers aren't included.",
     "IPPS hospitals only. CMS omits any hospital-DRG pair with fewer than 11 discharges, so a missing DRG means 0 to 10 cases.",
-    "Data year is the calendar year of discharge."
+    "Data year is the calendar year of discharge.",
+    "drgs.json: each DRG's MDC from IPPS Table 5 (the same in every fiscal year read), and for DRGs CMS has since retired, the weight in the last Table 5 that listed them."
   ]
 }
