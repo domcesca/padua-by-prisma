@@ -8,7 +8,7 @@ import { PickerPill } from "@/components/shell/grouped-picker"
 import { Segmented } from "@/components/shell/segmented"
 import type { BenchmarkResult } from "@/lib/benchmark/compute"
 import { DEFAULT_FILTERS, filtersToParams, OWNERSHIP_LABEL, type PeerFilters } from "@/lib/benchmark/filters"
-import { metricsFor, viewToParams, type BenchmarkViewState } from "@/lib/benchmark/view"
+import { lineView, metricsFor, viewToParams, type BenchmarkViewState } from "@/lib/benchmark/view"
 import {
   applyPayerView,
   CATEGORIES,
@@ -28,6 +28,7 @@ import { metricPickerOptions } from "@/lib/data/metric-options"
 import { facilityFlag, type FacilityFlag } from "@/lib/facility-flag"
 import type { MetricCategory, PayerGroup } from "@/lib/data/types"
 import { rememberSelection } from "@/lib/selection"
+import { lineOfUnit } from "@/lib/service-lines/lines"
 import type { SpecialtyResult } from "@/lib/specialty/compute"
 import { MDCS } from "@/lib/specialty/mdc"
 import { cn } from "@/lib/utils"
@@ -37,6 +38,7 @@ import { FilterPill } from "./filter-pill"
 import { MetricCard } from "./metric-card"
 import { PayerMixCard } from "./payer-mix-card"
 import { PeerFilterBar } from "./peer-filters"
+import { ServiceLinePanel } from "./service-line-panel"
 import { SpecialtyPanel } from "./specialty-panel"
 import { TrendLegend } from "./trend-chart"
 
@@ -90,8 +92,9 @@ export function BenchmarkView({
   const categoryMetrics = pickableMetrics(catalog, view.category, view.payer)
   const shownMetrics = metricsFor(view).filter((id) => metaById[id]?.category === view.category)
   // Under a payer lens the picker keeps the all-payer ids but names what will be shown.
-  // Under a unit, only what HCAI reports by bed classification.
-  const metricOptions = view.unit
+  // Under a unit or service line, only what HCAI reports by bed classification.
+  const narrowed = !!view.unit || lineView(view)
+  const metricOptions = narrowed
     ? UNIT_METRICS.map((id) => ({ value: id, label: UNIT_METRIC_LABELS[id] }))
     : metricPickerOptions(categoryMetrics, { acrossCategories: false }).map((o) => {
         const m = metaById[o.value]
@@ -135,6 +138,10 @@ export function BenchmarkView({
         void apply({ ...next, view: { ...next.view, unit: null } })
         return
       }
+      if (lineView(next.view) && !body.line) {
+        void apply({ ...next, view: { ...next.view, line: null } })
+        return
+      }
       setResult(body)
     } catch (e) {
       if ((e as Error).name !== "AbortError") setError("Couldn’t load the comparison. Try again in a moment.")
@@ -150,16 +157,20 @@ export function BenchmarkView({
         category,
         metrics: null,
         unit: supportsUnits(category) ? view.unit : null,
+        line: supportsUnits(category) ? view.line : null,
         specialty: supportsUnits(category) ? view.specialty : null,
         compare: supportsUnits(category) ? view.compare : [],
       },
     })
-  const setUnit = (unit: string | null) => apply({ view: { ...view, unit, specialty: null, compare: [], payer: unit ? "all" : view.payer } })
+  const setUnit = (unit: string | null) =>
+    apply({ view: { ...view, unit, line: null, specialty: null, compare: [], payer: unit ? "all" : view.payer } })
+  const setLine = (line: string | null) =>
+    apply({ view: { ...view, line, unit: null, specialty: null, compare: [], payer: line ? "all" : view.payer } })
   const setSpecialty = (key: string | null) =>
-    apply({ view: { ...view, specialty: key, unit: null, compare: key ? view.compare : [], payer: key ? "all" : view.payer } })
+    apply({ view: { ...view, specialty: key, unit: null, line: null, compare: key ? view.compare : [], payer: key ? "all" : view.payer } })
   const setPayer = (payer: PayerView) => apply({ view: { ...view, payer } })
   const setMetrics = (metrics: string[]) => {
-    const valid = metrics.filter((id) => metaById[id]?.category === view.category && (!view.unit || UNIT_METRICS.includes(id)))
+    const valid = metrics.filter((id) => metaById[id]?.category === view.category && (!narrowed || UNIT_METRICS.includes(id)))
     return apply({ view: { ...view, metrics: valid.length ? valid : null } })
   }
 
@@ -168,7 +179,8 @@ export function BenchmarkView({
     result.facility.id === facilityId &&
     result.category === view.category &&
     result.payer === (view.category === "quality" ? "all" : view.payer) &&
-    (result.unit?.id ?? null) === view.unit
+    (result.unit?.id ?? null) === view.unit &&
+    (result.line?.id ?? (result.serviceLines ? "all" : null)) === view.line
       ? result
       : null
   const shownSpecialty =
@@ -180,11 +192,16 @@ export function BenchmarkView({
   const quality = view.category === "quality"
   const payerInfo = PAYER_VIEWS.find((p) => p.value === view.payer)!
   const categoryInfo = CATEGORY_BY_ID[view.category]
-  const defaultMetrics = view.unit ? UNIT_DEFAULT_METRICS : categoryInfo.defaultMetrics
+  const linesView = view.line === "all" && view.category === "utilization"
+  const defaultMetrics = narrowed ? UNIT_DEFAULT_METRICS : categoryInfo.defaultMetrics
   const isDefaultMetrics = !view.metrics || shownMetrics.join(",") === defaultMetrics.join(",")
   // The hospital's units come with each result; keep offering them while the next one loads.
   const units = result && result.facility.id === facilityId ? result.units : []
+  const lines = result && result.facility.id === facilityId ? result.lines : []
   const unitInfo = units.find((u) => u.id === view.unit)
+  const lineInfo = lines.find((l) => l.id === view.line)
+  // A unit that's part of a combined service line the hospital has.
+  const parentLine = shown?.unit ? lines.find((l) => l.id === lineOfUnit(shown.unit!.id)?.id) : undefined
 
   return (
     <div className="space-y-6">
@@ -236,23 +253,34 @@ export function BenchmarkView({
           {supportsUnits(view.category) && !view.specialty && units.length > 0 && (
             <PickerPill
               noun="units"
-              label="Unit"
-              summary={unitInfo ? unitInfo.label : "Whole hospital"}
-              active={!!unitInfo}
+              label="Unit or service line"
+              summary={unitInfo ? unitInfo.label : lineInfo ? lineInfo.label : linesView ? "All service lines" : "Whole hospital"}
+              active={!!unitInfo || !!lineInfo || linesView}
               options={[
                 { value: "all", label: "Whole hospital" },
+                { value: "lines", label: "All service lines, side by side" },
+                ...lines.map((l) => ({
+                  value: `line:${l.id}`,
+                  label: l.label,
+                  group: "Service lines (combined)",
+                  keywords: l.units.map((id) => units.find((u) => u.id === id)?.label ?? id),
+                  hint: l.lastYear < (result?.facility.utilizationYears.at(-1) ?? l.lastYear) ? `through ${l.lastYear}` : l.beds != null ? `${l.beds} beds` : undefined,
+                })),
                 ...units.map((u) => ({
-                  value: u.id,
+                  value: `unit:${u.id}`,
                   label: u.label,
+                  group: "Bed classifications",
                   hint: u.lastYear < (result?.facility.utilizationYears.at(-1) ?? u.lastYear) ? `through ${u.lastYear}` : u.beds != null ? `${u.beds} beds` : undefined,
                 })),
               ]}
-              selected={[view.unit ?? "all"]}
-              onChange={([v]) => setUnit(v === "all" ? null : v)}
+              selected={[view.unit ? `unit:${view.unit}` : view.line === "all" ? "lines" : view.line ? `line:${view.line}` : "all"]}
+              onChange={([v]) =>
+                v === "all" ? setUnit(null) : v === "lines" ? setLine("all") : v.startsWith("line:") ? setLine(v.slice(5)) : setUnit(v.slice(5))
+              }
               wide
             />
           )}
-          {!quality && !view.unit && !specialtyView && (
+          {!quality && !view.unit && !view.line && !specialtyView && (
             <Segmented
               label="Payer view"
               value={view.payer}
@@ -260,7 +288,7 @@ export function BenchmarkView({
               options={PAYER_VIEWS.map((p) => ({ value: p.value, label: p.label }))}
             />
           )}
-          {!specialtyView && (
+          {!specialtyView && !linesView && (
           <PickerPill
             noun="metrics"
             label="Metrics"
@@ -272,7 +300,7 @@ export function BenchmarkView({
             actions={isDefaultMetrics ? undefined : [{ label: "Back to the standard set", onSelect: () => setMetrics([]) }]}
           />
           )}
-          {!specialtyView && (
+          {!specialtyView && !linesView && (
           <FilterPill
             label="Years"
             summary={view.since != null ? `Since ${view.since}` : null}
@@ -338,6 +366,13 @@ export function BenchmarkView({
             ) : (
               !error && <LoadingState count={2} />
             )
+          ) : linesView ? (
+            shown.serviceLines && (
+              <>
+                <ServiceLinePanel rollup={shown.serviceLines} focus={null} onLine={setLine} onUnit={setUnit} loading={loading} />
+                {shown.peers.length > 0 && <PeerList peers={shown.peers} />}
+              </>
+            )
           ) : shown.peers.length === 0 ? (
             <div className="glass rounded-2xl p-8 text-center">
               <p className="font-medium">No hospitals match these filters.</p>
@@ -345,6 +380,24 @@ export function BenchmarkView({
             </div>
           ) : (
             <>
+              {shown.line && shown.serviceLines && (
+                <ServiceLinePanel rollup={shown.serviceLines} focus={shown.line.id} onLine={setLine} onUnit={setUnit} loading={loading} />
+              )}
+              {parentLine && (
+                <p className="rounded-xl bg-black/4 px-3.5 py-2.5 text-[13px] leading-relaxed text-muted-foreground dark:bg-white/6">
+                  {shown.unit!.label} is part of the <span className="font-medium text-foreground">{parentLine.label}</span> service line
+                  {parentLine.units.length > 1 &&
+                    `, with ${listFormat(parentLine.units.filter((id) => id !== shown.unit!.id).map((id) => units.find((u) => u.id === id)?.label ?? id))}`}
+                  .{" "}
+                  <button
+                    type="button"
+                    onClick={() => setLine(parentLine.id)}
+                    className="rounded font-medium text-primary outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    See the line combined
+                  </button>
+                </p>
+              )}
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <TrendLegend />
                 <p className="max-w-xl text-xs text-tertiary-foreground sm:text-right">
@@ -352,6 +405,8 @@ export function BenchmarkView({
                     ? "Care Compare measures are filed under the year their measurement period ends (periods span one to three years and overlap); infection data is by calendar year."
                     : shown.unit
                       ? `${DATASETS.hau.yearNote} ${shown.unit.label} beds only; peers without this unit are left out of the median.`
+                      : shown.line
+                        ? `${DATASETS.hau.yearNote} ${shown.line.label} classifications combined; peers with none of them are left out of the median.`
                       : view.payer === "all"
                         ? DATASETS[primaryDataset!].yearNote
                         : `${payerInfo.label}: ${payerInfo.description} Measures HCAI doesn’t split by payer stay all-payer and are marked.`}
@@ -363,7 +418,7 @@ export function BenchmarkView({
                 <div className="grid gap-4 md:grid-cols-2">
                   {orderByGroup(shown.metrics, metaById).map((id) => {
                     // Under a unit, the unit's own definitions (same ids, unit-specific fields and wording).
-                    const meta = shown.unit?.definitions[id] ?? metaById[id]
+                    const meta = shown.unit?.definitions[id] ?? shown.line?.definitions[id] ?? metaById[id]
                     if (!meta || !shown.series[id]) return null
                     const companion = meta.companion && shown.series[meta.companion] ? meta.companion : null
                     return (
@@ -373,7 +428,7 @@ export function BenchmarkView({
                         points={shown.series[id]}
                         companion={companion ? { meta: metaById[companion], points: shown.series[companion] } : undefined}
                         tags={[
-                          shown.unit ? shown.unit.label : null,
+                          shown.unit ? shown.unit.label : shown.line ? shown.line.label : null,
                           quality ? (meta.group ?? null) : null,
                           quality ? DATASETS[meta.dataset].shortLabel : null,
                           meta.estimate ? "Estimate" : null,
@@ -441,6 +496,13 @@ function FacilitySummary({ result, lastYear, flag }: { result: BenchmarkResult; 
             data aren&apos;t reported by unit.
           </p>
         )}
+        {result.line && (
+          <p className="rounded-xl bg-black/4 px-3.5 py-2.5 text-[13px] leading-relaxed text-muted-foreground dark:bg-white/6">
+            Showing the <span className="font-medium text-foreground">{result.line.label}</span> service line
+            {result.line.beds != null && `: ${result.line.beds.toLocaleString("en-US")} licensed beds in ${result.line.lastYear}`}. The
+            charts cover its bed classifications combined; the figures on this card are for the whole hospital.
+          </p>
+        )}
         {!flag && result.category !== "quality" && lastYear < latestOf(result) && (
           <p className="text-[13px] text-muted-foreground">Last reported in {lastYear}.</p>
         )}
@@ -505,6 +567,17 @@ function FacilitySummary({ result, lastYear, flag }: { result: BenchmarkResult; 
           {!result.filters.includeNonComparable && ", not counting Kaiser and other non-comparable hospitals"}.
         </p>
         {result.peerGroup.note && <p className="text-xs leading-relaxed text-tertiary-foreground">{result.peerGroup.note}</p>}
+        {result.line && (
+          <p className="mt-1 text-[13px] leading-relaxed">
+            <span className="font-medium">
+              {result.line.peersWithUnit.count} of {result.peers.length}
+            </span>{" "}
+            <span className="text-muted-foreground">
+              had {result.line.label} beds in {result.line.peersWithUnit.year}; only hospitals with the line count toward the
+              peer median.
+            </span>
+          </p>
+        )}
         {result.unit && (
           <p className="mt-1 text-[13px] leading-relaxed">
             <span className="font-medium">

@@ -5,7 +5,7 @@ import { parseFilters } from "@/lib/benchmark/filters"
 import { metricsFor, parseView } from "@/lib/benchmark/view"
 
 // GET /api/benchmark?facility=106580996&view=utilization&metrics=occupancy,edVisits
-//   &payer=medicare&unit=icu&county=Yuba,Sutter&ownership=nonprofit&bedsMin=100&bedsMax=299&teaching=any&all=1
+//   &payer=medicare&unit=icu (or &line=adultCriticalCare, &line=all)&county=Yuba,Sutter&ownership=nonprofit&bedsMin=100&bedsMax=299&teaching=any&all=1
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams
   const facilityId = params.get("facility")
@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
     since: view.since,
     payer: view.payer,
     unit: view.unit,
+    line: view.line,
   })
   if (!result) {
     return NextResponse.json({ error: `Unknown facility ${facilityId}` }, { status: 404 })
