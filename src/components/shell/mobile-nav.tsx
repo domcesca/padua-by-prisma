@@ -20,11 +20,11 @@ export function MobileHeader() {
   )
 }
 
-/** iOS-style bottom tab bar; "coming soon" sections are left to the desktop sidebar. */
+/** iOS-style bottom tab bar; "coming soon" and desktop-only sections are left to the desktop sidebar. */
 export function MobileTabBar() {
   const pathname = usePathname()
   const selection = useSelection()
-  const items = NAV_ITEMS.filter((i) => !i.soon)
+  const items = NAV_ITEMS.filter((i) => !i.soon && !i.desktopOnly)
   return (
     <nav
       aria-label="Sections"
@@ -40,7 +40,7 @@ export function MobileTabBar() {
                 aria-current={active ? "page" : undefined}
                 data-tour={`nav-${label.toLowerCase()}`}
                 className={cn(
-                  "relative flex h-14 flex-col items-center justify-center gap-0.5 text-[10px] font-medium tracking-[-0.02em] transition-colors max-[400px]:text-[9.5px]",
+                  "relative flex h-14 flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors",
                   active ? "text-primary" : "text-tertiary-foreground"
                 )}
               >
@@ -48,7 +48,7 @@ export function MobileTabBar() {
                   <span aria-hidden className="absolute top-0 left-1/2 h-[3px] w-8 -translate-x-1/2 rounded-b-full bg-[image:var(--accent-gradient)]" />
                 )}
                 <Icon className="size-5" strokeWidth={active ? 2.25 : 1.75} />
-                <span className="max-w-full truncate px-px">{label}</span>
+                {label}
               </Link>
             </li>
           )

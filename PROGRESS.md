@@ -141,14 +141,16 @@ downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and
 - **Modules (steps 3–4):** `ProposalModule` contract (`src/lib/propose/module.ts`), registry in
   `src/components/propose/modules/index.ts`, server data via `MODULE_DATA` in `src/lib/propose/module-data.ts` and
   `/api/propose/[module]`. Reimbursement: `GroupedPicker` over 766 DRGs grouped by MDC (up to 20), per-DRG added
-  cases or % of the hospital's 2024 Medicare cases, peer median as context (step 7), optional cost-of-care %.
+  cases or % of the hospital's 2024 Medicare cases, peer median as context (step 7), optional cost-of-care %. That defaults to 0 on purpose (user's call): a "typical" ratio
+  varies too much by service line to be a defensible default, so the page labels the result as revenue, not margin.
   Custom: up to 20 lines, quantity × rate or flat.
 - **Scenarios, results, print (steps 5–6):** three scenario cards side by side (0.7× / 1× / 1.3× benefit; clicking one
   or the segmented control picks the highlighted line and the year-by-year table), cumulative chart, "What went in",
   caveats. Browser print-to-PDF with print CSS (light palette even from dark mode; chrome, inputs, and controls hidden).
 - **Persistence:** user agreed to URL state (session-only plus a shareable link). Every module's inputs are in the URL.
-- **Nav (step 8):** Propose (Calculator icon) after Correlate; carries the remembered hospital. The mobile tab bar has
-  7 tabs now, so labels are 9.5px under 400px wide and truncate rather than overlap.
+- **Nav (step 8):** Propose (Calculator icon) after Correlate; carries the remembered hospital. On phones, Deadlines
+  left the tab bar (`desktopOnly` in `nav.ts`; user's call) so it stays at six tabs; it's still in the desktop sidebar
+  and linked from the home page.
 - Checked: typecheck, lint, `next build`; Playwright at 1280 and 375, light and dark; reload restores the proposal;
   PDF output reviewed. No horizontal overflow at 375px.
 - **Deferred to V6.5:** two more modules, slider sensitivity. Not done: hospital-specific payment (wage index,

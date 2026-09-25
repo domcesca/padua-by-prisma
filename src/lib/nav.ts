@@ -17,6 +17,8 @@ export type NavItem = {
   description: string
   icon: LucideIcon
   soon?: boolean
+  /** Left out of the phone tab bar (it holds six tabs at most); still in the desktop sidebar. */
+  desktopOnly?: boolean
 }
 
 export const NAV_ITEMS: NavItem[] = [
@@ -61,6 +63,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Deadlines",
     description: "HCAI reporting calendar",
     icon: CalendarClock,
+    desktopOnly: true,
   },
   {
     href: "/ask",
