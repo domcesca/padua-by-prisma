@@ -155,7 +155,7 @@ export function BenchmarkView({
 
   return (
     <div className="space-y-6">
-      <div className="space-y-3">
+      <div className="relative space-y-3">
         <FacilityPicker
           facilities={facilities}
           value={facilityId}
@@ -229,10 +229,8 @@ export function BenchmarkView({
           counties={counties}
           facility={shown?.facility ?? null}
         />
-      </div>
-
-      <div className="-my-3 h-0.5" aria-hidden>
-        {loading && <div className="loading-bar fade-up" />}
+        {/* Out of the flow, halfway into the gap below, so it never eats the space between the filters and the results. */}
+        {loading && <div className="loading-bar fade-up absolute inset-x-0 -bottom-3.5" aria-hidden />}
       </div>
 
       {error && (

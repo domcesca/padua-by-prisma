@@ -4,10 +4,15 @@
 
 /** Short name: the nav wordmark. */
 export const APP_NAME = "Padua"
-/** Full name, for places a first-time reader needs context: the page title, printouts, the nav subline. */
+/** Full name, for places a first-time reader needs context: the page title, printouts. */
 export const APP_FULL_NAME = "Padua by Prisma"
+/** The "by Prisma" half, set small beside the wordmark in the nav. */
+export const APP_BYLINE = "by Prisma"
 export const APP_OWNER = "Prisma Executive"
-export const APP_TAGLINE = "California hospital data, made usable"
+/** Brand tagline: the nav subline. */
+export const APP_TAGLINE = "Healthcare Data, Decoded"
+/** What the app covers, in plain words: the home page eyebrow. */
+export const APP_SUMMARY = "California hospital data, made usable"
 
 // PLACEHOLDER: attribution wording to be confirmed by Prisma Executive before launch. Deliberately not legal text
 // (no copyright line); it only says who makes Padua and that it isn't affiliated with the agencies whose data it uses.

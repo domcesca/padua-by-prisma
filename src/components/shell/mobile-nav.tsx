@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 
 import { isActivePath, NAV_ITEMS } from "@/lib/nav"
 import { hrefWithSelection, useSelection } from "@/lib/selection"
-import { APP_FULL_NAME, APP_NAME } from "@/lib/brand"
+import { APP_BYLINE, APP_FULL_NAME, APP_NAME } from "@/lib/brand"
 import { cn } from "@/lib/utils"
 import { PaduaMark } from "./padua-mark"
 import { ThemeToggle } from "./theme-toggle"
@@ -16,7 +16,9 @@ export function MobileHeader() {
     <header className="sticky top-0 z-30 flex h-12 items-center justify-between border-b border-sidebar-border bg-sidebar px-4 backdrop-blur-2xl backdrop-saturate-150 md:hidden print:hidden">
       <Link href="/" aria-label={`${APP_FULL_NAME}: home`} className="flex items-center gap-2 text-[16px] font-semibold tracking-tight">
         <PaduaMark size={22} />
-        {APP_NAME}
+        <span className="whitespace-nowrap">
+          {APP_NAME} <span className="text-[12px] font-normal tracking-normal text-muted-foreground">{APP_BYLINE}</span>
+        </span>
       </Link>
       <ThemeToggle />
     </header>
