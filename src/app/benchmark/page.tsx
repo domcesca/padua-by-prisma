@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/shell/page-header"
 import { computeBenchmark } from "@/lib/benchmark/compute"
 import { parseFilters } from "@/lib/benchmark/filters"
 import { metricsFor, parseView } from "@/lib/benchmark/view"
+import { computeFindings } from "@/lib/findings/compute"
 import { computeSpecialties } from "@/lib/specialty/compute"
 import { DATASETS } from "@/lib/data/datasets"
 import { DATASET_IDS, getDictionary, getFacilities, getLatestYear, getManifest, getMetricCatalog, toFacilityOption } from "@/lib/data/store"
@@ -26,7 +27,7 @@ export default async function BenchmarkPage({ searchParams }: PageProps<"/benchm
   const filters = parseFilters(params)
   const view = parseView(params)
 
-  const [facilities, dictionary, catalog, latestYear, manifests, initialResult, initialSpecialty] = await Promise.all([
+  const [facilities, dictionary, catalog, latestYear, manifests, initialResult, initialSpecialty, initialFindings] = await Promise.all([
     getFacilities(),
     getDictionary("hafd-selected"),
     getMetricCatalog(),
@@ -38,6 +39,7 @@ export default async function BenchmarkPage({ searchParams }: PageProps<"/benchm
     facilityId && view.specialty
       ? computeSpecialties({ facilityId, filters, compareIds: view.compare, mdc: view.specialty !== "all" ? view.specialty : null })
       : Promise.resolve(null),
+    facilityId ? computeFindings({ facilityId, filters }) : Promise.resolve(null),
   ])
 
   const options: FacilityOption[] = facilities.map(toFacilityOption)
@@ -70,6 +72,8 @@ export default async function BenchmarkPage({ searchParams }: PageProps<"/benchm
         initialView={view}
         initialResult={initialResult}
         initialSpecialty={initialSpecialty}
+        initialFindings={initialFindings}
+        initialFinding={initialResult ? (params.get("finding")?.match(/^[a-zA-Z]+$/)?.[0] ?? null) : null}
         suggestions={suggestions}
       />
       <DataNote manifests={manifests} />

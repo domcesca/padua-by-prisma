@@ -38,6 +38,7 @@ import { metricPickerOptions } from "@/lib/data/metric-options"
 import type { FacilityUnit, MetricCategory } from "@/lib/data/types"
 import { rememberSelection, useSelection } from "@/lib/selection"
 import { cn } from "@/lib/utils"
+import { WhereToLook } from "./where-to-look"
 
 const ICONS: Record<string, LucideIcon> = {
   financial: Landmark,
@@ -211,8 +212,17 @@ export function HomeFlow({
         </div>
       </Step>
 
+      {facility && (
+        <WhereToLook
+          facilityId={facility.id}
+          facilityName={facility.name}
+          statewide={peers === "statewide"}
+          metaById={Object.fromEntries(catalog.map((m) => [m.id, m]))}
+        />
+      )}
+
       {/* Step 2 */}
-      <Step n={2} title="Choose a topic" done={category != null}>
+      <Step n={2} title={facility ? "Or explore a topic" : "Choose a topic"} done={category != null}>
         <div role="radiogroup" aria-label="Topic" data-tour="topic" className="scroll-mt-20 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {CATEGORIES.map((c) => {
             const Icon = ICONS[c.id]
