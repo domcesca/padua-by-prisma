@@ -30,10 +30,13 @@ const lower = (s: string) => s.charAt(0).toLowerCase() + s.slice(1)
 /** What the panel says when there's nothing to rank, or nothing clears the bar for primary. */
 export function FindingsEmpty({ result, where }: { result: FindingsResult; where: "home" | "benchmark" }) {
   if (result.peerGroup.count < MIN_SCORED_PEERS) {
+    const n = result.peerGroup.count
+    // CMS penalties don't depend on the peer group, so they can still be listed.
+    const penalties = result.primary.length + result.secondary.length > 0
     return (
-      <Empty title="Too few peers to rank findings">
-        This peer group has {result.peerGroup.count} hospital{result.peerGroup.count === 1 ? "" : "s"}; findings need at least {MIN_SCORED_PEERS}{" "}
-        with a value.{" "}
+      <Empty title={penalties ? "Too few peers to compare metrics" : "Too few peers to rank findings"}>
+        This peer group has {n} hospital{n === 1 ? "" : "s"}; metric findings need at least {MIN_SCORED_PEERS} with a value.
+        {penalties && " Only CMS penalties, which don't depend on the peer group, are listed."}{" "}
         {where === "benchmark" ? "Remove a filter or switch to Similar hospitals to widen it." : "Widen the peer group in Benchmark."}
       </Empty>
     )

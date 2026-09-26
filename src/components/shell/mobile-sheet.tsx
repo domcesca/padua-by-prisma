@@ -8,6 +8,9 @@ import { cn } from "@/lib/utils"
 // Small screens: a panel folds into a one-line summary bar, and a button on it opens the full panel in a bottom sheet.
 // The filter strips (MobileControls) and Benchmark's key findings use it, so both fold away the same way. From md up
 // the panel shows inline and this renders nothing.
+//
+// While a sheet or its backdrop animates out it no longer takes clicks (data-closed:pointer-events-none), so the first
+// click after closing reaches the page instead of the fading overlay. The methodology drawer and ui/ dialogs do the same.
 
 export function MobileSheet({
   summary,
@@ -50,11 +53,11 @@ export function MobileSheet({
         </DialogPrimitive.Trigger>
       </div>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-black/25 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0" />
+        <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-black/25 data-open:animate-in data-open:fade-in-0 data-closed:pointer-events-none data-closed:animate-out data-closed:fade-out-0" />
         <DialogPrimitive.Popup
           className={cn(
             "glass-strong fixed inset-x-0 bottom-0 z-50 max-h-[85dvh] overflow-y-auto rounded-t-2xl px-4 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))] outline-none",
-            "data-open:animate-in data-open:slide-in-from-bottom data-closed:animate-out data-closed:slide-out-to-bottom"
+            "data-open:animate-in data-open:slide-in-from-bottom data-closed:pointer-events-none data-closed:animate-out data-closed:slide-out-to-bottom"
           )}
         >
           <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-black/15 dark:bg-white/20" aria-hidden />

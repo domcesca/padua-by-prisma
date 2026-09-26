@@ -43,14 +43,14 @@ export function MethodologyDrawer({
   return (
     <DialogPrimitive.Root open={finding != null} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-black/25 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0" />
+        <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-black/25 data-open:animate-in data-open:fade-in-0 data-closed:pointer-events-none data-closed:animate-out data-closed:fade-out-0" />
         <DialogPrimitive.Popup
           finalFocus={finalFocus}
           className={cn(
             "glass-strong fixed z-50 overflow-y-auto outline-none",
             // Phones: a bottom sheet, like the filter sheet.
             "inset-x-0 bottom-0 max-h-[88dvh] rounded-t-2xl px-4 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))]",
-            "data-open:animate-in data-open:slide-in-from-bottom data-closed:animate-out data-closed:slide-out-to-bottom",
+            "data-open:animate-in data-open:slide-in-from-bottom data-closed:pointer-events-none data-closed:animate-out data-closed:slide-out-to-bottom",
             // md up: a side sheet on the right.
             "md:inset-x-auto md:top-0 md:right-0 md:bottom-0 md:max-h-none md:w-[32rem] md:max-w-[calc(100vw-2rem)] md:rounded-none md:rounded-l-2xl md:px-6 md:pt-5",
             "md:data-open:slide-in-from-right md:data-closed:slide-out-to-right"
