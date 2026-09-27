@@ -30,7 +30,7 @@ export function useFindings(facilityId: string | null, peerQuery: string, initia
       })
       .then((data) => setState({ key, data, error: null }))
       .catch((e: Error) => {
-        if (e.name !== "AbortError") setState({ key, data: null, error: e.message || "Couldn't load key findings." })
+        if (e.name !== "AbortError") setState({ key, data: null, error: e.message || "Couldn't load hospital priorities." })
       })
     return () => controller.abort()
   }, [key, facilityId, peerQuery, attempt])

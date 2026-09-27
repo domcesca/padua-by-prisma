@@ -14,7 +14,7 @@ import { StatusLine, type StatusLineProps } from "@/components/shell/status-line
 import { filtersToParams } from "@/lib/benchmark/filters"
 import { DATASETS, type MetricDef } from "@/lib/data/datasets"
 import type { SourceStatus } from "@/lib/data/freshness"
-import { metricStanding } from "@/lib/favorability"
+import { directionOf, metricStanding } from "@/lib/favorability"
 import { CONTEXT_REASONS } from "@/lib/favorability/directions"
 import { metricPickerOptions } from "@/lib/data/metric-options"
 import { formatMetric } from "@/lib/format"
@@ -83,7 +83,7 @@ export function BuildView({
     next.compare = next.compare.filter((id) => id !== next.facilityId)
     setSpec(next)
     const params = specToParams(next)
-    window.history.replaceState(null, "", `/build/report?${params}`)
+    window.history.replaceState(null, "", `/reports/report?${params}`)
     if (!next.facilityId || !next.metrics.length) {
       setResult(null)
       return
@@ -382,11 +382,15 @@ function RankLine({ panel, metric, value }: { panel: ReportResult["panels"][numb
   const others = ranked.filter((r) => r.role !== "focus").map((r) => r.value as number)
   const below = others.filter((v) => v < value).length + others.filter((v) => v === value).length / 2
   const s = metricStanding(metric.id, others.length ? below / others.length : null, others.length)
+  // Counted from the end the value is nearer, for a metric with a favorable direction ("3rd lowest", not "10th highest"
+  // of 12), as rankText words percentiles; a context metric keeps counting from the top.
+  const fromBottom = ranked.length - rank + 1
+  const position = directionOf(metric.id) !== "context" && fromBottom < rank ? `${ordinalWord(fromBottom)} lowest` : `${ordinalWord(rank)} highest`
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
       {s && <StandingBadge standing={s} title={s === "depends" ? CONTEXT_REASONS[metric.id] : undefined} />}
       <p className="text-[13px] text-muted-foreground">
-        {formatMetric(metric, value)} — {rank === 1 ? "highest" : rank === ranked.length ? "lowest" : `${ordinalWord(rank)} highest`} of{" "}
+        {formatMetric(metric, value)} — {rank === 1 ? "highest" : rank === ranked.length ? "lowest" : position} of{" "}
         {ranked.length} hospitals charted.
       </p>
     </div>

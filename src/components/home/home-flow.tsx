@@ -136,14 +136,14 @@ export function HomeFlow({
 
   const ready = category != null && facilityId != null
   const benchmarkHref = (() => {
-    if (!ready) return "/benchmark"
+    if (!ready) return "/compare"
     const p = new URLSearchParams({ facility: facilityId })
     if (category !== "financial") p.set("view", category)
     if (unit && supportsUnits(category)) p.set("unit", unit)
     if (customMetrics && chosenMetrics.length) p.set("metrics", chosenMetrics.join(","))
     if (since != null) p.set("since", String(since))
     if (peers === "statewide") p.set("peers", "statewide")
-    return `/benchmark?${p}`
+    return `/compare?${p}`
   })()
   const withFacility = (href: string, extra: Record<string, string> = {}) =>
     facilityId ? `${href}?${new URLSearchParams({ ...extra, facility: facilityId })}` : href
@@ -173,7 +173,7 @@ export function HomeFlow({
         </p>
         {resume && (
           <Link
-            href={`/benchmark?${new URLSearchParams({ facility: resume.id, ...(selection && selection.category !== "financial" ? { view: selection.category } : {}) })}`}
+            href={`/compare?${new URLSearchParams({ facility: resume.id, ...(selection && selection.category !== "financial" ? { view: selection.category } : {}) })}`}
             className="glass fade-up inline-flex max-w-full items-center gap-2 rounded-full px-4 py-2 text-[13px] transition-shadow duration-200 hover:glow-soft focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
           >
             <span className="text-muted-foreground">Pick up where you left off:</span>
@@ -277,7 +277,7 @@ export function HomeFlow({
                 </span>
                 {c.partial && (
                   <Link
-                    href={`/benchmark?${new URLSearchParams({ view: c.partial.view, specialty: c.partial.specialty, ...(facilityId ? { facility: facilityId } : {}) })}`}
+                    href={`/compare?${new URLSearchParams({ view: c.partial.view, specialty: c.partial.specialty, ...(facilityId ? { facility: facilityId } : {}) })}`}
                     onClick={remember}
                     className="text-[13px] font-medium text-primary underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                   >
@@ -440,25 +440,25 @@ export function HomeFlow({
         </Link>
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px]">
           <SecondaryLink
-            href={withFacility("/build/report", category && category !== "financial" ? { category } : {})}
+            href={withFacility("/reports/report", category && category !== "financial" ? { category } : {})}
             icon={ChartColumnBig}
             enabled={ready}
             onClick={remember}
           >
             Build a chart
           </SecondaryLink>
-          <SecondaryLink href={withFacility("/build/correlate")} icon={ChartScatter} enabled={facilityId != null} onClick={remember}>
+          <SecondaryLink href={withFacility("/reports/correlate")} icon={ChartScatter} enabled={facilityId != null} onClick={remember}>
             Correlate two measures
           </SecondaryLink>
           <SecondaryLink
-            href={withFacility("/translate", { source: category === "utilization" ? "utilization" : "financial" })}
+            href={withFacility("/data-definitions", { source: category === "utilization" ? "utilization" : "financial" })}
             icon={BookOpenText}
             enabled={ready}
             onClick={remember}
           >
             Explain its numbers
           </SecondaryLink>
-          <SecondaryLink href={withFacility("/deadlines")} icon={CalendarClock} enabled={facilityId != null} onClick={remember}>
+          <SecondaryLink href={withFacility("/filing-calendar")} icon={CalendarClock} enabled={facilityId != null} onClick={remember}>
             Filing deadlines
           </SecondaryLink>
         </div>

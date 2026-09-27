@@ -77,7 +77,7 @@ export function TranslateView({
   const hrefFor = (params: Record<string, string | null>) => {
     const qs = new URLSearchParams({ source })
     for (const [k, v] of Object.entries(params)) if (v) qs.set(k, v)
-    return `/translate?${qs}`
+    return `/data-definitions?${qs}`
   }
 
   const sections = useMemo(() => new Map(dictionary.sections.map((s) => [s.id, s])), [dictionary.sections])
@@ -219,7 +219,7 @@ export function TranslateView({
       <Segmented
         label="Which HCAI dataset"
         value={source}
-        onChange={(slug) => router.push(`/translate?${new URLSearchParams({ source: slug, ...(facilityId ? { facility: facilityId } : {}) })}`, { scroll: false })}
+        onChange={(slug) => router.push(`/data-definitions?${new URLSearchParams({ source: slug, ...(facilityId ? { facility: facilityId } : {}) })}`, { scroll: false })}
         options={(["hafd-selected", "hau"] as const).map((d) => ({ value: DATASET_SLUG[d], label: DATASETS[d].shortLabel }))}
       />
 
@@ -346,7 +346,7 @@ export function TranslateView({
       {likelyOtherSource && (
         <p className="rounded-xl bg-muted px-3.5 py-2.5 text-[13px] text-muted-foreground">
           This file looks like {otherSource.slug === "utilization" ? "a utilization" : "a financial"} extract.{" "}
-          <Link href={`/translate?source=${otherSource.slug}`} className="font-medium text-primary hover:underline">
+          <Link href={`/data-definitions?source=${otherSource.slug}`} className="font-medium text-primary hover:underline">
             Switch to {DATASETS[parseDatasetSlug(otherSource.slug)].shortLabel.toLowerCase()}
           </Link>{" "}
           and upload it there.
@@ -528,9 +528,9 @@ function MetricsList({
     <section aria-labelledby="section-metrics" className="space-y-2">
       <div className="px-1">
         <h2 id="section-metrics" className="text-[13px] font-semibold tracking-tight">
-          Benchmark metrics
+          Compare metrics
         </h2>
-        <p className="text-xs text-muted-foreground">The ratios on the Benchmark tab, and how each is calculated from HCAI fields.</p>
+        <p className="text-xs text-muted-foreground">The ratios on the Compare tab, and how each is calculated from HCAI fields.</p>
       </div>
       <ul className="surface divide-y divide-border overflow-hidden rounded-2xl">
         {metrics.map((m) => {

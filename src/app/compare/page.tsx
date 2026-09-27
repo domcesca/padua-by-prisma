@@ -12,13 +12,13 @@ import { computeSpecialties } from "@/lib/specialty/compute"
 import { DATASETS } from "@/lib/data/datasets"
 import { DATASET_IDS, getDictionary, getFacilities, getLatestYear, getManifest, getMetricCatalog, toFacilityOption } from "@/lib/data/store"
 
-export const metadata: Metadata = { title: "Benchmark" }
+export const metadata: Metadata = { title: "Compare" }
 
 // One-click starting points spanning ownership types: nonprofit (Cedars-Sinai),
 // academic (UCSF), district (Kaweah), county (SF General), investor (Mad River).
 const SUGGESTED_IDS = ["106190555", "106381154", "106540734", "106380939", "106121002"]
 
-export default async function BenchmarkPage({ searchParams }: PageProps<"/benchmark">) {
+export default async function BenchmarkPage({ searchParams }: PageProps<"/compare">) {
   const sp = await searchParams
   const params = new URLSearchParams(
     Object.entries(sp).flatMap(([k, v]) => (typeof v === "string" ? [[k, v]] : []))
@@ -56,7 +56,7 @@ export default async function BenchmarkPage({ searchParams }: PageProps<"/benchm
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Benchmark"
+        title="Compare"
         actions={<AboutTool id="benchmark" />}
         description="See how a California hospital compares with similar hospitals on its finances, volumes, and quality."
       />

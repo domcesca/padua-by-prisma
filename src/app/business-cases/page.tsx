@@ -5,9 +5,9 @@ import { AboutTool } from "@/components/shell/about-tool"
 import { PageHeader } from "@/components/shell/page-header"
 import { getFacilityOptions, getLatestYear } from "@/lib/data/store"
 
-export const metadata: Metadata = { title: "Propose" }
+export const metadata: Metadata = { title: "Business cases" }
 
-export default async function ProposePage({ searchParams }: PageProps<"/propose">) {
+export default async function ProposePage({ searchParams }: PageProps<"/business-cases">) {
   const sp = await searchParams
   const search = new URLSearchParams(Object.entries(sp).flatMap(([k, v]) => (typeof v === "string" ? [[k, v]] : []))).toString()
   const [facilities, latestYear] = await Promise.all([getFacilityOptions(), getLatestYear()])
@@ -15,7 +15,7 @@ export default async function ProposePage({ searchParams }: PageProps<"/propose"
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Propose"
+        title="Business cases"
         actions={<AboutTool id="propose" />}
         description="Build the financial case for a new technology, service, or piece of equipment: what it costs, what it brings in, and when it pays back."
         className="print:hidden"

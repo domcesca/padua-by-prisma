@@ -7,15 +7,16 @@ business-case builder for new initiatives, a plain-language field guide, and a r
 
 | Tab | What it does |
 | --- | --- |
-| **Home** | The front door. Pick a hospital, pick a topic (Financials, Utilization, or Quality; Case mix is reserved for later), optionally refine the peer group, metrics, and years, and land in Benchmark pre-loaded. The chosen hospital follows you to every tab. |
-| **Benchmark** | A hospital against its peer group on financial metrics (operating margin, days cash on hand, cost and revenue per adjusted discharge, payer mix) utilization metrics (occupancy, ALOS, ED visits and flow, surgeries, cath volume), or quality (CMS readmissions, mortality, patient experience, star ratings; CDPH infection ratios). A collapsible panel shows the county's Census and Medi-Cal context. Default peers are **similar hospitals** (see below); switch to all of California or set filters yourself. A **Payer view** toggle (All payers / Medicare) narrows the metrics to Medicare where HCAI reports a Medicare split. Every view is a shareable URL. |
-| **Build** | A guided chart and table builder: up to four metrics from the catalog, line / bar / table, grouped by year, by hospital, or against the peer group. Legend, table view, CSV download, and a copyable link on every result. |
-| **Correlate** | Any two catalog metrics (Financial, Utilization, Quality, Medicare lens) plotted against each other across a hospital's similar hospitals or all of California for one year: scatter, least-squares trend line, Pearson r, and Spearman rank ρ (robust to outliers). Fewer than 8 hospitals gets "Small sample size — interpret with caution"; fewer than 3, no r. Pairing years of different kinds (fiscal vs. calendar vs. CMS periods) is called out. Table view, CSV, shareable link. |
-| **Propose** | The financial case for a new technology, service, or piece of equipment. Enter capital, implementation, and yearly running costs and a useful life; pick how the benefit is estimated (**Inpatient reimbursement**: MS-DRGs × added cases × a national Medicare payment estimate, with the hospital's own Medicare cases and its peers' as context; **Outpatient reimbursement**: APCs × added services × the national OPPS rate, with physician fees optional; **Cost savings**: staff time, shorter stays, supplies; **Avoided penalties**: the Medicare readmission (HRRP) and hospital-acquired condition (HAC) penalties a quality initiative would avoid; or **Custom**: your own benefit lines). Payback, ROI, NPV, amortized and cumulative net for Conservative / Expected / Optimistic side by side (70% / 100% / 130% of the estimated benefit by default; each rate is editable), a cumulative chart, a year-by-year table, and a print-to-PDF layout. The proposal lives in the link; nothing is saved. |
-| **Translate** | Every field in either dataset in plain language, with why it moves. Pick a hospital to see year-over-year changes, or paste/upload a raw HCAI extract (.xlsx/.csv, including the utilization workbook) to translate its columns. Parsing happens in the browser. |
-| **Deadlines** | (Desktop sidebar and the home page; not in the phone tab bar.) Quarterly and annual financial report due dates for a hospital's fiscal year, the Annual Utilization Report (Feb 15), extension limits, off-cycle report periods, and filed/extended tracking (saved in the browser). |
-| **Ask** / **Watch** | Placeholders for natural-language queries and anomaly detection on uploaded data. |
-| **Help (?)** | On every page (bottom corner, or press <kbd>?</kbd>): a search-as-you-type glossary of every metric and HCAI field, read from the same dictionaries as Translate. A lookup, not a chat. Also replays the tour. |
+| **Overview** (`/`) | The front door. Pick a hospital, pick a topic (Financials, Utilization, or Quality; Case mix is reserved for later), optionally refine the peer group, metrics, and years, and land in Compare pre-loaded. The chosen hospital follows you to every tab. |
+| **Compare** (`/compare`, was Benchmark) | A hospital against its peer group on financial metrics (operating margin, days cash on hand, cost and revenue per adjusted discharge, payer mix) utilization metrics (occupancy, ALOS, ED visits and flow, surgeries, cath volume), or quality (CMS readmissions, mortality, patient experience, star ratings; CDPH infection ratios). A collapsible panel shows the county's Census and Medi-Cal context. Default peers are **similar hospitals** (see below); switch to all of California or set filters yourself. A **Payer view** toggle (All payers / Medicare) narrows the metrics to Medicare where HCAI reports a Medicare split. Every view is a shareable URL. |
+| **Reports** (`/reports`, was Build) | A guided chart and table builder: up to four metrics from the catalog, line / bar / table, grouped by year, by hospital, or against the peer group. Legend, table view, CSV download, and a copyable link on every result. |
+| **Correlate** (under Reports) | Any two catalog metrics (Financial, Utilization, Quality, Medicare lens) plotted against each other across a hospital's similar hospitals or all of California for one year: scatter, least-squares trend line, Pearson r, and Spearman rank ρ (robust to outliers). Fewer than 8 hospitals gets "Small sample size — interpret with caution"; fewer than 3, no r. Pairing years of different kinds (fiscal vs. calendar vs. CMS periods) is called out. Table view, CSV, shareable link. |
+| **Business cases** (`/business-cases`, was Propose) | The financial case for a new technology, service, or piece of equipment. Enter capital, implementation, and yearly running costs and a useful life; pick how the benefit is estimated (**Inpatient reimbursement**: MS-DRGs × added cases × a national Medicare payment estimate, with the hospital's own Medicare cases and its peers' as context; **Outpatient reimbursement**: APCs × added services × the national OPPS rate, with physician fees optional; **Cost savings**: staff time, shorter stays, supplies; **Avoided penalties**: the Medicare readmission (HRRP) and hospital-acquired condition (HAC) penalties a quality initiative would avoid; or **Custom**: your own benefit lines). Payback, ROI, NPV, amortized and cumulative net for Conservative / Expected / Optimistic side by side (70% / 100% / 130% of the estimated benefit by default; each rate is editable), a cumulative chart, a year-by-year table, and a print-to-PDF layout. The proposal lives in the link; nothing is saved. |
+| **Data definitions** (`/data-definitions`, was Translate) | Every field in either dataset in plain language, with why it moves. Pick a hospital to see year-over-year changes, or paste/upload a raw HCAI extract (.xlsx/.csv, including the utilization workbook) to translate its columns. Parsing happens in the browser. |
+| **Filing calendar** (`/filing-calendar`, was Deadlines) | (Desktop sidebar and the home page; not in the phone tab bar.) Quarterly and annual financial report due dates for a hospital's fiscal year, the Annual Utilization Report (Feb 15), extension limits, off-cycle report periods, and filed/extended tracking (saved in the browser). |
+| **Saved briefings** (`/briefings`, was Briefing) | (Desktop sidebar.) Hospital priorities you pinned, checked against the latest data. Saved in the browser. |
+| **What's next** (`/whats-next`) | Not in the nav: a small link in the sidebar footer. Ask (natural-language queries) and Watch (anomaly detection on uploaded data), not built yet; `/ask` and `/watch` redirect here. |
+| **Help (?)** | On every page (bottom corner, or press <kbd>?</kbd>): a search-as-you-type glossary of every metric and HCAI field, read from the same dictionaries as Data definitions. A lookup, not a chat. Also replays the tour. |
 
 A short guided tour (five steps) plays on the first visit to the home page. It's remembered in the browser
 (`hcai-tour-v1` in localStorage), can be skipped at any step, and can be replayed from the help panel.
@@ -180,6 +181,28 @@ used (they cover traditional Medicare only, by calendar year, and need a CCN cro
 - Medicare volumes (discharges, days, length of stay, outpatient visits) come from the financial report, so they're
   fiscal-year and include long-term care units. Cards say so.
 - Medicare Advantage share (MA discharges ÷ all Medicare discharges) is available under the Medicare view and in Build.
+
+## Names, redirects and wording (V7.2)
+
+Renaming, copy and labels only: no calculation, scoring or data change.
+
+- **Tabs renamed** for administrators: Home → Overview, Benchmark → Compare, Build → Reports, Propose → Business
+  cases, Deadlines → Filing calendar, Translate → Data definitions, Briefing → Saved briefings. The pages moved to
+  matching addresses (`src/app/compare`, `reports`, `business-cases`, `filing-calendar`, `data-definitions`,
+  `briefings`); component, library and API names are unchanged (`BenchmarkView`, `lib/propose`, `/api/benchmark`, …).
+- **Old links keep working.** `next.config.ts` redirects (308) each old path and everything under it to the new one,
+  query string included: `/benchmark?facility=…&view=quality` → `/compare?…`, `/build/report?…` →
+  `/reports/report?…`, `/correlate?…` → `/reports/correlate?…`, and so on. The browser keeps any `#fragment`.
+- **Ask and Watch** left the nav; one "What's next" page (`/whats-next`, linked small in the sidebar footer) describes
+  both, and `/ask` and `/watch` redirect there (307, since the pages will come back).
+- **Rank wording follows the value's side** (`rankText` in `src/lib/favorability`): for a metric with a favorable
+  direction, a value below the median reads "Lower than N% of peers" (N = 100 − percentile) and one above it "Higher
+  than N%", so a low infection ratio reads "Favorable · Lower than 86% of 7 peers", not "Higher than 14%". Context
+  metrics ("Direction depends on strategy") keep "Higher than N%". Reports' rank line counts from the nearer end the
+  same way ("3rd lowest of 8"). Same percentile, same ties-count-half rule.
+- **Compare's findings panel is "Hospital priorities"**, with a line saying it covers every area whichever topic tab is
+  open; the metric cards below sit under a "Topic details: <topic>" heading. Rank labels on cards and in the
+  methodology drawer read "Priority 2 · Readmissions".
 
 ## Context bar, Guided mode and peer fit (V7.1)
 

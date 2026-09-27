@@ -134,7 +134,7 @@ export function DeadlinesView({
 
   function pickFacility(id: string | null) {
     setFacilityId(id)
-    window.history.replaceState(null, "", id ? `/deadlines?facility=${id}` : "/deadlines")
+    window.history.replaceState(null, "", id ? `/filing-calendar?facility=${id}` : "/filing-calendar")
   }
 
   return (

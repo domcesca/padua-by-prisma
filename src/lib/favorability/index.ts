@@ -51,14 +51,23 @@ export function standing(direction: Direction, percentile: number | null | undef
 export const metricStanding = (metricId: string, percentile: number | null | undefined, peers: number) =>
   standing(directionOf(metricId), percentile, peers)
 
-/** "Higher than 91% of 22 peers" — the evidence under a standing label. */
-export function rankText(percentile: number, peers: number, noun = "peers") {
+/**
+ * "Higher than 91% of 22 peers" or "Lower than 86% of 7 peers": the evidence under a standing label. The same
+ * percentile either way, worded from the side the value is on, so a low infection ratio reads "Lower than 86%", not
+ * "Higher than 14%", and the words agree with the Favorable or Unfavorable next to them. A context metric (direction
+ * "context", or none given) keeps the one neutral wording, "Higher than N%", whichever side it's on.
+ */
+export function rankText(percentile: number, peers: number, direction: Direction = "context", noun = "peers") {
   const pct = Math.round(percentile * 100)
   if (pct >= 100) return `Highest of ${peers} ${noun}`
   if (pct <= 0) return `Lowest of ${peers} ${noun}`
   if (pct >= 45 && pct <= 55) return `About the median of ${peers} ${noun}`
+  if (direction !== "context" && pct < 45) return `Lower than ${Math.round((1 - percentile) * 100)}% of ${peers} ${noun}`
   return `Higher than ${pct}% of ${peers} ${noun}`
 }
+
+/** rankText for a metric, worded by its direction (lib/favorability/directions.ts). */
+export const metricRankText = (metricId: string, percentile: number, peers: number) => rankText(percentile, peers, directionOf(metricId))
 
 export type Trend = "improving" | "worsening" | "unchanged" | "up" | "down"
 

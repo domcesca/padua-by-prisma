@@ -32,7 +32,7 @@ export function BriefingView() {
   if (!mounted) {
     return (
       <p className="flex items-center gap-2 text-sm text-muted-foreground" role="status">
-        <Loader2 className="size-4 animate-spin" aria-hidden /> Loading your briefing…
+        <Loader2 className="size-4 animate-spin" aria-hidden /> Loading your saved briefings…
       </p>
     )
   }
@@ -42,15 +42,15 @@ export function BriefingView() {
         <NotebookPen className="mx-auto size-6 text-muted-foreground" aria-hidden />
         <p className="mt-2 font-medium">Nothing pinned yet</p>
         <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
-          Pick a hospital on Home or in Benchmark, then use <span className="font-medium text-foreground">Pin to briefing</span> on any key finding.
+          Pick a hospital on Overview or in Compare, then use <span className="font-medium text-foreground">Pin to briefing</span> on any hospital priority.
           Pins are saved in this browser only.
         </p>
         <div className="mt-4 flex flex-wrap justify-center gap-2">
           <Link href="/" className={cn(BUTTON, "btn-accent")}>
-            Go to Home
+            Go to Overview
           </Link>
-          <Link href="/benchmark" className={cn(BUTTON, "glass-subtle")}>
-            Open Benchmark
+          <Link href="/compare" className={cn(BUTTON, "glass-subtle")}>
+            Open Compare
           </Link>
         </div>
       </div>
@@ -97,7 +97,7 @@ function statusOf(pin: Pin, data: FindingsResult | null, loading: boolean, error
     return {
       label: "No longer qualifies",
       tone: "gone",
-      detail: "It isn't among this hospital's key findings against these peers any more: its standing improved, the data changed, or it fell out of the ranked list.",
+      detail: "It isn't among this hospital's priorities against these peers any more: its standing improved, the data changed, or it fell out of the ranked list.",
     }
   }
   const was = pin.snapshot
@@ -111,7 +111,7 @@ function statusOf(pin: Pin, data: FindingsResult | null, loading: boolean, error
     return { label: "Score changed", tone: "changed", detail: `${parts.join("; ")}.`.replace(/^./, (c) => c.toUpperCase()) }
   }
   return {
-    label: "Still a key finding",
+    label: "Still a priority",
     tone: "same",
     detail: `Same score, still ${now.tier === "primary" ? `primary #${now.rank}` : `to watch #${now.rank}`}.`,
   }
@@ -131,7 +131,7 @@ function HospitalGroup({ pins }: { pins: Pin[] }) {
   const opener = useRef<HTMLElement | null>(null)
   const open = openFamily && data ? tierOf(data, openFamily) : null
   const peerGroup = data?.peerGroup.description ?? pins[0].snapshot.peerGroup
-  const benchmark = `/benchmark?${new URLSearchParams([...new URLSearchParams(peerQuery), ["facility", facilityId]])}#key-findings`
+  const benchmark = `/compare?${new URLSearchParams([...new URLSearchParams(peerQuery), ["facility", facilityId]])}#key-findings`
 
   return (
     <section aria-labelledby={`briefing-${facilityId}`} className="widget space-y-3 p-5 print:break-inside-avoid print:shadow-none">
@@ -144,7 +144,7 @@ function HospitalGroup({ pins }: { pins: Pin[] }) {
         </div>
         <div className="flex flex-wrap gap-1.5 print:hidden">
           <Link href={benchmark} className={cn(BUTTON, "glass-subtle")}>
-            All key findings <ArrowRight className="size-3.5" aria-hidden />
+            All hospital priorities <ArrowRight className="size-3.5" aria-hidden />
           </Link>
           <button type="button" onClick={() => unpinHospital(facilityId)} className={cn(BUTTON, "glass-subtle")}>
             Remove all<span className="sr-only"> for {facilityName}</span>
@@ -221,7 +221,7 @@ function HospitalGroup({ pins }: { pins: Pin[] }) {
                       </button>
                     </>
                   ) : (
-                    <p className="mt-1 text-[13px] text-muted-foreground">{loading ? "Checking…" : error ? "Not checked." : "Not a key finding now."}</p>
+                    <p className="mt-1 text-[13px] text-muted-foreground">{loading ? "Checking…" : error ? "Not checked." : "Not a priority now."}</p>
                   )}
                 </div>
               </div>

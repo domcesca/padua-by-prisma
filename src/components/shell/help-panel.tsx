@@ -105,7 +105,7 @@ export function HelpPanel() {
           <div>
             <p className="text-[15px] font-semibold tracking-tight">Glossary</p>
             <p className="text-xs text-muted-foreground">
-              Padua&apos;s terms, and what a metric or HCAI field means, from the same definitions as Translate.
+              Padua&apos;s terms, and what a metric or HCAI field means, from the same definitions as Data definitions.
             </p>
           </div>
           <button
@@ -186,11 +186,11 @@ export function HelpPanel() {
             <Compass className="size-3.5" /> Take the tour
           </button>
           <Link
-            href="/translate"
+            href="/data-definitions"
             onClick={() => setOpen(false)}
             className="inline-flex items-center gap-1.5 font-medium text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
           >
-            <BookOpenText className="size-3.5" /> Every field, in Translate
+            <BookOpenText className="size-3.5" /> Every field, in Data definitions
           </Link>
         </div>
       </PopoverContent>
@@ -254,7 +254,7 @@ function GlossaryRow({
               onClick={onNavigate}
               className="inline-flex items-center gap-0.5 font-medium text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
             >
-              Full entry in Translate <ArrowUpRight className="size-3" />
+              Full entry in Data definitions <ArrowUpRight className="size-3" />
             </Link>
           )}
         </div>

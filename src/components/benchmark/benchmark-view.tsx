@@ -142,7 +142,7 @@ export function BenchmarkView({
     const qs = params.toString()
     // Native replaceState keeps the URL shareable without re-rendering the page on the server;
     // the data comes from /api/benchmark below.
-    window.history.replaceState(null, "", qs ? `/benchmark?${qs}` : "/benchmark")
+    window.history.replaceState(null, "", qs ? `/compare?${qs}` : "/compare")
     if (!next.facilityId) return
 
     request.current?.abort()
@@ -257,13 +257,13 @@ export function BenchmarkView({
     if (pendingScroll.current && shownKey) scrollToMetric()
   })
 
-  /** The finding that covers a metric card, if one is ranked: "Key finding 2 · Readmissions". */
+  /** The finding that covers a metric card, if one is ranked: "Priority 2 · Readmissions". */
   function relatedFor(metricId: string) {
     const family = FAMILY_OF_METRIC.get(metricId)
     const info = family && findingsResult && facilityId === findingsResult.facility.id ? tierOf(findingsResult, family) : null
     if (!info) return undefined
     return {
-      label: `${info.tier === "primary" ? "Key finding" : "To watch"} ${info.rank} · ${info.finding.label}`,
+      label: `${info.tier === "primary" ? "Priority" : "To watch"} ${info.rank} · ${info.finding.label}`,
       onOpen: (el: HTMLElement) => {
         opener.current = el
         setOpenFamily(info.finding.family)
@@ -586,6 +586,19 @@ export function BenchmarkView({
         <div className={cn("space-y-6 transition-opacity duration-200", loading && "opacity-60")}>
           <FacilitySummary result={shown} lastYear={facility?.lastYear ?? latestYear} flag={facility ? facilityFlag(facility, latestYear) : null} />
           {!specialtyView && !guided && shown.community && <CommunityPanel context={shown.community} />}
+
+          {/* Hospital priorities (above) rank findings across every topic; from here down is only the tab that's open. */}
+          <div className="space-y-0.5 border-t border-border pt-5">
+            <h2 className="text-[17px] font-semibold tracking-tight">Topic details: {[
+                CATEGORY_BY_ID[view.category].label,
+                specialtyView ? "Medicare specialty" : (shown.line?.label ?? shown.unit?.label ?? (linesView ? "Service lines" : null)),
+              ]
+                .filter(Boolean)
+                .join(" · ")}</h2>
+            <p className="text-[13px] text-muted-foreground">
+              Measures for the topic that&apos;s open, against the same peer group. Switch topics above to see another.
+            </p>
+          </div>
 
           {specialtyView ? (
             shownSpecialty ? (

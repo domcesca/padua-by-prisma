@@ -74,7 +74,7 @@ export function translateHref(dataset: HcaiDatasetId, focus?: { metric?: string;
   if (facilityId) params.set("facility", facilityId)
   if (focus?.metric) params.set("metric", focus.metric)
   if (focus?.field) params.set("field", focus.field)
-  return `/translate?${params}`
+  return `/data-definitions?${params}`
 }
 
 export type CategoryInfo = {

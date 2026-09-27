@@ -33,7 +33,7 @@ export function WhereToLook({
   const opener = useRef<HTMLElement | null>(null)
   const open = openFamily && data ? tierOf(data, openFamily) : null
   const peers = new URLSearchParams(peerQuery)
-  const all = `/benchmark?${new URLSearchParams({ ...(statewide ? { peers: "statewide" } : {}), facility: facilityId })}#key-findings`
+  const all = `/compare?${new URLSearchParams({ ...(statewide ? { peers: "statewide" } : {}), facility: facilityId })}#key-findings`
   const top = data?.primary.slice(0, HOME_COUNT) ?? []
 
   return (
@@ -44,13 +44,13 @@ export function WhereToLook({
         </h2>
         <p className="text-[13px] text-muted-foreground">
           {data
-            ? `${facilityName} compared with ${data.peerGroup.count} ${statewide ? "hospitals statewide" : "similar hospitals"}${top.length ? `: ${top.length === 1 ? "the top key finding" : `the top ${top.length} key findings`}` : ""}.`
+            ? `${facilityName} compared with ${data.peerGroup.count} ${statewide ? "hospitals statewide" : "similar hospitals"}${top.length ? `: ${top.length === 1 ? "the top hospital priority" : `the top ${top.length} hospital priorities`}` : ""}.`
             : `${facilityName}'s biggest unfavorable gaps against its peers, ranked.`}
         </p>
       </div>
       {error ? (
         <div role="alert" className="rounded-xl bg-destructive/10 px-4 py-3 text-[13px] text-destructive">
-          Couldn&apos;t load key findings ({error}).{" "}
+          Couldn&apos;t load hospital priorities ({error}).{" "}
           <button type="button" onClick={retry} className="rounded font-medium underline outline-none focus-visible:ring-2 focus-visible:ring-ring">
             Try again
           </button>
@@ -84,8 +84,8 @@ export function WhereToLook({
               className="inline-flex items-center gap-1 rounded text-[13px] font-medium text-primary outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
             >
               {data.primary.length > top.length || data.secondary.length > 0
-                ? `See all key findings (${data.primary.length} primary, ${data.secondary.length} to watch)`
-                : "See key findings in Benchmark"}
+                ? `See all hospital priorities (${data.primary.length} primary, ${data.secondary.length} to watch)`
+                : "See hospital priorities in Compare"}
               <ArrowRight className="size-3.5" aria-hidden />
             </Link>
           )}

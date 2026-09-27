@@ -25,11 +25,11 @@ export function MobileHeader() {
   )
 }
 
-/** iOS-style bottom tab bar; "coming soon" and desktop-only sections are left to the desktop sidebar. */
+/** iOS-style bottom tab bar; desktop-only sections are left to the desktop sidebar. */
 export function MobileTabBar() {
   const pathname = usePathname()
   const selection = useSelection()
-  const items = NAV_ITEMS.filter((i) => !i.soon && !i.desktopOnly)
+  const items = NAV_ITEMS.filter((i) => !i.desktopOnly)
   return (
     <nav
       data-tour="nav"
@@ -44,7 +44,7 @@ export function MobileTabBar() {
               <Link
                 href={hrefWithSelection(href, selection)}
                 aria-current={active ? "page" : undefined}
-                data-tour={`nav-${label.toLowerCase()}`}
+                data-tour={`nav-${href.slice(1) || "overview"}`}
                 className={cn(
                   "relative flex h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors",
                   active ? "text-primary" : "text-tertiary-foreground"
@@ -54,7 +54,8 @@ export function MobileTabBar() {
                   <span aria-hidden className="absolute top-0 left-1/2 h-[3px] w-8 -translate-x-1/2 rounded-b-full bg-[image:var(--accent-gradient)]" />
                 )}
                 <Icon className="size-5" strokeWidth={active ? 2.25 : 1.75} />
-                {label}
+                {/* Two-word names ("Business cases") wrap to a second line on a narrow phone. */}
+                <span className="px-0.5 text-center leading-tight">{label}</span>
               </Link>
             </li>
           )

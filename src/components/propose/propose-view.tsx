@@ -96,7 +96,7 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
   // Every module's inputs go in (their keys don't overlap), so switching modules after a reload loses nothing.
   const query = proposalSpecToParams(spec, Object.assign({}, ...MODULES.map((m) => m.toParams(states[m.id])))).toString()
   useEffect(() => {
-    window.history.replaceState(null, "", `/propose?${query}`)
+    window.history.replaceState(null, "", `/business-cases?${query}`)
   }, [query])
 
   useEffect(() => {

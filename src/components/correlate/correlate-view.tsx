@@ -64,7 +64,7 @@ export function CorrelateView({
     const next = { ...spec, ...patch }
     setSpec(next)
     const params = correlateSpecToParams(next)
-    window.history.replaceState(null, "", `/build/correlate?${params}`)
+    window.history.replaceState(null, "", `/reports/correlate?${params}`)
     if (!next.facilityId) {
       setResult(null)
       return

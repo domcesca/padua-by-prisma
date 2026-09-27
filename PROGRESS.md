@@ -292,6 +292,18 @@ downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and
   Outdated = newest report more than 2 years behind the newest data (13 hospitals, some of them campuses now reported
   under a parent).
 
+### V7.2 (navigation and language clarity)
+- Tabs renamed (Overview, Compare, Reports, Business cases, Filing calendar, Data definitions, Saved briefings) with
+  new addresses and 308 redirects from every old path, query string kept; Ask and Watch moved off the nav to one
+  "What's next" page. Rank wording reads from the value's side for favorable/unfavorable metrics ("Lower than 86%",
+  not "Higher than 14%"); context metrics unchanged. Compare's findings panel is "Hospital priorities" with a
+  "Topic details" heading over the cards. Details in the README.
+- Regression against main (V7.1): 7,216 API responses; Benchmark 2,706, Build reports 2,706 and Correlate 902
+  identical; findings 271 identical and 631 differing only in the Business cases handoff link (`/business-cases?…`
+  instead of `/propose?…`, and "From Padua's hospital priorities" in its prefilled description). Rank wording is
+  worded in the browser, so no API response carries it.
+- The phone-layout QA carried from V7.1 is still open for the reviewer's pass.
+
 ### V7.1 (context bar, Guided / Analysis modes, peer-group presets and fit)
 - Shared context bar across Benchmark, Build, Correlate and Propose; peer-group presets; peer-fit label; Guided mode for
   Benchmark and Build. Details in the README. No data or calculation changes: Build and Correlate now resolve their

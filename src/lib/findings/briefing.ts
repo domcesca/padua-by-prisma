@@ -4,7 +4,7 @@ import { useSyncExternalStore } from "react"
 
 import type { ConfidenceLevel, Finding } from "./score"
 
-// Pinned findings for the briefing page (/briefing), remembered in this browser only: no accounts, nothing sent
+// Pinned findings for the briefing page (/briefings), remembered in this browser only: no accounts, nothing sent
 // anywhere (the same pattern as Deadlines' filed/unfiled progress). Each pin keeps a snapshot of the finding as it
 // stood when pinned, so the briefing can say whether it still qualifies and whether its score moved.
 

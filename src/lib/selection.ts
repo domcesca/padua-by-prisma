@@ -72,31 +72,31 @@ export function useSelection(): Selection | null {
 /** A tab's link, carrying the remembered hospital and category. */
 export function hrefWithSelection(href: string, selection: Selection | null) {
   if (!selection?.facilityId) {
-    if (href === "/translate" && selection?.category === "utilization") return "/translate?source=utilization"
-    if (href === "/benchmark" && selection && selection.category !== "financial") return `/benchmark?view=${selection.category}`
+    if (href === "/data-definitions" && selection?.category === "utilization") return "/data-definitions?source=utilization"
+    if (href === "/compare" && selection && selection.category !== "financial") return `/compare?view=${selection.category}`
     return href
   }
   const params = new URLSearchParams({ facility: selection.facilityId })
   // The peer group carries to every tool that has one.
   const withPeers = () => new URLSearchParams(selection.peers).forEach((v, k) => params.set(k, v))
   switch (href) {
-    case "/benchmark":
+    case "/compare":
       if (selection.category !== "financial") params.set("view", selection.category)
       withPeers()
       break
-    case "/translate":
+    case "/data-definitions":
       params.set("source", selection.category === "utilization" ? "utilization" : "financial")
       break
-    case "/build":
+    case "/reports":
       if (selection.category !== "financial") params.set("category", selection.category)
       withPeers()
       break
-    case "/build/report":
-    case "/build/correlate":
+    case "/reports/report":
+    case "/reports/correlate":
       withPeers()
       break
-    case "/deadlines":
-    case "/propose":
+    case "/filing-calendar":
+    case "/business-cases":
       break
     default:
       return href

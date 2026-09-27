@@ -161,7 +161,7 @@ function ScopeNote({ result }: { result: SpecialtyResult }) {
           </li>
           <li>
             Estimated payment = cases × the DRG&apos;s FY {result.fiscalYear} relative weight × the national operating
-            standardized amount ({formatUsd(result.rate, { cents: true })}), the same estimate as Propose&apos;s Inpatient
+            standardized amount ({formatUsd(result.rate, { cents: true })}), the same estimate as Business cases&apos; Inpatient
             reimbursement. It&apos;s a national-average operating payment at current rates, so hospitals compare on volume and
             case mix alone; the hospital&apos;s actual payments also depend on its wage index, teaching and
             safety-net add-ons, outliers, and capital.
