@@ -5,8 +5,9 @@ import type { PeerFilters } from "./filters"
 // reuses the Opportunity Finder's peer-count factor (lib/findings/score.ts: 20+ ×1.0, 10–19 ×0.9, 5–9 ×0.75, fewer than
 // 5 not scored); the match half counts which of the hospital's characteristics the group is matched on.
 //
-//   Limited sample    — fewer than 5 peers, or a closely matched group of 5–9 (the ×0.75 size factor)
-//   Broad comparison  — matched on fewer than two characteristics (statewide, teaching-only, a wide radius alone)
+//   Limited sample    — fewer than 5 peers: below the Opportunity Finder's floor, too few to rank anything
+//   Broad comparison  — matched on fewer than two characteristics (statewide, teaching-only, a wide radius alone), or
+//                       a close match of only 5–9 hospitals (the ×0.75 size factor: usable, as V7.0's Medium is)
 //   Strong fit        — matched on two or more characteristics, with 10 or more peers
 //
 // The characteristics: local geography (a county or 50 miles or less), size band, ownership, teaching/rural status.
@@ -50,8 +51,8 @@ export function peerFit(applied: PeerFilters, count: number): { level: PeerFitLe
     level = "broad"
     reason = `${n}, ${matched}. A wide group: differences may reflect size, market, or mission rather than performance.`
   } else if (size.value < 0.9) {
-    level = "limited"
-    reason = `${n}, ${matched}. A close match, but under 10 hospitals, so one unusual peer moves the median.`
+    level = "broad"
+    reason = `${n}, ${matched}. A close match, but under 10 hospitals, so one unusual peer can move the median.`
   } else {
     level = "strong"
     reason = `${n}, ${matched}.`

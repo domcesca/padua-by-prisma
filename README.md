@@ -199,14 +199,16 @@ Navigation and display only: no new data, and no change to how peers are compare
   operating model (same ownership type, size band and teaching/rural status, statewide), Academic centers (teaching
   hospitals statewide), Statewide. Build and Correlate now take the same peer filters as Benchmark, so a custom group
   set in Benchmark carries over; old `?peers=statewide` links still work.
-- **Peer fit** (`src/lib/benchmark/peer-fit.ts`): Limited sample (fewer than 5 peers, or a close match of 5–9),
-  Broad comparison (matched on fewer than two of location, size, ownership, teaching/rural status), Strong fit (two or
-  more, with 10+ peers). The size cut-offs are V7.0's peer-count factor (`peersFactor`).
+- **Peer fit** (`src/lib/benchmark/peer-fit.ts`): Limited sample (fewer than 5 peers, the Opportunity Finder's floor),
+  Broad comparison (matched on fewer than two of location, size, ownership, teaching/rural status, or a close match
+  of only 5–9 hospitals), Strong fit (two or more, with 10+ peers). The size cut-offs are V7.0's peer-count factor
+  (`peersFactor`). Local market and Academic centers match on one characteristic, so they read Broad at best.
 - **Guided / Analysis** (`src/lib/display-mode.ts`, remembered in the browser; Analysis is the default and is exactly
   what Padua showed before). Guided hides, in Benchmark: the Metrics picker, Payer view, Medicare specialty view,
   custom peer filters (presets stay), the community panel, the payer mix card, the chart legend and year notes, each
   card's table toggle and confidence interval, and every metric card past the first four, except that a card standing
-  Unfavorable is always shown ("Show N more metrics" brings back the rest). In Build: the chart type, which hospitals
+  Unfavorable or Worsening since its previous value is always shown ("Show N more metrics" brings back the rest).
+  Metrics without a favorable direction (volumes, length of stay, occupancy) say Up or Down, never Worsening. In Build: the chart type, which hospitals
   to rank, and the added hospitals picker; group-by labels read "Over time / Ranked / Against peers". Settings only
   Analysis can change that are still in effect (e.g. a Medicare view from a link) are named, with a way back.
 

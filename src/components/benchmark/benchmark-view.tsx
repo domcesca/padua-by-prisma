@@ -31,7 +31,8 @@ import {
 } from "@/lib/data/datasets"
 import { metricPickerOptions } from "@/lib/data/metric-options"
 import { setDisplayMode, useDisplayMode } from "@/lib/display-mode"
-import { metricStanding } from "@/lib/favorability"
+import { directionOf, metricStanding, trend } from "@/lib/favorability"
+import { formatMetric } from "@/lib/format"
 import { facilityFlag, type FacilityFlag } from "@/lib/facility-flag"
 import type { FindingsResult } from "@/lib/findings/compute"
 import { FAMILY_OF_METRIC } from "@/lib/findings/families"
@@ -468,12 +469,18 @@ export function BenchmarkView({
           shown!.metrics.length > 1 ? `Shown for ${statusMeta.label}; each card has its own status line.` : null
         )
       : null
-  // Guided: at most GUIDED_CARDS cards, always including every metric standing Unfavorable, the rest behind a button.
+  // Guided: at most GUIDED_CARDS cards, always including every metric standing Unfavorable or worsening since its
+  // previous value (the same standing and trend words the cards show), the rest behind a button.
   const ordered = shown ? orderByGroup(shown.metrics, metaById) : []
   const unfavorable = new Set(
     ordered.filter((id) => {
-      const p = [...(shown?.series[id] ?? [])].reverse().find((x) => x.published && x.value != null)
-      return p != null && metricStanding(id, p.percentile, p.n) === "unfavorable"
+      const meta = shown?.unit?.definitions[id] ?? shown?.line?.definitions[id] ?? metaById[id]
+      const withValue = (shown?.series[id] ?? []).filter((x) => x.published && x.value != null)
+      const p = withValue.at(-1)
+      const prior = withValue.at(-2)
+      if (!p || !meta) return false
+      if (metricStanding(id, p.percentile, p.n) === "unfavorable") return true
+      return !!prior && trend(directionOf(id), prior.value!, p.value!, formatMetric(meta, prior.value) === formatMetric(meta, p.value)) === "worsening"
     })
   )
   const guidedPick = ordered.filter((id, i) => unfavorable.has(id) || ordered.slice(0, i).filter((x) => !unfavorable.has(x)).length + unfavorable.size < GUIDED_CARDS)
@@ -867,7 +874,7 @@ function orderByGroup(ids: string[], metaById: Record<string, MetricDef>) {
   return [...ids].sort((a, b) => groups.indexOf(metaById[a]?.group ?? "") - groups.indexOf(metaById[b]?.group ?? ""))
 }
 
-/** Guided mode's metric cards per screen (every Unfavorable one is shown regardless). */
+/** Guided mode's metric cards per screen (every Unfavorable or worsening one is shown regardless). */
 const GUIDED_CARDS = 4
 
 const yearRange = (years: number[]) =>

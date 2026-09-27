@@ -296,13 +296,15 @@ downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and
 - Shared context bar across Benchmark, Build, Correlate and Propose; peer-group presets; peer-fit label; Guided mode for
   Benchmark and Build. Details in the README. No data or calculation changes: Build and Correlate now resolve their
   peer group from Benchmark's filters, which gives the same group as before for Similar and Statewide.
-- Peer fit across the 451 active hospitals: Similar hospitals 146 Strong / 76 Broad / 229 Limited (median 8 peers);
-  Similar operating model 278 Strong / 173 Limited (median 19); Local market 257 Broad / 194 Limited (median 6);
+- Peer fit across the 451 active hospitals: Similar hospitals 146 Strong / 305 Broad (median 8 peers); Similar
+  operating model 278 Strong / 103 Broad / 70 Limited (median 19); Local market 257 Broad / 194 Limited (median 6);
   Academic centers 328 Broad / 123 Limited (median 36); Statewide all Broad (median 292).
-- Judgment calls to review: 5–9 peers reads "Limited sample" even when closely matched (V7.0's ×0.75 factor);
-  Local market and Academic centers match on one characteristic, so they read "Broad comparison" at best; Analysis is
-  the default mode; Guided doesn't hide Build charts (each is a metric the person picked) and doesn't change Correlate
-  or Propose.
+- Decisions (confirmed in review): a close match of 5–9 peers reads Broad comparison, Limited sample is fewer than 5;
+  Local market and Academic centers stay capped at Broad; Guided always shows Unfavorable and Worsening cards.
+  Analysis is the default mode; Guided doesn't hide Build charts and doesn't change Correlate or Propose.
+- Regression against main (V7.0): 7,216/7,216 API responses identical for Similar and Statewide peers (Benchmark, all
+  three topics; Build reports in all three groupings; Correlate; key findings; every active hospital), apart from the
+  new peer-group metadata.
 
 ### V7.0 (Opportunity Finder and administrator front door)
 - Key findings engine (`src/lib/findings/`), `/api/findings`, Home's "Where to look first", Benchmark's Key findings
