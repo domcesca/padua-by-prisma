@@ -192,9 +192,11 @@ Renaming, copy and labels only: no calculation, scoring or data change.
   `briefings`); component, library and API names are unchanged (`BenchmarkView`, `lib/propose`, `/api/benchmark`, …).
 - **Old links keep working.** `next.config.ts` redirects (308) each old path and everything under it to the new one,
   query string included: `/benchmark?facility=…&view=quality` → `/compare?…`, `/build/report?…` →
-  `/reports/report?…`, `/correlate?…` → `/reports/correlate?…`, and so on. The browser keeps any `#fragment`.
+  `/reports/build?…` (as does `/reports/report`, its address in the first V7.2 preview), `/correlate?…` → `/reports/correlate?…`, and so on. The browser keeps any `#fragment`.
 - **Ask and Watch** left the nav; one "What's next" page (`/whats-next`, linked small in the sidebar footer) describes
   both, and `/ask` and `/watch` redirect there (307, since the pages will come back).
+- **Phone tab bar** labels stay on one line: under 430px wide, Business cases and Data definitions show as "Business" and
+  "Definitions" (full names stay the accessible names). Filing calendar and Saved briefings stay desktop-only.
 - **Rank wording follows the value's side** (`rankText` in `src/lib/favorability`): for a metric with a favorable
   direction, a value below the median reads "Lower than N% of peers" (N = 100 − percentile) and one above it "Higher
   than N%", so a low infection ratio reads "Favorable · Lower than 86% of 7 peers", not "Higher than 14%". Context

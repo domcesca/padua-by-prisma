@@ -302,7 +302,10 @@ downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and
   identical; findings 271 identical and 631 differing only in the Business cases handoff link (`/business-cases?…`
   instead of `/propose?…`, and "From Padua's hospital priorities" in its prefilled description). Rank wording is
   worded in the browser, so no API response carries it.
-- The phone-layout QA carried from V7.1 is still open for the reviewer's pass.
+- Review fixes: the report builder moved to `/reports/build` (`/build/report` and `/reports/report` redirect to it in
+  one hop); the phone tab bar keeps every label on one line, with "Business" and "Definitions" under 430px wide
+  (checked at 360, 375, 390 and 430px).
+- The phone-layout QA carried from V7.1 is closed with screenshots of the pinned context bar, its sheet and the tab bar at 390px.
 
 ### V7.1 (context bar, Guided / Analysis modes, peer-group presets and fit)
 - Shared context bar across Benchmark, Build, Correlate and Propose; peer-group presets; peer-fit label; Guided mode for

@@ -91,7 +91,7 @@ export function hrefWithSelection(href: string, selection: Selection | null) {
       if (selection.category !== "financial") params.set("category", selection.category)
       withPeers()
       break
-    case "/reports/report":
+    case "/reports/build":
     case "/reports/correlate":
       withPeers()
       break

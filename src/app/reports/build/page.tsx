@@ -10,7 +10,7 @@ import { parseSpec } from "@/lib/report/spec"
 
 export const metadata: Metadata = { title: "Build a report" }
 
-export default async function BuildPage({ searchParams }: PageProps<"/reports/report">) {
+export default async function BuildPage({ searchParams }: PageProps<"/reports/build">) {
   const sp = await searchParams
   const params = new URLSearchParams(Object.entries(sp).flatMap(([k, v]) => (typeof v === "string" ? [[k, v]] : [])))
   const [facilities, catalog, latestYear, manifests] = await Promise.all([

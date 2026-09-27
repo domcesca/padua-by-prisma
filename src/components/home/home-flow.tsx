@@ -440,7 +440,7 @@ export function HomeFlow({
         </Link>
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px]">
           <SecondaryLink
-            href={withFacility("/reports/report", category && category !== "financial" ? { category } : {})}
+            href={withFacility("/reports/build", category && category !== "financial" ? { category } : {})}
             icon={ChartColumnBig}
             enabled={ready}
             onClick={remember}

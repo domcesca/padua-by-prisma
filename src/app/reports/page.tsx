@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/shell/page-header"
 
 export const metadata: Metadata = { title: "Reports" }
 
-// Reports (Build before V7.2) is a landing page for two tools: the report builder (/reports/report) and Correlate (/reports/correlate). A hospital
+// Reports (Build before V7.2) is a landing page for two tools: the report builder (/reports/build) and Correlate (/reports/correlate). A hospital
 // and topic in the link (from the nav) carry through to both. Older /build and /reports links with report settings were the report
 // builder itself, so they go straight there.
 
@@ -18,7 +18,7 @@ const PASS_THROUGH = new Set(["facility", "category", ...PEER_KEYS])
 
 const TOOLS = [
   {
-    href: "/reports/report",
+    href: "/reports/build",
     icon: ChartColumnBig,
     title: "Build a report",
     body: "Pick measures and years for one hospital, or several side by side, and get a chart or table you can copy or download.",
@@ -40,7 +40,7 @@ const TOOLS = [
 export default async function BuildHubPage({ searchParams }: PageProps<"/reports">) {
   const sp = await searchParams
   const params = new URLSearchParams(Object.entries(sp).flatMap(([k, v]) => (typeof v === "string" ? [[k, v]] : [])))
-  if ([...params.keys()].some((k) => !PASS_THROUGH.has(k))) redirect(`/reports/report?${params}`)
+  if ([...params.keys()].some((k) => !PASS_THROUGH.has(k))) redirect(`/reports/build?${params}`)
 
   const hrefFor = (href: string, keep: string[]) => {
     const q = new URLSearchParams([...params].filter(([k]) => keep.includes(k)))

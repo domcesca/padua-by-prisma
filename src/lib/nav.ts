@@ -14,6 +14,8 @@ export type NavItem = {
   label: string
   description: string
   icon: LucideIcon
+  /** The phone tab bar's label on screens under 430px, where the full name won't fit a fifth of the width on one line. */
+  shortLabel?: string
   /** Left out of the phone tab bar (it holds six tabs at most); still in the desktop sidebar. */
   desktopOnly?: boolean
 }
@@ -40,12 +42,14 @@ export const NAV_ITEMS: NavItem[] = [
   {
     href: "/business-cases",
     label: "Business cases",
+    shortLabel: "Business",
     description: "Build the business case for a new initiative",
     icon: Calculator,
   },
   {
     href: "/data-definitions",
     label: "Data definitions",
+    shortLabel: "Definitions",
     description: "Plain-language HCAI field guide",
     icon: BookOpenText,
   },
