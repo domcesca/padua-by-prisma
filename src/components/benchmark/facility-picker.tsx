@@ -9,6 +9,7 @@ import { FacilityFlagBadge } from "@/components/shell/facility-flag-note"
 import type { Ownership } from "@/lib/data/types"
 import { facilityFlag, type FacilityClosure } from "@/lib/facility-flag"
 import { cn } from "@/lib/utils"
+import { pillClass } from "./filter-pill"
 
 export type FacilityOption = {
   id: string
@@ -34,6 +35,7 @@ export function FacilityPicker({
   onChange,
   latestYear,
   placeholder = "Search hospitals by name, city, or county",
+  variant = "field",
   className,
 }: {
   facilities: FacilityOption[]
@@ -41,6 +43,12 @@ export function FacilityPicker({
   onChange: (id: string) => void
   latestYear: number
   placeholder?: string
+  /**
+   * field: the full-width search box (Home, forms). pill: the context bar's compact pill, on exactly the same surface
+   * as the bar's other pills (filter-pill.tsx's pillClass). The heavier .glass surface nested inside the bar's own
+   * glass layer drew with square corners in Safari, so the pill doesn't use it.
+   */
+  variant?: "field" | "pill"
   className?: string
 }) {
   const [open, setOpen] = useState(false)
@@ -51,18 +59,22 @@ export function FacilityPicker({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         className={cn(
-          "glass flex h-11 w-full min-w-0 items-center gap-2.5 rounded-xl px-3.5 text-left transition-shadow duration-200",
-          "hover:glow-soft focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none data-[popup-open]:glow-soft",
+          variant === "pill"
+            ? cn(pillClass(open), "min-w-0 max-w-[20rem] overflow-hidden text-left font-medium")
+            : cn(
+                "glass flex h-11 w-full min-w-0 items-center gap-2.5 rounded-xl px-3.5 text-left transition-shadow duration-200",
+                "hover:glow-soft focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none data-[popup-open]:glow-soft"
+              ),
           className
         )}
         aria-label={selected ? `Hospital: ${selected.name}. Change hospital` : "Choose a hospital"}
       >
-        <Search className="size-4 shrink-0 text-tertiary-foreground" />
-        <span className={cn("flex-1 truncate text-[15px]", !selected && "text-muted-foreground")}>
+        <Search className={cn("shrink-0 text-tertiary-foreground", variant === "pill" ? "size-3.5" : "size-4")} />
+        <span className={cn("flex-1 truncate", variant === "pill" ? "text-[13px]" : "text-[15px]", !selected && "text-muted-foreground")}>
           {selected ? selected.name : placeholder}
         </span>
         {selectedFlag && <FacilityFlagBadge flag={selectedFlag} />}
-        <ChevronsUpDown className="size-4 shrink-0 text-tertiary-foreground" />
+        <ChevronsUpDown className={cn("shrink-0 text-tertiary-foreground", variant === "pill" ? "size-3.5" : "size-4")} />
       </PopoverTrigger>
       <PopoverContent align="start" className="w-(--anchor-width) min-w-80 p-0">
         <Command

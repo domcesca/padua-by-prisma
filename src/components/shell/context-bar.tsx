@@ -236,7 +236,7 @@ export function ContextBar(props: ContextBarProps) {
               onChange={onFacility}
               latestYear={latestYear}
               placeholder="Choose a hospital"
-              className="h-8 w-auto max-w-[20rem] rounded-full px-3 text-[13px] [&>span]:text-[13px] [&>span]:font-medium"
+              variant="pill"
             />
           </span>
           {facility && periodPill}
