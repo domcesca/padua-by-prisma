@@ -1,5 +1,6 @@
 "use client"
 
+import { ArrowRight } from "lucide-react"
 import { useState } from "react"
 
 import { StandingBadge, TrendText } from "@/components/shell/standing"
@@ -72,6 +73,7 @@ export function MetricCard({
   tags = [],
   companion,
   source,
+  related,
 }: {
   meta: MetricDef
   points: SeriesPoint[]
@@ -81,6 +83,8 @@ export function MetricCard({
   companion?: { meta: MetricDef; points: SeriesPoint[] }
   /** The source's publication and processing dates and this hospital's record match, for the status line. */
   source?: SourceStatus
+  /** The key finding that covers this metric: "Key finding 2 · Readmissions", opening its methodology. */
+  related?: { label: string; onOpen: (opener: HTMLElement) => void }
 }) {
   const [view, setView] = useState<"chart" | "table">("chart")
 
@@ -188,6 +192,16 @@ export function MetricCard({
             )}
           </div>
         </>
+      )}
+      {related && (
+        <button
+          type="button"
+          onClick={(e) => related.onOpen(e.currentTarget)}
+          className="mt-3 inline-flex items-center gap-1 self-start rounded text-xs font-medium text-primary outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <span className="text-muted-foreground">Related signal:</span> {related.label}
+          <ArrowRight className="size-3" aria-hidden />
+        </button>
       )}
       <div className="mt-3 flex flex-1 flex-col">{status}</div>
     </section>

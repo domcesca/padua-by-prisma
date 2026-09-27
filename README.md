@@ -181,6 +181,42 @@ used (they cover traditional Medicare only, by calendar year, and need a CCN cro
   fiscal-year and include long-term care units. Cards say so.
 - Medicare Advantage share (MA discharges ÷ all Medicare discharges) is available under the Medicare view and in Build.
 
+## Opportunity Finder (V7.0)
+
+Once a hospital is picked, Padua ranks the handful of places it stands out unfavorably against its peers, with the math
+shown. A weighted, transparent formula (no model); reads only what Benchmark and Propose already read.
+- **Where it shows**: Home's "Where to look first" (top 3 primary findings, with Review in Benchmark / Model in
+  Propose / Pin); Benchmark's **Key findings** panel above the hospital summary (5 primary, 5 to watch; on phones a
+  summary bar and bottom sheet, the same `MobileSheet` as the filter strip); "Related signal" links on metric cards; a
+  **methodology drawer** per finding (side sheet on desktop, bottom sheet on phones); and **`/briefing`**, pinned
+  findings kept in this browser only, each shown as pinned next to now: "Still a key finding", "Score changed", or
+  "No longer qualifies" (against the same peer group it was pinned with). Printable.
+- **Families** (`src/lib/findings/families.ts`): Margin & liquidity, Cost per case, Revenue per case (financial);
+  Readmissions, Infections & patient safety, Mortality, Patient experience (quality); ED throughput (operational).
+  A family is one finding however many signals it has: e.g. readmission penalties on five conditions are one
+  Readmissions finding with the conditions as its evidence, so they take one slot. Only metrics with a favorable
+  direction (`directions.ts`) can be candidates; volumes, length of stay, occupancy, case mix and payer mix never
+  are. Workforce and capacity aren't scored (no judged metrics yet; the HCAI staffing fields exist but need their own
+  metric definitions and direction approval). Service lines and specialty data are context only.
+- **Candidates**: a metric standing Unfavorable against peers (the V6.13 rule, with at least 5 peers with a value and
+  the hospital's value no more than one period behind the source); a metric the source rates worse than its
+  benchmark; a CMS readmissions (HRRP) penalty; the hospital-acquired-condition (HAC) penalty.
+- **Score** (`src/lib/findings/score.ts`) = 100 × Severity × Persistence × Weight × Confidence.
+  Severity = average of depth into the unfavorable quarter ((0.25 − q) ÷ 0.25) and distance from the peer median in
+  interquartile ranges (capped at 3, ÷ 3); HRRP = cut ÷ 3% cap; HAC = 1. Persistence = 1.0 / 0.9 / 0.8 for 3 / 2 / 1
+  of the last three values unfavorable, +0.1 if worsening; flat 0.9 for multi-year measurement windows and penalties.
+  Weight = the family tier, 1.0 / 0.8 / 0.6. Confidence = product of peers (20+ 1.0, 10–19 0.9, 5–9 0.75), freshness
+  (stale 0.8), provisional 0.85, partial period 0.85, matched record 0.9, unaudited 0.95, source says no different
+  0.7, under 25 cases 0.8; High ≥ 0.8, Medium ≥ 0.6. Dollars (penalties) are evidence only.
+- **Selection**: primary = score ≥ 20, Medium confidence or better, at most 2 per signal type, at most 5; the rest (up
+  to 5) are "to watch". Ties: confidence, then a dollar figure, then persistence, then family order. The minimum of 20
+  comes from a statewide calibration (`scripts/calibrate_findings.py`, against a running server): findings under 20
+  sit barely inside the unfavorable quarter (median severity 0.26 vs 0.73 above).
+- **Propose handoffs**: penalties open Avoided penalties prefilled with each condition's readmission-rate gap to the
+  CMS peer-group median (or each infection's cut to the peer median), labeled "a starting point, not a target"; Cost
+  per case opens Cost savings with a name and description only, no amounts.
+- API: `GET /api/findings?facility=…` plus Benchmark's peer filters.
+
 ## Shared vocabulary (V6.13)
 
 A consistency pass across every tool; no data or calculation changed (136/136 API responses identical to V6.12 apart

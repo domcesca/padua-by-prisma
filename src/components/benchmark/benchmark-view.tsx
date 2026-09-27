@@ -3,6 +3,9 @@
 import { ChevronRight, Loader2 } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 
+import { KeyFindingsPanel, tierOf } from "@/components/findings/key-findings-panel"
+import { MethodologyDrawer } from "@/components/findings/methodology-drawer"
+import { useFindings } from "@/components/findings/use-findings"
 import { FacilityFlagNote } from "@/components/shell/facility-flag-note"
 import { LiveStatus } from "@/components/shell/live-status"
 import { MobileControls } from "@/components/shell/mobile-controls"
@@ -28,6 +31,8 @@ import {
 } from "@/lib/data/datasets"
 import { metricPickerOptions } from "@/lib/data/metric-options"
 import { facilityFlag, type FacilityFlag } from "@/lib/facility-flag"
+import type { FindingsResult } from "@/lib/findings/compute"
+import { FAMILY_OF_METRIC } from "@/lib/findings/families"
 import type { MetricCategory, PayerGroup } from "@/lib/data/types"
 import { rememberSelection } from "@/lib/selection"
 import { lineOfUnit } from "@/lib/service-lines/lines"
@@ -58,6 +63,8 @@ export function BenchmarkView({
   initialView,
   initialResult,
   initialSpecialty,
+  initialFindings,
+  initialFinding,
   suggestions,
 }: {
   facilities: FacilityOption[]
@@ -74,6 +81,10 @@ export function BenchmarkView({
   initialResult: BenchmarkResult | null
   /** Medicare specialty (MDC) data, when the URL asks for the specialty view. */
   initialSpecialty: SpecialtyResult | null
+  /** Key findings for the first hospital and peer group, server-rendered. */
+  initialFindings: FindingsResult | null
+  /** A finding family whose methodology opens on arrival (links from Home). */
+  initialFinding: string | null
   suggestions: FacilityOption[]
 }) {
   const [state, setState] = useState<State>({ facilityId: initialFacilityId, filters: initialFilters, view: initialView })
@@ -84,6 +95,15 @@ export function BenchmarkView({
   const request = useRef<AbortController | null>(null)
 
   const { facilityId, filters, view } = state
+
+  // Key findings follow the hospital and peer group, not the topic: they scan every topic at once.
+  const peerQuery = filtersToParams(filters).toString()
+  const findings = useFindings(facilityId, peerQuery, initialFindings)
+  const findingsResult = findings.data ?? findings.stale
+  const [openFamily, setOpenFamily] = useState<string | null>(initialFinding)
+  const opener = useRef<HTMLElement | null>(null)
+  const openInfo = openFamily && findingsResult ? tierOf(findingsResult, openFamily) : null
+  const pendingScroll = useRef<string | null>(null)
 
   // Carry the hospital and category to the other tabs.
   useEffect(() => {
@@ -185,6 +205,62 @@ export function BenchmarkView({
     (result.line?.id ?? (result.serviceLines ? "all" : null)) === view.line
       ? result
       : null
+
+  // "Show this metric's card" from a finding: switch to its topic (and the Medicare view for a Medicare metric), add
+  // it if the topic's metrics don't include it, then scroll to the card once it's on screen.
+  function scrollToMetric() {
+    const id = pendingScroll.current
+    const heading = id ? document.getElementById(`metric-${id}`) : null
+    if (!heading) return
+    pendingScroll.current = null
+    const card = heading.closest("section") ?? heading
+    window.scrollTo({ top: card.getBoundingClientRect().top + window.scrollY - 72, behavior: "smooth" })
+    // After the drawer has closed and returned focus, move it to the card's heading.
+    window.setTimeout(() => {
+      heading.setAttribute("tabindex", "-1")
+      heading.focus({ preventScroll: true })
+    }, 300)
+  }
+  function showMetric(id: string) {
+    const meta = metaById[id]
+    if (!meta) return
+    pendingScroll.current = id
+    const base = meta.lens && meta.allPayer ? meta.allPayer : id
+    const wholeHospital = !view.unit && !view.line && !view.specialty
+    if (wholeHospital && shown?.metrics.includes(id)) return scrollToMetric()
+    const current = wholeHospital && view.category === meta.category ? metricsFor(view) : CATEGORY_BY_ID[meta.category].defaultMetrics
+    void apply({
+      view: {
+        ...view,
+        category: meta.category,
+        metrics: current.includes(base) ? current : [...current, base],
+        unit: null,
+        line: null,
+        specialty: null,
+        compare: [],
+        payer: meta.lens ?? "all",
+      },
+    })
+  }
+  // A card asked for from a finding scrolls into view once its topic has loaded.
+  const shownKey = shown ? `${shown.category}:${shown.metrics.join(",")}` : null
+  useEffect(() => {
+    if (pendingScroll.current && shownKey) scrollToMetric()
+  })
+
+  /** The finding that covers a metric card, if one is ranked: "Key finding 2 · Readmissions". */
+  function relatedFor(metricId: string) {
+    const family = FAMILY_OF_METRIC.get(metricId)
+    const info = family && findingsResult && facilityId === findingsResult.facility.id ? tierOf(findingsResult, family) : null
+    if (!info) return undefined
+    return {
+      label: `${info.tier === "primary" ? "Key finding" : "To watch"} ${info.rank} · ${info.finding.label}`,
+      onOpen: (el: HTMLElement) => {
+        opener.current = el
+        setOpenFamily(info.finding.family)
+      },
+    }
+  }
   const shownSpecialty =
     view.specialty && specialty && specialty.facility.id === facilityId && specialty.mdc === (view.specialty === "all" ? null : view.specialty)
       ? specialty
@@ -392,6 +468,34 @@ export function BenchmarkView({
         </p>
       )}
 
+      {facilityId && facility && (
+        <KeyFindingsPanel
+          facilityId={facilityId}
+          facilityName={facility.name}
+          peerQuery={peerQuery}
+          result={findingsResult && findingsResult.facility.id === facilityId ? findingsResult : null}
+          loading={findings.loading}
+          error={findings.error}
+          retry={findings.retry}
+          onOpen={(finding, _tier, _rank, el) => {
+            opener.current = el
+            setOpenFamily(finding.family)
+          }}
+        />
+      )}
+      <MethodologyDrawer
+        finding={openInfo?.finding ?? null}
+        tier={openInfo?.tier ?? "primary"}
+        rank={openInfo?.rank ?? 1}
+        context={{ facilityName: facility?.name ?? "", peerGroup: findingsResult?.peerGroup.description ?? "", peerQuery }}
+        onOpenChange={(open) => !open && setOpenFamily(null)}
+        finalFocus={opener}
+        onShowMetric={(id) => {
+          opener.current = null
+          showMetric(id)
+        }}
+      />
+
       {!facilityId && (
         <EmptyState
           category={view.category}
@@ -485,6 +589,7 @@ export function BenchmarkView({
                         points={shown.series[id]}
                         companion={companion ? { meta: metaById[companion], points: shown.series[companion] } : undefined}
                         source={shown.sources[meta.dataset]}
+                        related={shown.unit || shown.line ? undefined : relatedFor(id)}
                         tags={[
                           shown.unit ? shown.unit.label : shown.line ? shown.line.label : null,
                           quality ? (meta.group ?? null) : null,
