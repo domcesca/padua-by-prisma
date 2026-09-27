@@ -157,6 +157,9 @@ export function toFacilityOption(f: Facility): FacilityOption {
     licensedBeds: f.licensedBeds,
     typeOfCare: f.typeOfCare,
     hospitalType: f.hospitalType,
+    ownership: f.ownership,
+    teaching: f.teaching,
+    rural: f.rural,
     lastYear: lastReportedYear(f),
     closure: f.closure,
   }

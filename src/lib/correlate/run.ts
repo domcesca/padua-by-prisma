@@ -1,7 +1,6 @@
 import "server-only"
 
 import { metricValue } from "@/lib/benchmark/compute"
-import { DEFAULT_FILTERS } from "@/lib/benchmark/filters"
 import { resolvePeerGroup } from "@/lib/benchmark/peers"
 import { isTrendMetric, type MetricDef } from "@/lib/data/datasets"
 import { getSourceStatus } from "@/lib/data/freshness"
@@ -79,7 +78,7 @@ export async function runCorrelate(spec: CorrelateSpec): Promise<CorrelateResult
   const my = find(spec.y)
   if (!mx || !my || mx.id === my.id) return { error: "Choose two different metrics.", status: 400 }
 
-  const group = resolvePeerGroup(focus, facilities, { ...DEFAULT_FILTERS, mode: spec.peers })
+  const group = resolvePeerGroup(focus, facilities, spec.peers)
   const hospitals = [focus, ...group.peers]
   const [fx, fy, manX, manY] = await Promise.all([getMetrics(mx.dataset), getMetrics(my.dataset), getManifest(mx.dataset), getManifest(my.dataset)])
 
@@ -125,7 +124,7 @@ export async function runCorrelate(spec: CorrelateSpec): Promise<CorrelateResult
     missing: hospitals.length - points.length,
     focusReported: points.some((p) => p.focus),
     stats: fit(points),
-    peerGroup: { description: group.description, count: group.peers.length },
+    peerGroup: { description: group.description, count: group.peers.length, note: group.note, filters: group.filters },
     notes,
     sources: { x: await getSourceStatus(mx.dataset, focus.id), y: await getSourceStatus(my.dataset, focus.id) },
     latestYears: { x: manX.years.at(-1)!, y: manY.years.at(-1)! },

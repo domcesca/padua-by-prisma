@@ -3,12 +3,11 @@
 import { ArrowLeftRight, Check, Download, Link2, Loader2, TriangleAlert } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 
-import { FacilityPicker, type FacilityOption } from "@/components/benchmark/facility-picker"
-import { FilterPill } from "@/components/benchmark/filter-pill"
+import type { FacilityOption } from "@/components/benchmark/facility-picker"
 import { MetricInfo } from "@/components/benchmark/metric-info"
 import { PickerPill } from "@/components/shell/grouped-picker"
 import { LiveStatus } from "@/components/shell/live-status"
-import { MobileControls } from "@/components/shell/mobile-controls"
+import { ContextBar, type PeriodControl } from "@/components/shell/context-bar"
 import { Segmented } from "@/components/shell/segmented"
 import {
   correlateSpecToParams,
@@ -18,7 +17,8 @@ import {
   type CorrelateResult,
   type CorrelateSpec,
 } from "@/lib/correlate/spec"
-import { StatusLine } from "@/components/shell/status-line"
+import { StatusLine, type StatusLineProps } from "@/components/shell/status-line"
+import { filtersToParams } from "@/lib/benchmark/filters"
 import { DATASETS, type MetricDef } from "@/lib/data/datasets"
 import type { SourceStatus } from "@/lib/data/freshness"
 import type { QualityFlag } from "@/lib/status"
@@ -55,6 +55,10 @@ export function CorrelateView({
   useEffect(() => {
     if (spec.facilityId) rememberSelection({ facilityId: spec.facilityId })
   }, [spec.facilityId])
+  const peersKey = filtersToParams(spec.peers).toString()
+  useEffect(() => {
+    rememberSelection({ peers: peersKey })
+  }, [peersKey])
 
   async function update(patch: Partial<CorrelateSpec>) {
     const next = { ...spec, ...patch }
@@ -159,29 +163,7 @@ export function CorrelateView({
             wide
           />
         </div>
-        <div data-tour="correlate-peers" className="flex flex-wrap items-center gap-2">
-          <Segmented
-            label="Peer group"
-            value={spec.peers}
-            onChange={(peers) => update({ peers, year: null })}
-            options={[
-              { value: "similar", label: "Similar hospitals" },
-              { value: "statewide", label: "All of California" },
-            ]}
-          />
-          {current && (
-            <FilterPill
-              label="Year"
-              summary={spec.year != null ? String(current.year) : `Latest (${current.year})`}
-              active={spec.year != null}
-              options={[
-                { value: "latest", label: "Latest with good coverage" },
-                ...current.years.map((y) => ({ value: String(y.year), label: String(y.year), hint: `${y.n} hospitals` })),
-              ]}
-              selected={[spec.year != null ? String(spec.year) : "latest"]}
-              onChange={([v]) => update({ year: v === "latest" ? null : Number(v) })}
-            />
-          )}
+        <div className="flex flex-wrap items-center gap-2">
           {loading && (
             <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground" aria-hidden>
               <Loader2 className="size-3.5 animate-spin" /> Updating
@@ -190,6 +172,37 @@ export function CorrelateView({
         </div>
     </>
   )
+
+  const period: PeriodControl | null = current
+    ? {
+        kind: "pick",
+        label: "Year",
+        summary: spec.year != null ? String(current.year) : `Latest (${current.year})`,
+        options: [
+          { value: "latest", label: "Latest with good coverage" },
+          ...current.years.map((y) => ({ value: String(y.year), label: `${y.year} (${y.n} hospitals)` })),
+        ],
+        selected: spec.year != null ? String(spec.year) : "latest",
+        onChange: (v) => update({ year: v === "latest" ? null : Number(v) }),
+      }
+    : null
+  const barStatus: StatusLineProps | null =
+    current && rx
+      ? {
+          through: String(current.year),
+          periodType: DATASETS[rx.dataset].periodType,
+          processed: `Processed ${current.sources.x.processed}`,
+          note: "Both measures are paired on this year; each axis has its own status line under the chart.",
+          flags: [
+            ...(!current.focusReported ? (["unavailable"] as const) : []),
+            ...(current.sources.x.matched || current.sources.y.matched ? (["matched-record"] as const) : []),
+          ],
+          flagDetail: {
+            unavailable: "The chosen hospital doesn't report both measures this year, so it isn't on the chart.",
+            "matched-record": current.sources.x.matched ?? current.sources.y.matched ?? undefined,
+          },
+        }
+      : null
 
   return (
     <div className="space-y-6">
@@ -204,21 +217,30 @@ export function CorrelateView({
                 : ""
         }
       />
-      <MobileControls
-        hospital={facilities.find((f) => f.id === spec.facilityId)?.name ?? null}
+      <ContextBar
+        facilities={facilities}
+        facilityId={spec.facilityId}
+        onFacility={(id) => update({ facilityId: id, year: null })}
+        latestYear={latestYear}
+        period={period}
+        peers={
+          spec.facilityId
+            ? {
+                filters: spec.peers,
+                applied: current?.peerGroup.filters ?? null,
+                count: current?.peerGroup.count ?? null,
+                description: current?.peerGroup.description ?? null,
+                note: current?.peerGroup.note ?? null,
+                onChange: (peers) => update({ peers, year: null }),
+              }
+            : null
+        }
+        status={barStatus}
+        tour={{ hospital: "correlate-hospital", peers: "correlate-peers" }}
+        toolControls={controls}
         topic={mx && my ? `${my.label} vs. ${lowerLabel(mx.label)}` : "Correlate"}
-        period={current ? `${current.year} · ${spec.peers === "similar" ? "similar hospitals" : "all of California"}` : null}
-        active={(spec.peers !== "similar" ? 1 : 0) + (spec.year != null ? 1 : 0)}
-        title="Measures and peer group"
-      >
-        {controls}
-      </MobileControls>
-      <div className="space-y-3">
-        <div data-tour="correlate-hospital">
-          <FacilityPicker facilities={facilities} value={spec.facilityId} onChange={(id) => update({ facilityId: id, year: null })} latestYear={latestYear} />
-        </div>
-        <div className="hidden space-y-3 md:block">{controls}</div>
-      </div>
+      />
+      <div className="hidden space-y-3 md:block">{controls}</div>
 
       <div className="-my-3 h-0.5" aria-hidden>
         {loading && <div className="loading-bar fade-up" />}
@@ -266,7 +288,7 @@ export function CorrelateView({
                     <span className="font-medium">Small sample size — interpret with caution.</span>{" "}
                     <span className="text-muted-foreground">
                       Fewer than {SMALL_SAMPLE} hospitals; one unusual hospital can swing r a lot.
-                      {spec.peers === "similar" && " Try All of California for a bigger group."}
+                      {spec.peers.mode !== "statewide" && " Try the Statewide peer group for a bigger one."}
                     </span>
                   </span>
                 </p>
@@ -276,7 +298,7 @@ export function CorrelateView({
               <p className="text-xs font-medium tracking-wide text-tertiary-foreground uppercase">Plotted</p>
               <p className="text-[15px] font-semibold tracking-tight">{current.facilityName}</p>
               <p className="text-[13px] leading-relaxed text-muted-foreground">
-                and {current.peerGroup.count} {spec.peers === "similar" ? "similar hospitals" : "hospitals statewide"}:{" "}
+                and {current.peerGroup.count} peer hospitals:{" "}
                 {current.peerGroup.description.charAt(0).toLowerCase() + current.peerGroup.description.slice(1)}.
                 {current.missing > 0 &&
                   ` ${current.missing} ${current.missing === 1 ? "hospital doesn’t" : "don’t"} report both measures for ${current.year} and ${current.missing === 1 ? "is" : "are"} left out.`}

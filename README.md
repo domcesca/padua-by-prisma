@@ -181,6 +181,37 @@ used (they cover traditional Medicare only, by calendar year, and need a CCN cro
   fiscal-year and include long-term care units. Cards say so.
 - Medicare Advantage share (MA discharges ÷ all Medicare discharges) is available under the Medicare view and in Build.
 
+## Context bar, Guided mode and peer fit (V7.1)
+
+Navigation and display only: no new data, and no change to how peers are compared or scored.
+- **Context bar** (`src/components/shell/context-bar.tsx`), pinned to the top of Benchmark, Build (report), Correlate
+  and Propose: hospital · period · peer group with its fit · unit (Benchmark Utilization only) · a condensed data
+  status (the V6.13 status line: data through, audit status or the first quality flag; the full line opens from it).
+  Each part changes in place. The hospital and the peer group carry between tools (remembered in the browser with
+  the rest of the selection, and added to the nav links). Propose shows the hospital and data status only; its
+  modules use the default peer group internally. Period stays per tool: Benchmark's "Since" years, the snapshot year in
+  Build and Correlate.
+- **Phones**: the context bar and the tool's own filters are one pinned summary bar (fit · peer group · period · topic)
+  with one bottom sheet, replacing V6.13's separate Filters bar, so a phone never has two pinned bars. Benchmark's Key
+  findings bar stays in the page flow below it.
+- **Peer-group presets** (`src/lib/benchmark/cohorts.ts`), each a named set of the existing peer filters filled in
+  from the hospital: Similar hospitals (the default), Local market (within 25 miles, any size or owner), Similar
+  operating model (same ownership type, size band and teaching/rural status, statewide), Academic centers (teaching
+  hospitals statewide), Statewide. Build and Correlate now take the same peer filters as Benchmark, so a custom group
+  set in Benchmark carries over; old `?peers=statewide` links still work.
+- **Peer fit** (`src/lib/benchmark/peer-fit.ts`): Limited sample (fewer than 5 peers, the Opportunity Finder's floor),
+  Broad comparison (matched on fewer than two of location, size, ownership, teaching/rural status, or a close match
+  of only 5–9 hospitals), Strong fit (two or more, with 10+ peers). The size cut-offs are V7.0's peer-count factor
+  (`peersFactor`). Local market and Academic centers match on one characteristic, so they read Broad at best.
+- **Guided / Analysis** (`src/lib/display-mode.ts`, remembered in the browser; Analysis is the default and is exactly
+  what Padua showed before). Guided hides, in Benchmark: the Metrics picker, Payer view, Medicare specialty view,
+  custom peer filters (presets stay), the community panel, the payer mix card, the chart legend and year notes, each
+  card's table toggle and confidence interval, and every metric card past the first four, except that a card standing
+  Unfavorable or Worsening since its previous value is always shown ("Show N more metrics" brings back the rest).
+  Metrics without a favorable direction (volumes, length of stay, occupancy) say Up or Down, never Worsening. In Build: the chart type, which hospitals
+  to rank, and the added hospitals picker; group-by labels read "Over time / Ranked / Against peers". Settings only
+  Analysis can change that are still in effect (e.g. a Medicare view from a link) are named, with a way back.
+
 ## Opportunity Finder (V7.0)
 
 Once a hospital is picked, Padua ranks the handful of places it stands out unfavorably against its peers, with the math

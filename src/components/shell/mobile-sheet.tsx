@@ -6,7 +6,7 @@ import { X } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 // Small screens: a panel folds into a one-line summary bar, and a button on it opens the full panel in a bottom sheet.
-// The filter strips (MobileControls) and Benchmark's key findings use it, so both fold away the same way. From md up
+// The context bar (with each tool's filters) and Benchmark's key findings use it, so both fold away the same way. From md up
 // the panel shows inline and this renders nothing.
 //
 // While a sheet or its backdrop animates out it no longer takes clicks (data-closed:pointer-events-none), so the first

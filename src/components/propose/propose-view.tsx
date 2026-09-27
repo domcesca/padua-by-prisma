@@ -3,7 +3,8 @@
 import { Check, ChevronDown, Link2, Loader2, Printer, TriangleAlert } from "lucide-react"
 import { useEffect, useMemo, useState, type CSSProperties } from "react"
 
-import { FacilityPicker, type FacilityOption } from "@/components/benchmark/facility-picker"
+import type { FacilityOption } from "@/components/benchmark/facility-picker"
+import { ContextBar } from "@/components/shell/context-bar"
 import { FacilityFlagNote } from "@/components/shell/facility-flag-note"
 import { PaduaMark } from "@/components/shell/padua-mark"
 import { Segmented } from "@/components/shell/segmented"
@@ -163,6 +164,23 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
 
   return (
     <div className="space-y-6">
+      <ContextBar
+        facilities={facilities}
+        facilityId={spec.facilityId}
+        onFacility={(id) => update({ facilityId: id })}
+        latestYear={latestYear}
+        status={
+          facility
+            ? {
+                through: String(facility.lastYear),
+                periodType: "Latest HCAI report year",
+                note: "Each estimate names its own sources and years in the results.",
+                flags: facility.lastYear < latestYear ? ["stale"] : [],
+                flagDetail: { stale: `This hospital's latest HCAI report is from ${facility.lastYear}; HCAI has ${latestYear}.` },
+              }
+            : null
+        }
+      />
       {/* Printout header: what this is, for whom, and when. */}
       <div className="hidden print:block">
         <p className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -183,13 +201,9 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
         <h2 id="setup-title" className="sr-only">
           Proposal setup
         </h2>
+        {facilityFlagNow && <FacilityFlagNote flag={facilityFlagNow} />}
         <div className="grid gap-3 md:grid-cols-2">
-          <div>
-            <p className="mb-1 text-[13px] font-medium">Hospital</p>
-            <FacilityPicker facilities={facilities} value={spec.facilityId} onChange={(id) => update({ facilityId: id })} latestYear={latestYear} />
-            {facilityFlagNow && <FacilityFlagNote flag={facilityFlagNow} className="mt-2" />}
-          </div>
-          <div>
+          <div className="md:col-span-2">
             <label htmlFor="proposal-name" className="mb-1 block text-[13px] font-medium">
               Proposal name
             </label>

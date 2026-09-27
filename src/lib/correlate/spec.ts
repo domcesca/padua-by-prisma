@@ -2,6 +2,7 @@
 // peer group. Like Build's ReportSpec, the whole view is a small declarative
 // config that lives in the URL; the server validates and runs it (./run.ts).
 
+import { filtersToParams, parseFilters, type PeerFilters } from "@/lib/benchmark/filters"
 import type { SourceStatus } from "@/lib/data/freshness"
 
 export type CorrelateSpec = {
@@ -10,7 +11,8 @@ export type CorrelateSpec = {
   x: string
   /** Catalog metric id on the vertical axis. */
   y: string
-  peers: "similar" | "statewide"
+  /** The peer group: Benchmark's peer filters (a preset, or custom filters carried from Benchmark). */
+  peers: PeerFilters
   /** Year the two metrics are paired on; null = the latest year most peers report both. */
   year: number | null
 }
@@ -36,7 +38,7 @@ export function parseCorrelateSpec(params: ParamSource, validMetricIds: Set<stri
     facilityId: params.get("facility") || null,
     x,
     y,
-    peers: params.get("peers") === "statewide" ? "statewide" : "similar",
+    peers: parseFilters(params),
     year: Number.isFinite(year) && year > 1990 ? year : null,
   }
 }
@@ -46,7 +48,7 @@ export function correlateSpecToParams(spec: CorrelateSpec) {
   if (spec.facilityId) p.set("facility", spec.facilityId)
   p.set("x", spec.x)
   p.set("y", spec.y)
-  if (spec.peers === "statewide") p.set("peers", "statewide")
+  filtersToParams(spec.peers, p)
   if (spec.year != null) p.set("year", String(spec.year))
   return p
 }
@@ -69,7 +71,8 @@ export type CorrelateResult = {
   focusReported: boolean
   /** Pearson r, r², and least-squares fit y = slope·x + intercept; null below MIN_POINTS or with no spread. */
   stats: { n: number; r: number; r2: number; slope: number; intercept: number; /** Spearman rank correlation. */ rho: number } | null
-  peerGroup: { description: string; count: number }
+  /** `filters`: what the group was actually built with (for "similar", the ones chosen automatically). */
+  peerGroup: { description: string; count: number; note: string | null; filters: PeerFilters }
   /** Caveats about pairing years of different kinds (fiscal vs calendar, multi-year periods). */
   notes: string[]
   /** Status line per axis: the source's dates, provisional years, and the chosen hospital's record match. */

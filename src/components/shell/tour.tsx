@@ -94,7 +94,7 @@ const TOURS: Record<TourId, { label: string; steps: Step[] }> = {
       {
         target: "correlate-peers",
         title: "3. Choose the group",
-        body: "Similar hospitals or all of California. More hospitals give a steadier answer; a handful can show a pattern by chance.",
+        body: "Pick a preset: Similar hospitals, Local market, Similar operating model, Academic centers, or Statewide. The fit label says how much to trust the group; more hospitals give a steadier answer.",
       },
       {
         target: "correlate-r",

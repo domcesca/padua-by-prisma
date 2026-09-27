@@ -1,3 +1,4 @@
+import { DEFAULT_FILTERS, filtersToParams, parseFilters, type PeerFilters } from "@/lib/benchmark/filters"
 import type { SourceStatus } from "@/lib/data/freshness"
 // A report is a small, fully declarative config: which metrics, which chart,
 // how to group. The Build page edits one through controls; the server
@@ -26,7 +27,8 @@ export type ReportSpec = {
   /** Extra hospitals to compare (groupBy "year", or "facility" with hospitals = "picked"). */
   compare: string[]
   hospitals: HospitalSet
-  peers: "similar" | "statewide"
+  /** The peer group: Benchmark's peer filters (a preset, or custom filters carried from Benchmark). */
+  peers: PeerFilters
   /** Snapshot year for "facility" and bar/table "peerGroup"; null = latest with data. */
   year: number | null
 }
@@ -43,7 +45,7 @@ export const DEFAULT_SPEC: ReportSpec = {
   groupBy: "year",
   compare: [],
   hospitals: "peers",
-  peers: "similar",
+  peers: DEFAULT_FILTERS,
   year: null,
 }
 
@@ -67,7 +69,7 @@ export function parseSpec(params: ParamSource, validMetricIds?: Set<string>): Re
     groupBy: group === "facility" || group === "peerGroup" || group === "year" ? group : DEFAULT_SPEC.groupBy,
     compare: [...new Set(list(params.get("compare")))].slice(0, MAX_COMPARE),
     hospitals: params.get("hospitals") === "picked" ? "picked" : "peers",
-    peers: params.get("peers") === "statewide" ? "statewide" : "similar",
+    peers: parseFilters(params),
     year: Number.isFinite(year) && year > 1990 ? year : null,
   }
   if (!chartAllowed(spec.chart, spec.groupBy)) spec.chart = "bar"
@@ -82,7 +84,7 @@ export function specToParams(spec: ReportSpec) {
   p.set("group", spec.groupBy)
   if (spec.compare.length) p.set("compare", spec.compare.join(","))
   if (spec.groupBy === "facility" && spec.hospitals === "picked") p.set("hospitals", "picked")
-  if (spec.peers === "statewide") p.set("peers", "statewide")
+  filtersToParams(spec.peers, p)
   if (spec.year != null) p.set("year", String(spec.year))
   return p
 }
@@ -114,7 +116,8 @@ export type ReportResult = {
   title: string
   subtitle: string
   panels: ReportPanel[]
-  peerGroup: { description: string; count: number } | null
+  /** `filters`: what the group was actually built with (for "similar", the ones chosen automatically). */
+  peerGroup: { description: string; count: number; note: string | null; filters: PeerFilters } | null
   /** Per source shown: publication and processing dates and the focus hospital's record match (status lines). */
   sources: Record<string, SourceStatus>
 }

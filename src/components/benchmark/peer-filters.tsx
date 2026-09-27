@@ -19,6 +19,7 @@ import {
 } from "@/lib/benchmark/filters"
 import { MIN_PEERS } from "@/lib/benchmark/peers"
 import type { Ownership } from "@/lib/data/types"
+import { cn } from "@/lib/utils"
 import { FilterPill, TogglePill } from "./filter-pill"
 
 const TEACHING_OPTIONS: { value: TeachingFilter; label: string }[] = [
@@ -42,6 +43,7 @@ export function PeerFilterBar({
   onChange,
   counties,
   facility,
+  compact = false,
 }: {
   /** What was asked for (mode + any custom filters). */
   filters: PeerFilters
@@ -50,6 +52,8 @@ export function PeerFilterBar({
   onChange: (next: PeerFilters) => void
   counties: string[]
   facility: FacilityContext | null
+  /** Inside the context bar's peer popover: the filter pills only (the presets there replace the mode switch). */
+  compact?: boolean
 }) {
   const shown = applied ?? filters
   // Editing any filter turns the current group into a custom one.
@@ -83,8 +87,8 @@ export function PeerFilterBar({
   ]
 
   return (
-    <div className="space-y-2.5" role="group" aria-label="Peer group">
-      <div className="flex flex-wrap items-center gap-2">
+    <div className="space-y-2.5" role="group" aria-label={compact ? "Custom peer filters" : "Peer group"}>
+      <div className={cn("flex flex-wrap items-center gap-2", compact && "hidden")}>
         <span className="text-[13px] font-medium text-muted-foreground">Peer group</span>
         <Segmented
           label="Peer group"
