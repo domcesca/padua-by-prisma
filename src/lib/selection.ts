@@ -8,10 +8,15 @@ import type { MetricCategory } from "@/lib/data/types"
 // browser so moving between tabs (or coming back later) keeps the context.
 // Per-viewer convenience only: every view still works from its URL alone.
 
-export type Selection = { facilityId: string | null; category: MetricCategory }
+export type Selection = {
+  facilityId: string | null
+  category: MetricCategory
+  /** The peer group as URL params (Benchmark's peer filters; "" = Similar hospitals), carried between tools. */
+  peers: string
+}
 
 const KEY = "hcai-selection-v1"
-const EMPTY: Selection = { facilityId: null, category: "financial" }
+const EMPTY: Selection = { facilityId: null, category: "financial", peers: "" }
 const listeners = new Set<() => void>()
 
 let cachedRaw: string | null | undefined
@@ -31,6 +36,7 @@ function read(): Selection {
     cached = {
       facilityId: typeof parsed.facilityId === "string" ? parsed.facilityId : null,
       category: parsed.category === "utilization" || parsed.category === "quality" ? parsed.category : "financial",
+      peers: typeof parsed.peers === "string" && /^[\w=&,%.+-]*$/.test(parsed.peers) ? parsed.peers : "",
     }
   } catch {
     cached = EMPTY
@@ -71,15 +77,23 @@ export function hrefWithSelection(href: string, selection: Selection | null) {
     return href
   }
   const params = new URLSearchParams({ facility: selection.facilityId })
+  // The peer group carries to every tool that has one.
+  const withPeers = () => new URLSearchParams(selection.peers).forEach((v, k) => params.set(k, v))
   switch (href) {
     case "/benchmark":
       if (selection.category !== "financial") params.set("view", selection.category)
+      withPeers()
       break
     case "/translate":
       params.set("source", selection.category === "utilization" ? "utilization" : "financial")
       break
     case "/build":
       if (selection.category !== "financial") params.set("category", selection.category)
+      withPeers()
+      break
+    case "/build/report":
+    case "/build/correlate":
+      withPeers()
       break
     case "/deadlines":
     case "/propose":

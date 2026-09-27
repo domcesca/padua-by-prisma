@@ -292,6 +292,18 @@ downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and
   Outdated = newest report more than 2 years behind the newest data (13 hospitals, some of them campuses now reported
   under a parent).
 
+### V7.1 (context bar, Guided / Analysis modes, peer-group presets and fit)
+- Shared context bar across Benchmark, Build, Correlate and Propose; peer-group presets; peer-fit label; Guided mode for
+  Benchmark and Build. Details in the README. No data or calculation changes: Build and Correlate now resolve their
+  peer group from Benchmark's filters, which gives the same group as before for Similar and Statewide.
+- Peer fit across the 451 active hospitals: Similar hospitals 146 Strong / 76 Broad / 229 Limited (median 8 peers);
+  Similar operating model 278 Strong / 173 Limited (median 19); Local market 257 Broad / 194 Limited (median 6);
+  Academic centers 328 Broad / 123 Limited (median 36); Statewide all Broad (median 292).
+- Judgment calls to review: 5–9 peers reads "Limited sample" even when closely matched (V7.0's ×0.75 factor);
+  Local market and Academic centers match on one characteristic, so they read "Broad comparison" at best; Analysis is
+  the default mode; Guided doesn't hide Build charts (each is a metric the person picked) and doesn't change Correlate
+  or Propose.
+
 ### V7.0 (Opportunity Finder and administrator front door)
 - Key findings engine (`src/lib/findings/`), `/api/findings`, Home's "Where to look first", Benchmark's Key findings
   panel with methodology drawer and "Related signal" links on metric cards, and `/briefing` (browser-local pins with
@@ -441,7 +453,7 @@ The utilities are all in `src/app/globals.css`. **Reuse them; don't invent new o
 - **Watch** (anomaly detection on uploaded data): placeholder only.
 - **Case mix** topic (conditions/procedures treated): shown as "coming later" on the home page (`FUTURE_CATEGORIES` in `datasets.ts`). The CMI itself is built (Utilization).
 - **Other**: no accounts, saved reports, server-side uploads or database (the V7.0 briefing is browser-local).
-- **Opportunity Finder follow-ups**: workforce metrics (HCAI staffing fields, pending definitions and directions), a strengths companion, peer-fit signal (V7.1), tool-level findings (V7.2), more Propose handoffs (V7.3).
+- **Opportunity Finder follow-ups**: workforce metrics (HCAI staffing fields, pending definitions and directions), a strengths companion, tool-level findings (V7.2), more Propose handoffs (V7.3).
 - **More HCAI datasets:** Quarterly Financial & Utilization and the complete Annual Disclosure set are planned but not started.
 
 ## 5. Deployment state (checked 2026-09-24)

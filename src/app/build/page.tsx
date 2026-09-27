@@ -12,7 +12,9 @@ export const metadata: Metadata = { title: "Build" }
 // and topic in the link (from the nav) carry through to both. Older /build links with report settings were the report
 // builder itself, so they go straight there.
 
-const PASS_THROUGH = new Set(["facility", "category"])
+// The peer group (Benchmark's peer filters) carries through too.
+const PEER_KEYS = ["peers", "county", "within", "ownership", "bedsMin", "bedsMax", "teaching", "all"]
+const PASS_THROUGH = new Set(["facility", "category", ...PEER_KEYS])
 
 const TOOLS = [
   {
@@ -21,7 +23,7 @@ const TOOLS = [
     title: "Build a report",
     body: "Pick measures and years for one hospital, or several side by side, and get a chart or table you can copy or download.",
     example: "e.g. operating margin and occupancy, 2019–2024",
-    keep: ["facility", "category"],
+    keep: ["facility", "category", ...PEER_KEYS],
     cta: "Open the report builder",
   },
   {
@@ -30,7 +32,7 @@ const TOOLS = [
     title: "Correlate",
     body: "See whether two measures move together across a hospital's peers, one dot per hospital. It shows a pattern, not a cause.",
     example: "e.g. are costs high, or are patients just sicker?",
-    keep: ["facility"],
+    keep: ["facility", ...PEER_KEYS],
     cta: "Open Correlate",
   },
 ]

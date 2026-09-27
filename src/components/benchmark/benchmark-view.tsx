@@ -8,7 +8,7 @@ import { MethodologyDrawer } from "@/components/findings/methodology-drawer"
 import { useFindings } from "@/components/findings/use-findings"
 import { FacilityFlagNote } from "@/components/shell/facility-flag-note"
 import { LiveStatus } from "@/components/shell/live-status"
-import { MobileControls } from "@/components/shell/mobile-controls"
+import { ContextBar, type PeriodControl, type PeersControl } from "@/components/shell/context-bar"
 import { PickerPill } from "@/components/shell/grouped-picker"
 import { Segmented } from "@/components/shell/segmented"
 import type { BenchmarkResult } from "@/lib/benchmark/compute"
@@ -30,18 +30,20 @@ import {
   type PayerView,
 } from "@/lib/data/datasets"
 import { metricPickerOptions } from "@/lib/data/metric-options"
+import { setDisplayMode, useDisplayMode } from "@/lib/display-mode"
+import { metricStanding } from "@/lib/favorability"
 import { facilityFlag, type FacilityFlag } from "@/lib/facility-flag"
 import type { FindingsResult } from "@/lib/findings/compute"
 import { FAMILY_OF_METRIC } from "@/lib/findings/families"
 import type { MetricCategory, PayerGroup } from "@/lib/data/types"
 import { rememberSelection } from "@/lib/selection"
+import { seriesStatus } from "@/lib/status-summary"
 import { lineOfUnit } from "@/lib/service-lines/lines"
 import type { SpecialtyResult } from "@/lib/specialty/compute"
 import { MDCS } from "@/lib/specialty/mdc"
 import { cn } from "@/lib/utils"
 import { CommunityPanel } from "./community-panel"
-import { FacilityPicker, type FacilityOption } from "./facility-picker"
-import { FilterPill } from "./filter-pill"
+import type { FacilityOption } from "./facility-picker"
 import { MetricCard } from "./metric-card"
 import { PayerMixCard } from "./payer-mix-card"
 import { PeerFilterBar } from "./peer-filters"
@@ -109,6 +111,12 @@ export function BenchmarkView({
   useEffect(() => {
     rememberSelection(facilityId ? { facilityId, category: view.category } : { category: view.category })
   }, [facilityId, view.category])
+  const peersKey = filtersToParams(filters).toString()
+  useEffect(() => {
+    rememberSelection({ peers: peersKey })
+  }, [peersKey])
+  const guided = useDisplayMode() === "guided"
+  const [allCards, setAllCards] = useState(false)
   const metaById = Object.fromEntries(catalog.map((m) => [m.id, m]))
   const facility = facilityId ? (facilities.find((f) => f.id === facilityId) ?? null) : null
   const categoryMetrics = pickableMetrics(catalog, view.category, view.payer)
@@ -306,7 +314,7 @@ export function BenchmarkView({
             onChange={setCategory}
             options={CATEGORIES.map((c) => ({ value: c.id, label: c.label }))}
           />
-          {supportsUnits(view.category) && facilityId && (
+          {supportsUnits(view.category) && facilityId && !guided && (
             <PickerPill
               noun="specialties"
               label="Medicare specialty"
@@ -337,7 +345,60 @@ export function BenchmarkView({
               wide
             />
           )}
-          {supportsUnits(view.category) && !view.specialty && units.length > 0 && (
+          {!quality && !view.unit && !view.line && !specialtyView && !guided && (
+            <Segmented
+              label="Payer view"
+              value={view.payer}
+              onChange={setPayer}
+              options={PAYER_VIEWS.map((p) => ({ value: p.value, label: p.label }))}
+            />
+          )}
+          {!specialtyView && !linesView && !guided && (
+          <PickerPill
+            noun="metrics"
+            label="Metrics"
+            summary={isDefaultMetrics ? null : `${shownMetrics.length} metric${shownMetrics.length === 1 ? "" : "s"}`}
+            options={metricOptions}
+            selected={shownMetrics}
+            onChange={setMetrics}
+            multiple
+            actions={isDefaultMetrics ? undefined : [{ label: "Back to the standard set", onSelect: () => setMetrics([]) }]}
+          />
+          )}
+          {loading && (
+            <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground" aria-hidden>
+              <Loader2 className="size-3.5 animate-spin" /> Updating
+            </span>
+          )}
+        </div>
+    </>
+  )
+  const periodYears = shown
+    ? shown.category === "quality"
+      ? qualityYears(shown)
+      : shown.category === "utilization"
+        ? shown.facility.utilizationYears
+        : shown.facility.financialYears
+    : []
+  const periodText = specialtyView
+    ? "Medicare, calendar year"
+    : primaryDataset && periodYears.length
+      ? `${DATASETS[primaryDataset].periodType}s ${yearRange(periodYears)}`
+      : periodYears.length
+        ? `Through ${periodYears.at(-1)}`
+        : null
+  const activeControls = [
+    view.unit || view.line,
+    view.specialty,
+    view.payer !== "all",
+    !specialtyView && !linesView && !isDefaultMetrics,
+    view.since != null,
+    filters.mode !== DEFAULT_FILTERS.mode,
+  ].filter(Boolean).length + [...filtersToParams(filters).keys()].filter((k) => k !== "peers").length
+
+  // The context bar: hospital, period, peer group (with its fit), unit, and data status.
+  const current = result && result.facility.id === facilityId ? result : null
+  const unitPill = supportsUnits(view.category) && !view.specialty && units.length > 0 && (
             <PickerPill
               noun="units"
               label="Unit or service line"
@@ -366,98 +427,106 @@ export function BenchmarkView({
               }
               wide
             />
-          )}
-          {!quality && !view.unit && !view.line && !specialtyView && (
-            <Segmented
-              label="Payer view"
-              value={view.payer}
-              onChange={setPayer}
-              options={PAYER_VIEWS.map((p) => ({ value: p.value, label: p.label }))}
-            />
-          )}
-          {!specialtyView && !linesView && (
-          <PickerPill
-            noun="metrics"
-            label="Metrics"
-            summary={isDefaultMetrics ? null : `${shownMetrics.length} metric${shownMetrics.length === 1 ? "" : "s"}`}
-            options={metricOptions}
-            selected={shownMetrics}
-            onChange={setMetrics}
-            multiple
-            actions={isDefaultMetrics ? undefined : [{ label: "Back to the standard set", onSelect: () => setMetrics([]) }]}
-          />
-          )}
-          {!specialtyView && !linesView && (
-          <FilterPill
-            label="Years"
-            summary={view.since != null ? `Since ${view.since}` : null}
-            options={[
-              { value: "all", label: `All years (${years[0]}–${years.at(-1)})` },
-              ...years.slice(0, -2).map((y) => ({ value: String(y), label: `Since ${y}` })),
-            ]}
-            selected={[view.since != null ? String(view.since) : "all"]}
-            onChange={([v]) => apply({ view: { ...view, since: v === "all" ? null : Number(v) } })}
-          />
-          )}
-          {loading && (
-            <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground" aria-hidden>
-              <Loader2 className="size-3.5 animate-spin" /> Updating
-            </span>
-          )}
-        </div>
-        <PeerFilterBar
-          filters={filters}
-          applied={shown?.filters ?? null}
-          onChange={(f) => apply({ filters: f })}
-          counties={counties}
-          facility={shown?.facility ?? null}
-        />
-    </>
-  )
-  const periodYears = shown
-    ? shown.category === "quality"
-      ? qualityYears(shown)
-      : shown.category === "utilization"
-        ? shown.facility.utilizationYears
-        : shown.facility.financialYears
-    : []
-  const periodText = specialtyView
-    ? "Medicare, calendar year"
-    : primaryDataset && periodYears.length
-      ? `${DATASETS[primaryDataset].periodType}s ${yearRange(periodYears)}`
-      : periodYears.length
-        ? `Through ${periodYears.at(-1)}`
+          )
+  const periodControl: PeriodControl | null =
+    specialtyView || linesView
+      ? periodText
+        ? { kind: "text", text: periodText }
         : null
-  const activeControls = [
-    view.unit || view.line,
-    view.specialty,
-    view.payer !== "all",
-    !specialtyView && !linesView && !isDefaultMetrics,
-    view.since != null,
-    filters.mode !== DEFAULT_FILTERS.mode,
-  ].filter(Boolean).length + [...filtersToParams(filters).keys()].filter((k) => k !== "peers").length
+      : {
+          kind: "pick",
+          label: "Years",
+          summary: view.since != null ? `Since ${view.since}` : (yearRange(periodYears) ?? "All years"),
+          options: [
+            { value: "all", label: `All years (${years[0]}–${years.at(-1)})` },
+            ...years.slice(0, -2).map((y) => ({ value: String(y), label: `Since ${y}` })),
+          ],
+          selected: view.since != null ? String(view.since) : "all",
+          onChange: (v) => apply({ view: { ...view, since: v === "all" ? null : Number(v) } }),
+        }
+  const peersControl: PeersControl = {
+    filters,
+    applied: current?.filters ?? null,
+    count: current ? current.peers.length : null,
+    description: current?.peerGroup.description ?? null,
+    note: current?.peerGroup.note ?? null,
+    onChange: (f) => apply({ filters: f }),
+    customEditor: guided ? (
+      "Custom filters (county, distance, ownership, beds, teaching) are in Analysis mode."
+    ) : (
+      <PeerFilterBar compact filters={filters} applied={current?.filters ?? null} onChange={(f) => apply({ filters: f })} counties={counties} facility={current?.facility ?? null} />
+    ),
+  }
+  const statusMetric = shown && !specialtyView && !linesView ? shown.metrics.find((id) => shown.series[id]) : undefined
+  const statusMeta = statusMetric ? (shown!.unit?.definitions[statusMetric] ?? shown!.line?.definitions[statusMetric] ?? metaById[statusMetric]) : undefined
+  const barStatus =
+    statusMetric && statusMeta
+      ? seriesStatus(
+          statusMeta,
+          shown!.series[statusMetric],
+          shown!.sources[statusMeta.dataset],
+          shown!.metrics.length > 1 ? `Shown for ${statusMeta.label}; each card has its own status line.` : null
+        )
+      : null
+  // Guided: at most GUIDED_CARDS cards, always including every metric standing Unfavorable, the rest behind a button.
+  const ordered = shown ? orderByGroup(shown.metrics, metaById) : []
+  const unfavorable = new Set(
+    ordered.filter((id) => {
+      const p = [...(shown?.series[id] ?? [])].reverse().find((x) => x.published && x.value != null)
+      return p != null && metricStanding(id, p.percentile, p.n) === "unfavorable"
+    })
+  )
+  const guidedPick = ordered.filter((id, i) => unfavorable.has(id) || ordered.slice(0, i).filter((x) => !unfavorable.has(x)).length + unfavorable.size < GUIDED_CARDS)
+  const cardsShown = guided && !allCards ? guidedPick : ordered
+  const cardsHidden = ordered.length - cardsShown.length
+
+  // Settings only Analysis mode can change, still in effect in Guided (from a link or an earlier visit): say so.
+  const analysisOnly = [
+    !quality && view.payer !== "all" ? `${payerInfo.label} view` : null,
+    view.specialty ? "Medicare specialty view" : null,
+    !specialtyView && !linesView && !isDefaultMetrics ? "a custom set of metrics" : null,
+  ].filter((x): x is string => !!x)
 
   return (
     <div className="space-y-6">
       <LiveStatus message={announcement} />
-      <MobileControls
-        hospital={facility?.name ?? null}
-        topic={[CATEGORY_BY_ID[view.category].label, specialtyView ? "Medicare specialty" : lineInfo?.label ?? (linesView ? "Service lines" : unitInfo?.label)]
-          .filter(Boolean)
-          .join(" · ")}
-        period={periodText}
-        active={activeControls}
-      >
-        {controls}
-      </MobileControls>
+      <ContextBar
+        facilities={facilities}
+        facilityId={facilityId}
+        onFacility={(id) => apply({ facilityId: id })}
+        latestYear={latestYear}
+        period={periodControl}
+        peers={facilityId ? peersControl : null}
+        unit={unitPill || null}
+        status={barStatus}
+        modeToggle
+        toolControls={controls}
+        topic={[CATEGORY_BY_ID[view.category].label, specialtyView ? "Medicare specialty" : null].filter(Boolean).join(" · ")}
+        activeCount={activeControls}
+      />
       <div className="relative space-y-3">
-        <FacilityPicker
-          facilities={facilities}
-          value={facilityId}
-          onChange={(id) => apply({ facilityId: id })}
-          latestYear={latestYear}
-        />
         <div className="hidden space-y-3 md:block">{controls}</div>
+        {guided && analysisOnly.length > 0 && (
+          <p className="rounded-xl bg-black/4 px-3.5 py-2.5 text-[13px] leading-relaxed text-muted-foreground dark:bg-white/6">
+            Also in effect, from Analysis mode: {listFormat(analysisOnly)}.{" "}
+            <button
+              type="button"
+              onClick={() => apply({ view: { ...view, payer: "all", specialty: null, compare: [], metrics: null } })}
+              className="rounded font-medium text-primary outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              Back to the standard view
+            </button>{" "}
+            or{" "}
+            <button
+              type="button"
+              onClick={() => setDisplayMode("analysis")}
+              className="rounded font-medium text-primary outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              switch to Analysis
+            </button>
+            .
+          </p>
+        )}
         {/* Out of the flow, halfway into the gap below, so it never eats the space between the filters and the results. */}
         {loading && <div className="loading-bar fade-up absolute inset-x-0 -bottom-3.5" aria-hidden />}
       </div>
@@ -509,7 +578,7 @@ export function BenchmarkView({
       {shown && (
         <div className={cn("space-y-6 transition-opacity duration-200", loading && "opacity-60")}>
           <FacilitySummary result={shown} lastYear={facility?.lastYear ?? latestYear} flag={facility ? facilityFlag(facility, latestYear) : null} />
-          {!specialtyView && shown.community && <CommunityPanel context={shown.community} />}
+          {!specialtyView && !guided && shown.community && <CommunityPanel context={shown.community} />}
 
           {specialtyView ? (
             shownSpecialty ? (
@@ -559,7 +628,7 @@ export function BenchmarkView({
                   </button>
                 </p>
               )}
-              <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className={cn("flex flex-wrap items-center justify-between gap-2", guided && "hidden")}>
                 <TrendLegend />
                 <p className="max-w-xl text-xs text-tertiary-foreground sm:text-right">
                   {quality
@@ -576,8 +645,9 @@ export function BenchmarkView({
               {shown.metrics.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Choose at least one metric.</p>
               ) : (
+                <>
                 <div className="grid gap-4 md:grid-cols-2">
-                  {orderByGroup(shown.metrics, metaById).map((id) => {
+                  {cardsShown.map((id) => {
                     // Under a unit, the unit's own definitions (same ids, unit-specific fields and wording).
                     const meta = shown.unit?.definitions[id] ?? shown.line?.definitions[id] ?? metaById[id]
                     if (!meta || !shown.series[id]) return null
@@ -590,6 +660,7 @@ export function BenchmarkView({
                         companion={companion ? { meta: metaById[companion], points: shown.series[companion] } : undefined}
                         source={shown.sources[meta.dataset]}
                         related={shown.unit || shown.line ? undefined : relatedFor(id)}
+                        guided={guided}
                         tags={[
                           shown.unit ? shown.unit.label : shown.line ? shown.line.label : null,
                           quality ? (meta.group ?? null) : null,
@@ -601,8 +672,19 @@ export function BenchmarkView({
                     )
                   })}
                 </div>
+                {cardsHidden > 0 || (guided && allCards && cardsShown.length > GUIDED_CARDS) ? (
+                  <button
+                    type="button"
+                    aria-expanded={allCards}
+                    onClick={() => setAllCards((v) => !v)}
+                    className="glass-subtle inline-flex h-9 items-center gap-1.5 rounded-full px-4 text-[13px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    {allCards ? "Show fewer metrics" : `Show ${cardsHidden} more metric${cardsHidden === 1 ? "" : "s"}`}
+                  </button>
+                ) : null}
+                </>
               )}
-              {shown.payerMix && metaById.payerMix && (
+              {shown.payerMix && metaById.payerMix && !guided && (
                 <PayerMixCard mix={shown.payerMix} groups={payerGroups} meta={metaById.payerMix} source={shown.sources["hafd-selected"]} />
               )}
               <PeerList peers={shown.peers} />
@@ -784,6 +866,9 @@ function orderByGroup(ids: string[], metaById: Record<string, MetricDef>) {
   const groups = [...new Set(ids.map((id) => metaById[id]?.group ?? ""))]
   return [...ids].sort((a, b) => groups.indexOf(metaById[a]?.group ?? "") - groups.indexOf(metaById[b]?.group ?? ""))
 }
+
+/** Guided mode's metric cards per screen (every Unfavorable one is shown regardless). */
+const GUIDED_CARDS = 4
 
 const yearRange = (years: number[]) =>
   years.length ? (years.length === 1 ? String(years[0]) : `${years[0]}–${years.at(-1)}`) : null

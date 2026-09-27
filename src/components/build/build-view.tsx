@@ -5,12 +5,13 @@ import { useEffect, useRef, useState } from "react"
 
 import { MetricInfo } from "@/components/benchmark/metric-info"
 import { FacilityPicker, type FacilityOption } from "@/components/benchmark/facility-picker"
-import { FilterPill } from "@/components/benchmark/filter-pill"
+import { ContextBar, type PeriodControl } from "@/components/shell/context-bar"
 import { GroupedPicker } from "@/components/shell/grouped-picker"
 import { LiveStatus } from "@/components/shell/live-status"
 import { Segmented } from "@/components/shell/segmented"
 import { StandingBadge } from "@/components/shell/standing"
-import { StatusLine } from "@/components/shell/status-line"
+import { StatusLine, type StatusLineProps } from "@/components/shell/status-line"
+import { filtersToParams } from "@/lib/benchmark/filters"
 import { DATASETS, type MetricDef } from "@/lib/data/datasets"
 import type { SourceStatus } from "@/lib/data/freshness"
 import { metricStanding } from "@/lib/favorability"
@@ -27,10 +28,14 @@ import {
   type ReportResult,
   type ReportSpec,
 } from "@/lib/report/spec"
+import { useDisplayMode } from "@/lib/display-mode"
 import { rememberSelection } from "@/lib/selection"
 import type { QualityFlag } from "@/lib/status"
 import { cn } from "@/lib/utils"
 import { ReportChart, ReportLegend, ReportTable } from "./report-chart"
+
+/** Guided mode's plainer names for the groupings; the same three. */
+const GROUP_LABEL_GUIDED: Record<GroupBy, string> = { year: "Over time", facility: "Ranked", peerGroup: "Against peers" }
 
 const GROUP_HELP: Record<GroupBy, string> = {
   year: "A trend for this hospital, with any hospitals you add and the peer median.",
@@ -66,6 +71,11 @@ export function BuildView({
   useEffect(() => {
     if (spec.facilityId) rememberSelection({ facilityId: spec.facilityId })
   }, [spec.facilityId])
+  const peersKey = filtersToParams(spec.peers).toString()
+  useEffect(() => {
+    rememberSelection({ peers: peersKey })
+  }, [peersKey])
+  const guided = useDisplayMode() === "guided"
 
   async function update(patch: Partial<ReportSpec>) {
     const next = { ...spec, ...patch }
@@ -135,7 +145,42 @@ export function BuildView({
     }
   }
 
+  const firstPanel = current?.panels.find((p) => byId.has(p.metricId))
+  const barStatus = firstPanel && current ? panelStatus(firstPanel, byId.get(firstPanel.metricId)!, current.sources[byId.get(firstPanel.metricId)!.dataset], current.panels.length > 1) : null
+  const period: PeriodControl = showYear
+    ? {
+        kind: "pick",
+        label: "Year",
+        summary: spec.year != null ? String(spec.year) : "Latest year",
+        options: [{ value: "latest", label: "Latest reported" }, ...[...years].reverse().map((y) => ({ value: String(y), label: String(y) }))],
+        selected: spec.year != null ? String(spec.year) : "latest",
+        onChange: (v) => update({ year: v === "latest" ? null : Number(v) }),
+      }
+    : { kind: "text", text: `All years, ${years[0]}–${years.at(-1)}` }
+
   return (
+    <div className="space-y-6">
+    <ContextBar
+      facilities={facilities}
+      facilityId={spec.facilityId}
+      onFacility={(id) => update({ facilityId: id })}
+      latestYear={latestYear}
+      period={spec.facilityId ? period : null}
+      peers={
+        showPeers
+          ? {
+              filters: spec.peers,
+              applied: current?.peerGroup?.filters ?? null,
+              count: current?.peerGroup?.count ?? null,
+              description: current?.peerGroup?.description ?? null,
+              note: current?.peerGroup?.note ?? null,
+              onChange: (peers) => update({ peers }),
+            }
+          : null
+      }
+      status={barStatus}
+      modeToggle
+    />
     <div className="grid gap-8 lg:grid-cols-[20rem_minmax(0,1fr)]">
       <LiveStatus
         message={
@@ -149,11 +194,7 @@ export function BuildView({
         }
       />
       {/* Controls */}
-      <div className="space-y-6 lg:sticky lg:top-8 lg:self-start">
-        <Field label="Hospital">
-          <FacilityPicker facilities={facilities} value={spec.facilityId} onChange={(id) => update({ facilityId: id })} latestYear={latestYear} />
-        </Field>
-
+      <div className="space-y-6 lg:sticky lg:top-20 lg:self-start">
         <Field label="Metrics" hint={`Up to ${MAX_METRICS}; each gets its own chart.`}>
           <div className="glass rounded-2xl p-1.5">
             <GroupedPicker
@@ -173,14 +214,14 @@ export function BuildView({
             size="sm"
             value={spec.groupBy}
             onChange={(groupBy) => update({ groupBy })}
-            options={[
-              { value: "year", label: "Year" },
-              { value: "facility", label: "Hospital" },
-              { value: "peerGroup", label: "Peer group" },
-            ]}
+            options={(["year", "facility", "peerGroup"] as const).map((value) => ({
+              value,
+              label: guided ? GROUP_LABEL_GUIDED[value] : { year: "Year", facility: "Hospital", peerGroup: "Peer group" }[value],
+            }))}
           />
         </Field>
 
+        {!guided && (
         <Field label="Show as">
           <Segmented
             label="Chart type"
@@ -194,8 +235,9 @@ export function BuildView({
             ]}
           />
         </Field>
+        )}
 
-        {spec.groupBy === "facility" && (
+        {spec.groupBy === "facility" && !guided && (
           <Field label="Hospitals">
             <Segmented
               label="Which hospitals"
@@ -210,22 +252,7 @@ export function BuildView({
           </Field>
         )}
 
-        {showPeers && (
-          <Field label="Peer group">
-            <Segmented
-              label="Peer group"
-              size="sm"
-              value={spec.peers}
-              onChange={(peers) => update({ peers })}
-              options={[
-                { value: "similar", label: "Similar hospitals" },
-                { value: "statewide", label: "All of California" },
-              ]}
-            />
-          </Field>
-        )}
-
-        {showCompare && (
+        {showCompare && !guided && (
           <Field label="Hospitals side by side" hint={`Up to ${MAX_COMPARE} more hospitals.`}>
             <div className="space-y-2">
               {spec.compare.map((id) => (
@@ -256,18 +283,6 @@ export function BuildView({
           </Field>
         )}
 
-        {showYear && (
-          <Field label="Year">
-            <FilterPill
-              label="Year"
-              summary={spec.year != null ? String(spec.year) : "Latest"}
-              active={spec.year != null}
-              options={[{ value: "latest", label: "Latest reported" }, ...[...years].reverse().map((y) => ({ value: String(y), label: String(y) }))]}
-              selected={[spec.year != null ? String(spec.year) : "latest"]}
-              onChange={([v]) => update({ year: v === "latest" ? null : Number(v) })}
-            />
-          </Field>
-        )}
       </div>
 
       {/* Result */}
@@ -297,8 +312,7 @@ export function BuildView({
                 <h2 className="text-2xl font-semibold tracking-tight">{current.title}</h2>
                 <p className="text-sm text-muted-foreground">
                   {current.subtitle}
-                  {current.peerGroup &&
-                    ` · peer group: ${current.peerGroup.count} ${current.spec.peers === "similar" ? "similar hospitals" : "hospitals statewide"}`}
+                  {current.peerGroup && ` · peer group: ${current.peerGroup.count} hospitals`}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -357,6 +371,7 @@ export function BuildView({
         )}
       </div>
     </div>
+    </div>
   )
 }
 
@@ -378,27 +393,29 @@ function RankLine({ panel, metric, value }: { panel: ReportResult["panels"][numb
   )
 }
 
-function PanelStatus({ panel, metric, source }: { panel: ReportResult["panels"][number]; metric: MetricDef; source?: SourceStatus }) {
+function panelStatus(panel: ReportResult["panels"][number], metric: MetricDef, source: SourceStatus | undefined, several = false): StatusLineProps {
   const published = panel.through != null ? source?.published[panel.through] : null
   const flags: QualityFlag[] = []
   if (panel.through == null) flags.push("unavailable")
   else if (panel.latestYear != null && panel.year == null && panel.through < panel.latestYear) flags.push("stale")
   if (panel.through != null && source?.provisional.includes(panel.through)) flags.push("provisional")
   if (source?.matched) flags.push("matched-record")
-  return (
-    <StatusLine
-      className="mt-3 border-t border-border pt-2.5"
-      through={panel.through != null ? String(panel.through) : null}
-      periodType={DATASETS[metric.dataset].periodType}
-      published={published ? `Published ${published}` : source?.sourceUpdated ? `Source updated ${source.sourceUpdated}` : null}
-      processed={source ? `Processed ${source.processed}` : null}
-      flags={flags}
-      flagDetail={{
-        stale: panel.through != null ? `This hospital's latest value is from ${panel.through}; the source has ${panel.latestYear}.` : undefined,
-        "matched-record": source?.matched ?? undefined,
-      }}
-    />
-  )
+  return {
+    through: panel.through != null ? String(panel.through) : null,
+    periodType: DATASETS[metric.dataset].periodType,
+    published: published ? `Published ${published}` : source?.sourceUpdated ? `Source updated ${source.sourceUpdated}` : null,
+    processed: source ? `Processed ${source.processed}` : null,
+    note: several ? `Shown for ${metric.label}; each chart has its own status line.` : null,
+    flags,
+    flagDetail: {
+      stale: panel.through != null ? `This hospital's latest value is from ${panel.through}; the source has ${panel.latestYear}.` : undefined,
+      "matched-record": source?.matched ?? undefined,
+    },
+  }
+}
+
+function PanelStatus({ panel, metric, source }: { panel: ReportResult["panels"][number]; metric: MetricDef; source?: SourceStatus }) {
+  return <StatusLine className="mt-3 border-t border-border pt-2.5" {...panelStatus(panel, metric, source)} />
 }
 
 function ordinalWord(n: number) {

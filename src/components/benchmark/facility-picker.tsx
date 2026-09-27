@@ -6,6 +6,7 @@ import { useState } from "react"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { FacilityFlagBadge } from "@/components/shell/facility-flag-note"
+import type { Ownership } from "@/lib/data/types"
 import { facilityFlag, type FacilityClosure } from "@/lib/facility-flag"
 import { cn } from "@/lib/utils"
 
@@ -18,6 +19,10 @@ export type FacilityOption = {
   licensedBeds: number | null
   typeOfCare: string | null
   hospitalType: string | null
+  /** For the peer-group presets (lib/benchmark/cohorts.ts). */
+  ownership: Ownership
+  teaching: boolean
+  rural: boolean
   lastYear: number
   /** Closure evidence from the state's license listing (lib/facility-flag.ts). */
   closure: FacilityClosure | null

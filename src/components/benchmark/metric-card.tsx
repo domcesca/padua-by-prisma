@@ -74,6 +74,7 @@ export function MetricCard({
   companion,
   source,
   related,
+  guided = false,
 }: {
   meta: MetricDef
   points: SeriesPoint[]
@@ -85,6 +86,8 @@ export function MetricCard({
   source?: SourceStatus
   /** The key finding that covers this metric: "Key finding 2 · Readmissions", opening its methodology. */
   related?: { label: string; onOpen: (opener: HTMLElement) => void }
+  /** Guided mode: the chart only (no table toggle) and no confidence interval; the same values and status line. */
+  guided?: boolean
 }) {
   const [view, setView] = useState<"chart" | "table">("chart")
 
@@ -134,7 +137,7 @@ export function MetricCard({
           </h2>
           <MetricInfo metric={meta} />
         </div>
-        {latest && <ViewToggle value={view} onChange={setView} label={meta.label} />}
+        {latest && !guided && <ViewToggle value={view} onChange={setView} label={meta.label} />}
       </header>
       {tags.length > 0 && (
         <ul className="mt-1.5 flex flex-wrap gap-1" aria-label="About this measure">
@@ -160,11 +163,11 @@ export function MetricCard({
             {meta.unitLabel && <p className="text-xs text-muted-foreground">{meta.unitLabel}</p>}
             <p className="text-xs text-tertiary-foreground">{latest.detail?.period ?? latest.year}</p>
           </div>
-          {(compared || latest.detail?.ci) && (
+          {(compared || (latest.detail?.ci && !guided)) && (
             <p className="mt-0.5 text-xs text-muted-foreground">
               {compared}
-              {compared && latest.detail?.ci && " · "}
-              {latest.detail?.ci && `95% CI ${formatMetric(meta, latest.detail.ci[0])}–${formatMetric(meta, latest.detail.ci[1])}`}
+              {compared && latest.detail?.ci && !guided && " · "}
+              {latest.detail?.ci && !guided && `95% CI ${formatMetric(meta, latest.detail.ci[0])}–${formatMetric(meta, latest.detail.ci[1])}`}
             </p>
           )}
           {companion && companionLatest?.value != null && (
@@ -179,7 +182,7 @@ export function MetricCard({
           {latest.detail?.note && <p className="mt-0.5 text-xs leading-relaxed text-tertiary-foreground">{latest.detail.note}</p>}
 
           <div className="mt-4">
-            {view === "chart" ? (
+            {view === "chart" || guided ? (
               <TrendChart metric={meta} points={points} />
             ) : (
               <MetricTable metric={meta} points={points} companion={companion} />

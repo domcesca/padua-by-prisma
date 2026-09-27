@@ -24,8 +24,7 @@ export async function runReport(spec: ReportSpec): Promise<ReportResult | RunErr
 
   const byId = new Map(facilities.map((f) => [f.id, f]))
   const compare = spec.compare.map((id) => byId.get(id)).filter((f): f is Facility => !!f && f.id !== focus.id)
-  const peerMode = spec.peers === "statewide" ? "statewide" : "similar"
-  const group = resolvePeerGroup(focus, facilities, { ...DEFAULT_FILTERS, mode: peerMode })
+  const group = resolvePeerGroup(focus, facilities, spec.peers)
   const state = resolvePeerGroup(focus, facilities, { ...DEFAULT_FILTERS, mode: "statewide" })
   const usesPeers = spec.groupBy === "peerGroup" || (spec.groupBy === "facility" && spec.hospitals === "peers") || spec.groupBy === "year"
 
@@ -165,7 +164,7 @@ export async function runReport(spec: ReportSpec): Promise<ReportResult | RunErr
     title: title.charAt(0).toUpperCase() + title.slice(1),
     subtitle,
     panels,
-    peerGroup: usesPeers ? { description: group.description, count: group.peers.length } : null,
+    peerGroup: usesPeers ? { description: group.description, count: group.peers.length, note: group.note, filters: group.filters } : null,
     sources,
   }
 }
