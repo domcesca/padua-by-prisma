@@ -221,11 +221,11 @@ export function ContextBar(props: ContextBarProps) {
 
   return (
     <>
-      {/* md up: the bar itself, pinned to the top of the page. */}
+      {/* md up: the bar itself, a rounded panel like the rest of the page, pinned just below the top edge. */}
       <div
         role="region"
         aria-label="Context"
-        className="glass-strong sticky top-0 z-20 -mx-4 hidden border-b border-border px-4 py-2 sm:-mx-8 sm:px-8 md:block print:hidden"
+        className="glass-strong sticky top-3 z-20 hidden rounded-2xl px-3 py-2 md:block print:hidden"
       >
         <div className="flex items-start gap-2">
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1.5">
