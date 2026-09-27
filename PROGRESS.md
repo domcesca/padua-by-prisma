@@ -305,6 +305,8 @@ downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and
 - Regression against main (V7.0): 7,216/7,216 API responses identical for Similar and Statewide peers (Benchmark, all
   three topics; Build reports in all three groupings; Correlate; key findings; every active hospital), apart from the
   new peer-group metadata.
+- Carried to the next QA pass: the phone layout (one pinned context/filters bar and sheet, Key findings in the page
+  flow) was checked here in a 390px browser but not yet in the reviewer's own QA.
 
 ### V7.0 (Opportunity Finder and administrator front door)
 - Key findings engine (`src/lib/findings/`), `/api/findings`, Home's "Where to look first", Benchmark's Key findings
