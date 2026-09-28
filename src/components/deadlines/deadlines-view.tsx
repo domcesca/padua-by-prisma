@@ -1,19 +1,17 @@
 "use client"
 
 import { AlertCircle, CalendarDays, CheckCircle2, Clock } from "lucide-react"
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import { FacilityPicker, type FacilityOption } from "@/components/benchmark/facility-picker"
 import { FilterPill } from "@/components/benchmark/filter-pill"
+import { deadlineRows, fyeOf, readProgress, scheduleFor, useProgress, writeProgress } from "@/lib/deadlines/progress"
 import {
-  addDays,
-  buildSchedule,
   daysBetween,
   effectiveDue,
   formatDate,
   isoDate,
   RULES,
-  statusOf,
   today,
   utcDate,
   type Deadline,
@@ -28,62 +26,6 @@ import { cn } from "@/lib/utils"
 export type DeadlineFacility = FacilityOption & { fiscalYearEnd: string | null }
 
 const MONTHS = Array.from({ length: 12 }, (_, m) => formatDate(utcDate(2001, m, 1), { month: "long" }))
-
-// -- local progress (per-viewer convenience; never required for the page to work) --
-
-const STORAGE_KEY = "hcai-deadlines-progress-v1"
-const listeners = new Set<() => void>()
-let cachedRaw: string | null | undefined
-let cachedValue: Record<string, Progress> = {}
-
-function readProgress(): Record<string, Progress> {
-  let raw: string | null = null
-  try {
-    raw = window.localStorage.getItem(STORAGE_KEY)
-  } catch {
-    raw = null
-  }
-  if (raw !== cachedRaw) {
-    cachedRaw = raw
-    try {
-      cachedValue = raw ? JSON.parse(raw) : {}
-    } catch {
-      cachedValue = {}
-    }
-  }
-  return cachedValue
-}
-
-function writeProgress(next: Record<string, Progress>) {
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-  } catch {
-    // Storage unavailable (private mode etc.): keep it in memory for this session.
-    cachedRaw = JSON.stringify(next)
-    cachedValue = next
-  }
-  listeners.forEach((l) => l())
-}
-
-const EMPTY: Record<string, Progress> = {}
-function useProgress() {
-  return useSyncExternalStore(
-    (cb) => {
-      listeners.add(cb)
-      return () => listeners.delete(cb)
-    },
-    readProgress,
-    () => EMPTY
-  )
-}
-
-// -------------------------------------------------------------------------------
-
-function fyeFromFacility(f: DeadlineFacility | undefined): FiscalYearEnd | null {
-  if (!f?.fiscalYearEnd) return null
-  const [, m, d] = f.fiscalYearEnd.split("-").map(Number)
-  return { month: m - 1, day: d }
-}
 
 export function DeadlinesView({
   facilities,
@@ -104,13 +46,13 @@ export function DeadlinesView({
   const [offCycle, setOffCycle] = useState("")
   const progress = useProgress()
 
-  const fye = fyeFromFacility(facility) ?? manualFye
+  const fye = fyeOf(facility?.fiscalYearEnd) ?? manualFye
   const now = mounted ? today() : null
 
   const schedule = useMemo(() => {
     const base = now ?? utcDate(2026, 0, 1)
     const off = /^\d{4}-\d{2}-\d{2}$/.test(offCycle) ? new Date(`${offCycle}T00:00:00Z`) : null
-    return buildSchedule({ fye, from: addDays(base, -150), to: addDays(base, 400), offCycleEnd: off })
+    return scheduleFor(fye, base, off)
     // `now` only changes day to day; stringify to keep the memo stable.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fye.month, fye.day, offCycle, now && isoDate(now)])
@@ -120,13 +62,8 @@ export function DeadlinesView({
   const setProgress = (d: Deadline, patch: Progress) =>
     writeProgress({ ...readProgress(), [keyOf(d)]: { ...readProgress()[keyOf(d)], ...patch } })
 
-  // Show recent past deadlines (up to 45 days beyond their latest possible date) so
-  // late or extended filings stay visible; older ones drop off.
-  const rows = now
-    ? schedule
-        .filter((d) => daysBetween(now, d.extendedDue) >= -45)
-        .map((d) => ({ d, p: progress[keyOf(d)], status: statusOf(d, now, progress[keyOf(d)]) }))
-    : []
+  // Recent past deadlines stay listed so late or extended filings stay visible (lib/deadlines/progress.ts).
+  const rows = now ? deadlineRows(schedule, now, progress, scope) : []
 
   const past = rows.filter((r) => r.status === "past")
   const soon = rows.filter((r) => r.status === "soon")
@@ -235,14 +172,14 @@ export function DeadlinesView({
   )
 }
 
-const KIND_LABEL: Record<Deadline["kind"], (d: Deadline) => string> = {
+export const KIND_LABEL: Record<Deadline["kind"], (d: Deadline) => string> = {
   quarterly: (d) => `${d.periodLabel.split(" · ")[0]} quarterly`,
   annual: () => "Annual disclosure",
   offcycle: () => "Off-cycle annual disclosure",
   utilization: (d) => `${d.periodEnd.getUTCFullYear()} utilization report`,
 }
 
-const STATUS: Record<DeadlineStatus, { label: string; icon: typeof Clock; className: string }> = {
+export const DEADLINE_STATUS: Record<DeadlineStatus, { label: string; icon: typeof Clock; className: string }> = {
   past: { label: "Due date passed", icon: AlertCircle, className: "text-warning" },
   soon: { label: "Due soon", icon: Clock, className: "text-warning" },
   upcoming: { label: "Upcoming", icon: CalendarDays, className: "text-muted-foreground" },
@@ -264,7 +201,7 @@ function DeadlineRow({
 }) {
   const due = effectiveDue(d, p)
   const left = daysBetween(now, due)
-  const s = STATUS[status]
+  const s = DEADLINE_STATUS[status]
   const Icon = s.icon
 
   return (

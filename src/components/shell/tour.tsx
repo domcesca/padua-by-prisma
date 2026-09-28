@@ -29,7 +29,7 @@ const TOURS: Record<TourId, { label: string; steps: Step[] }> = {
       {
         target: "hospital",
         title: "Start with your hospital",
-        body: "Search by name, city, or county. Your choice follows you to the other tabs.",
+        body: "Search by name, city, or county. Padua remembers it, opens the Overview on it, and carries it to the other tabs.",
       },
       {
         target: "about",

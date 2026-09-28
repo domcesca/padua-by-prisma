@@ -7,7 +7,7 @@ business-case builder for new initiatives, a plain-language field guide, and a r
 
 | Tab | What it does |
 | --- | --- |
-| **Overview** (`/`) | The front door. Pick a hospital, pick a topic (Financials, Utilization, or Quality; Case mix is reserved for later), optionally refine the peer group, metrics, and years, and land in Compare pre-loaded. The chosen hospital follows you to every tab. |
+| **Overview** (`/`) | The front door, a dashboard for the remembered hospital: **Needs attention** (its top 3 hospital priorities), **What changed** (measures whose standing or trend moved since the prior period), **Upcoming filings** (the next rows of its Filing calendar), **Saved work** (its pinned priorities, re-checked) and **Common actions**. The first visit asks for the hospital once; after that it opens straight on it, and the shared context bar changes the hospital or peer group. |
 | **Compare** (`/compare`, was Benchmark) | A hospital against its peer group on financial metrics (operating margin, days cash on hand, cost and revenue per adjusted discharge, payer mix) utilization metrics (occupancy, ALOS, ED visits and flow, surgeries, cath volume), or quality (CMS readmissions, mortality, patient experience, star ratings; CDPH infection ratios). A collapsible panel shows the county's Census and Medi-Cal context. Default peers are **similar hospitals** (see below); switch to all of California or set filters yourself. A **Payer view** toggle (All payers / Medicare) narrows the metrics to Medicare where HCAI reports a Medicare split. Every view is a shareable URL. |
 | **Reports** (`/reports`, was Build) | A guided chart and table builder: up to four metrics from the catalog, line / bar / table, grouped by year, by hospital, or against the peer group. Legend, table view, CSV download, and a copyable link on every result. |
 | **Correlate** (under Reports) | Any two catalog metrics (Financial, Utilization, Quality, Medicare lens) plotted against each other across a hospital's similar hospitals or all of California for one year: scatter, least-squares trend line, Pearson r, and Spearman rank ρ (robust to outliers). Fewer than 8 hospitals gets "Small sample size — interpret with caution"; fewer than 3, no r. Pairing years of different kinds (fiscal vs. calendar vs. CMS periods) is called out. Table view, CSV, shareable link. |
@@ -181,6 +181,33 @@ used (they cover traditional Medicare only, by calendar year, and need a CCN cro
 - Medicare volumes (discharges, days, length of stay, outpatient visits) come from the financial report, so they're
   fiscal-year and include long-term care units. Cards say so.
 - Medicare Advantage share (MA discharges ÷ all Medicare discharges) is available under the Medicare view and in Build.
+
+## Overview (V7.3)
+
+The front door (`/`, `src/components/overview/`). It assembles what the other tools already serve; nothing is
+calculated anew, and no API changed.
+
+- **First visit**: one step, "Which hospital do you run?", with the hospital search the context bar uses. The choice
+  is remembered in this browser (`hcai-selection-v1`, as every tool does). A `/?facility=…` link opens and remembers
+  that hospital.
+- **Every visit after**: the Overview for the remembered hospital, under the shared context bar (hospital and peer
+  group; a change there is remembered and carries to the other tabs).
+- **Needs attention**: the top 3 primary findings from `/api/findings`, the list Compare's Hospital priorities shows
+  (was Home's "Where to look first").
+- **What changed** (`src/lib/overview/changes.ts`): Compare's standard measures in each topic (`/api/benchmark`),
+  latest period against the one before, using only the cards' own labels. Listed: a measure that became
+  Unfavorable, dropped out of Favorable, or turned to Worsening (it wasn't Worsening the period before). Folded under
+  "N improved": a measure that moved up a band. Improving-after-Worsening trend flips aren't counted: year-to-year
+  values see-saw, and counting them put a median 5 of ~8 measures per hospital in "changed". Across the 451 reporting
+  hospitals (Similar peers): median 2 wrong-way moves (none for 62 hospitals), and 34 with nothing at all, which read
+  "No material changes since <period>".
+- **Upcoming filings**: the Filing calendar's rows (`src/lib/deadlines/progress.ts`, now shared by both pages): past
+  due and not marked filed first, then the next ones, 3 in all, with the calendar's status and the filed/extended
+  marks made there.
+- **Saved work**: this hospital's pins, each re-checked the way Saved briefings checks it.
+- **Common actions**: Compare performance, Build a report, Prepare a business case, Review filing dates.
+- Every section has its own empty state (nothing ranked, no changes, no calendar for a hospital no longer reporting,
+  nothing pinned). There is no Guided/Analysis switch; standings and trends read as a pill and an arrow with a word.
 
 ## Names, redirects and wording (V7.2)
 

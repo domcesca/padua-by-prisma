@@ -87,9 +87,10 @@ export function BriefingView() {
   )
 }
 
-type Status = { label: string; tone: "same" | "changed" | "gone" | "pending"; detail: string }
+export type PinStatus = { label: string; tone: "same" | "changed" | "gone" | "pending"; detail: string }
 
-function statusOf(pin: Pin, data: FindingsResult | null, loading: boolean, error: string | null): Status {
+/** How a pin stands now against the same hospital and peer group (Saved briefings, and the Overview's Saved work). */
+export function pinStatus(pin: Pin, data: FindingsResult | null, loading: boolean, error: string | null): PinStatus {
   if (error) return { label: "Couldn't check", tone: "pending", detail: error }
   if (loading || !data) return { label: "Checking…", tone: "pending", detail: "Loading the latest findings." }
   const now = tierOf(data, pin.family)
@@ -117,7 +118,7 @@ function statusOf(pin: Pin, data: FindingsResult | null, loading: boolean, error
   }
 }
 
-const TONE: Record<Status["tone"], string> = {
+export const PIN_TONE: Record<PinStatus["tone"], string> = {
   same: "bg-black/5 text-foreground dark:bg-white/8",
   changed: "bg-warning/12 text-warning",
   gone: "bg-black/5 text-muted-foreground dark:bg-white/8",
@@ -161,13 +162,13 @@ function HospitalGroup({ pins }: { pins: Pin[] }) {
       )}
       <ul className="divide-y divide-border">
         {pins.map((pin) => {
-          const status = statusOf(pin, data, loading, error)
+          const status = pinStatus(pin, data, loading, error)
           const now = data ? tierOf(data, pin.family) : null
           return (
             <li key={pin.id} className="space-y-2 py-3.5 first:pt-1 last:pb-1 print:break-inside-avoid">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold", TONE[status.tone])}>
+                  <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold", PIN_TONE[status.tone])}>
                     {status.tone === "pending" && status.label === "Checking…" && <Loader2 className="mr-1 size-3 animate-spin" aria-hidden />}
                     {status.label}
                   </span>
