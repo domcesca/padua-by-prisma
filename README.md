@@ -18,7 +18,7 @@ business-case builder for new initiatives, a plain-language field guide, and a r
 | **What's next** (`/whats-next`) | Not in the nav: a small link in the sidebar footer. Ask (natural-language queries) and Watch (anomaly detection on uploaded data), not built yet; `/ask` and `/watch` redirect here. |
 | **Help (?)** | On every page (bottom corner, or press <kbd>?</kbd>): a search-as-you-type glossary of every metric and HCAI field, read from the same dictionaries as Data definitions. A lookup, not a chat. Also replays the tour. |
 
-A short guided tour (five steps) plays on the first visit to the home page. It's remembered in the browser
+A short guided tour (three steps) plays on the Overview once the first hospital is picked (never over the first-visit hospital search, since the tour takes the keyboard). It's remembered in the browser
 (`hcai-tour-v1` in localStorage), can be skipped at any step, and can be replayed from the help panel.
 
 Data, calendar/report years 2019–2024:

@@ -280,7 +280,8 @@ export function ContextBar(props: ContextBarProps) {
         title={hasFilters ? "Context and filters" : "Hospital"}
         triggerLabel={hasFilters ? `Context and filters${activeCount ? `: ${activeCount} set` : ""}` : "Change hospital"}
         summary={
-          <>
+          // The phone's tour target for the hospital: the desktop pill is hidden here.
+          <div data-tour={tour?.hospital}>
             <p className="truncate text-[13px] leading-tight font-semibold">{facility?.name ?? "No hospital chosen"}</p>
             <p className="truncate text-xs leading-tight text-muted-foreground">
               {fit && (
@@ -292,7 +293,7 @@ export function ContextBar(props: ContextBarProps) {
                 .filter(Boolean)
                 .join(" · ")}
             </p>
-          </>
+          </div>
         }
         trigger={
           <>

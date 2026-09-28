@@ -4,12 +4,15 @@ import { X } from "lucide-react"
 import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 
+import { useSelection } from "@/lib/selection"
 import { useMediaQuery } from "@/lib/use-media-query"
 import { cn } from "@/lib/utils"
 
 // Guided tours: a spotlight on one element at a time with a short card beside it. Three tours share this engine:
-//   * welcome: a first-visit orientation on the home page (the nav, the hospital picker, and where help lives). It plays
-//     once (remembered in this browser only) and can be replayed from the glossary.
+//   * welcome: a first-visit orientation on the Overview (the nav, the hospital picker, and where help lives). It plays
+//     once (remembered in this browser only) and can be replayed from the glossary. On a first visit it waits until a
+//     hospital is picked: the tour is modal (it takes the keyboard), so it must not open over the hospital search the
+//     viewer is about to type into. It plays on the Overview that follows, pointing at the context bar's hospital.
 //   * propose, correlate: step-by-step walkthroughs, started from those tabs' "About this tool" panels, never on their
 //     own; they're the tools where a misread has consequences.
 // Each step points at an element marked data-tour="<target>"; a step whose target isn't on screen is skipped.
@@ -29,7 +32,7 @@ const TOURS: Record<TourId, { label: string; steps: Step[] }> = {
       {
         target: "hospital",
         title: "Start with your hospital",
-        body: "Search by name, city, or county. Padua remembers it, opens the Overview on it, and carries it to the other tabs.",
+        body: "Padua remembers your hospital and opens the Overview on it. Change it here any time (search by name, city, or county); it carries to the other tabs.",
       },
       {
         target: "about",
@@ -176,6 +179,7 @@ export function Tour() {
   const card = useRef<HTMLDivElement>(null)
   const active = useRef<TourId | null>(null)
   const wide = useMediaQuery("(min-width: 768px)")
+  const hasHospital = !!useSelection()?.facilityId
 
   // Walkthroughs start when asked for, on whatever page asked; leaving the page ends them.
   useEffect(() => {
@@ -192,7 +196,8 @@ export function Tour() {
     }
   }, [pathname])
 
-  // The welcome tour starts on the home page: on the first visit, or when replay was asked for from another page.
+  // The welcome tour starts on the Overview: on the first visit once a hospital is picked (not over the first-run
+  // hospital search), or when replay was asked for from another page.
   useEffect(() => {
     if (pathname !== "/") return
     const start = () => {
@@ -201,7 +206,7 @@ export function Tour() {
     }
     window.addEventListener(START_EVENT, start)
     let timer: ReturnType<typeof setTimeout> | undefined
-    if (read(() => sessionStorage, PENDING_KEY) || !read(() => localStorage, DONE_KEY)) {
+    if (read(() => sessionStorage, PENDING_KEY) || (hasHospital && !read(() => localStorage, DONE_KEY))) {
       write(() => sessionStorage, PENDING_KEY, null)
       timer = setTimeout(start, 500)
     }
@@ -212,7 +217,7 @@ export function Tour() {
       if (active.current === "welcome") write(() => localStorage, DONE_KEY, "done")
       setStep(null)
     }
-  }, [pathname])
+  }, [pathname, hasHospital])
 
   useEffect(() => {
     active.current = step != null ? tourId : null
