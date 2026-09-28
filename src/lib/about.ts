@@ -8,8 +8,8 @@ export const ABOUT: Record<AboutId, { title: string; body: string[]; walkthrough
   home: {
     title: "Overview",
     body: [
-      "Pick a hospital and a topic, and Padua opens it next to similar California hospitals.",
-      "Your hospital follows you to every other tab. Its top findings across all areas show first, as hospital priorities.",
+      "Your hospital at a glance: what needs attention against similar California hospitals, what changed since the previous period, the next HCAI filings, and the priorities you've pinned.",
+      "Padua remembers the hospital in this browser and opens here on it; change the hospital or the peer group in the bar at the top, and they follow you to every other tab.",
     ],
   },
   benchmark: {

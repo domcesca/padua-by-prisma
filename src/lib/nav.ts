@@ -24,7 +24,7 @@ export const NAV_ITEMS: NavItem[] = [
   {
     href: "/",
     label: "Overview",
-    description: "Pick what to look at and which hospital",
+    description: "Your hospital at a glance",
     icon: House,
   },
   {

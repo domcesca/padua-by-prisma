@@ -292,6 +292,22 @@ downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and
   Outdated = newest report more than 2 years behind the newest data (13 hospitals, some of them campuses now reported
   under a parent).
 
+### V7.3 (Home → Overview dashboard)
+- Home's step sequence replaced by an Overview for the remembered hospital: Needs attention, What changed, Upcoming
+  filings, Saved work, Common actions, under the shared context bar; a focused hospital pick on the first visit only.
+  Details in the README. No calculation, scoring or API change.
+- What changed reuses the cards' standing and trend labels. Decision to confirm: moves the wrong way are listed
+  (became Unfavorable, left Favorable, newly Worsening); moves up a band fold under "improved"; Improving-after-
+  Worsening flips are not counted (they doubled the list: median 5 of ~8 measures per hospital). Result across 451
+  reporting hospitals: median 2 wrong-way moves, 62 hospitals with none.
+- The Filing calendar's progress store and row filter moved to `src/lib/deadlines/progress.ts` for both pages; the
+  calendar renders identically before and after (checked on three hospitals).
+- Regression against main (V7.2): 7,216/7,216 API responses identical.
+- `/api/peers` (Home's peer preview) is no longer called by the app; left in place.
+- QA fix: the welcome tour (modal; it takes the keyboard) opened over the first-visit hospital search and swallowed
+  typing. It now waits until a hospital is picked and plays on the Overview, pointing at the context bar's hospital
+  (the summary bar's hospital line on phones).
+
 ### V7.2 (navigation and language clarity)
 - Tabs renamed (Overview, Compare, Reports, Business cases, Filing calendar, Data definitions, Saved briefings) with
   new addresses and 308 redirects from every old path, query string kept; Ask and Watch moved off the nav to one

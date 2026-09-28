@@ -48,7 +48,7 @@ export function FindingsEmpty({ result, where }: { result: FindingsResult; where
     return (
       <Empty title="Nothing unfavorable against these peers">
         Every judged metric is similar to or better than {lower(result.peerGroup.description)}, and no CMS penalty applies.
-        {where === "home" ? " Explore a topic below to see the details." : " Topic details below show every measure."}
+        {where === "home" ? " Compare shows every measure." : " Topic details below show every measure."}
       </Empty>
     )
   }

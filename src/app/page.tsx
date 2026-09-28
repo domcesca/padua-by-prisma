@@ -1,13 +1,16 @@
-import { HomeFlow } from "@/components/home/home-flow"
-import { getAllYears, getFacilityOptions, getLatestYear, getMetricCatalog } from "@/lib/data/store"
+import { OverviewView, type OverviewFacility } from "@/components/overview/overview-view"
+import { getFacilities, getLatestYear, getMetricCatalog, lastReportedYear, toFacilityOption } from "@/lib/data/store"
 
-export default async function Home() {
-  const [facilities, catalog, latestYear, years] = await Promise.all([
-    getFacilityOptions(),
-    getMetricCatalog(),
-    getLatestYear(),
-    getAllYears(),
-  ])
+export default async function OverviewPage({ searchParams }: PageProps<"/">) {
+  const sp = await searchParams
+  const [facilities, catalog, latestYear] = await Promise.all([getFacilities(), getMetricCatalog(), getLatestYear()])
+  const options: OverviewFacility[] = facilities.map((f) => ({
+    ...toFacilityOption(f),
+    fiscalYearEnd: f.fiscalYearEnd,
+    // The Filing calendar lists hospitals still reporting (app/filing-calendar/page.tsx).
+    onCalendar: lastReportedYear(f) >= latestYear - 1,
+  }))
+  const facilityParam = typeof sp.facility === "string" && options.some((o) => o.id === sp.facility) ? sp.facility : null
 
-  return <HomeFlow facilities={facilities} catalog={catalog} years={years} latestYear={latestYear} />
+  return <OverviewView facilities={options} catalog={catalog} latestYear={latestYear} initialFacilityId={facilityParam} />
 }
