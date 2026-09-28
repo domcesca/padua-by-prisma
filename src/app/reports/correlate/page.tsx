@@ -9,7 +9,7 @@ import { getFacilityOptions, getLatestYear, getTrendMetrics } from "@/lib/data/s
 
 export const metadata: Metadata = { title: "Correlate" }
 
-export default async function CorrelatePage({ searchParams }: PageProps<"/build/correlate">) {
+export default async function CorrelatePage({ searchParams }: PageProps<"/reports/correlate">) {
   const sp = await searchParams
   const params = new URLSearchParams(Object.entries(sp).flatMap(([k, v]) => (typeof v === "string" ? [[k, v]] : [])))
   const [facilities, catalog, latestYear] = await Promise.all([getFacilityOptions(), getTrendMetrics(), getLatestYear()])

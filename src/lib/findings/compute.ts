@@ -316,11 +316,11 @@ function proposeLink(family: Family, facilityId: string, candidates: Candidate[]
     params.set(
       "desc",
       readm
-        ? `From Padua's key findings. Each condition is prefilled with its readmission-rate gap to the CMS peer-group median, in percentage points: ${STARTING_POINT}.`
-        : `From Padua's key findings. Each infection is prefilled with the cut that would bring it to the peer median, in percent: ${STARTING_POINT}.`
+        ? `From Padua's hospital priorities. Each condition is prefilled with its readmission-rate gap to the CMS peer-group median, in percentage points: ${STARTING_POINT}.`
+        : `From Padua's hospital priorities. Each infection is prefilled with the cut that would bring it to the peer median, in percent: ${STARTING_POINT}.`
     )
     if (gaps.length) params.set(readm ? "readm" : "hai", gaps.map((g) => `${g.key}:${g.gapToMedian}`).join(","))
-    return { href: `/propose?${params}`, module: "Avoided penalties", prefilled: gaps.length > 0 }
+    return { href: `/business-cases?${params}`, module: "Avoided penalties", prefilled: gaps.length > 0 }
   }
   if (family.propose === "savings") {
     const lead = candidates[0].evidence
@@ -330,10 +330,10 @@ function proposeLink(family: Family, facilityId: string, candidates: Candidate[]
     params.set(
       "desc",
       lead && lead.median != null
-        ? `From Padua's key findings: ${lead.label.toLowerCase()} ${lead.period} vs the peer median. No savings amounts are prefilled; enter the initiative's own estimates.`
-        : "From Padua's key findings. No savings amounts are prefilled; enter the initiative's own estimates."
+        ? `From Padua's hospital priorities: ${lead.label.toLowerCase()} ${lead.period} vs the peer median. No savings amounts are prefilled; enter the initiative's own estimates.`
+        : "From Padua's hospital priorities. No savings amounts are prefilled; enter the initiative's own estimates."
     )
-    return { href: `/propose?${params}`, module: "Cost savings", prefilled: false }
+    return { href: `/business-cases?${params}`, module: "Cost savings", prefilled: false }
   }
   return null
 }

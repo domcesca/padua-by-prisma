@@ -7,7 +7,7 @@ import { DATASET_SLUG, parseDatasetSlug } from "@/lib/data/datasets"
 import { getSourceStatus } from "@/lib/data/freshness"
 import { getDictionary, getFacilities, getFacilityFieldValues, getLatestYear, getManifest, toFacilityOption } from "@/lib/data/store"
 
-export const metadata: Metadata = { title: "Translate" }
+export const metadata: Metadata = { title: "Data definitions" }
 
 const INTRO = {
   "hafd-selected": "Every field in HCAI’s annual financial data, in plain language",
@@ -20,7 +20,7 @@ const CREDIT = {
   hau: "Definitions adapted from HCAI’s Instructions for Completing the Annual Utilization Report of Hospitals (11/01/2024) and the reporting form; report page and line numbers refer to that form.",
 } as const
 
-export default async function TranslatePage({ searchParams }: PageProps<"/translate">) {
+export default async function TranslatePage({ searchParams }: PageProps<"/data-definitions">) {
   const sp = await searchParams
   const one = (v: string | string[] | undefined) => (typeof v === "string" ? v : null)
   const dataset = parseDatasetSlug(one(sp.source))
@@ -41,7 +41,7 @@ export default async function TranslatePage({ searchParams }: PageProps<"/transl
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Translate"
+        title="Data definitions"
         actions={<AboutTool id="translate" />}
         description={
           <>

@@ -11,7 +11,7 @@ import { MIN_SCORED_PEERS, type Finding } from "@/lib/findings/score"
 import { cn } from "@/lib/utils"
 import { FindingRow } from "./finding-row"
 
-// Benchmark's key-findings panel: up to 5 primary findings and 5 to watch for the hospital against the peer group
+// Compare's Hospital priorities panel (the key findings): up to 5 primary findings and 5 to watch for the hospital against the peer group
 // on screen, above the metric cards. On phones it folds into a summary bar with the list in a bottom sheet, the same
 // pattern as the filter strip (MobileSheet).
 
@@ -25,6 +25,9 @@ export function tierOf(result: FindingsResult, family: string) {
   return null
 }
 
+/** Why the panel doesn't change with the topic tabs: it's the hospital's list, not the tab's. */
+const SCOPE = "This hospital’s top findings across all areas (finances, quality and the ED), whichever topic tab is open."
+
 const lower = (s: string) => s.charAt(0).toLowerCase() + s.slice(1)
 
 /** What the panel says when there's nothing to rank, or nothing clears the bar for primary. */
@@ -37,7 +40,7 @@ export function FindingsEmpty({ result, where }: { result: FindingsResult; where
       <Empty title={penalties ? "Too few peers to compare metrics" : "Too few peers to rank findings"}>
         This peer group has {n} hospital{n === 1 ? "" : "s"}; metric findings need at least {MIN_SCORED_PEERS} with a value.
         {penalties && " Only CMS penalties, which don't depend on the peer group, are listed."}{" "}
-        {where === "benchmark" ? "Remove a filter or switch to Similar hospitals to widen it." : "Widen the peer group in Benchmark."}
+        {where === "benchmark" ? "Remove a filter or switch to Similar hospitals to widen it." : "Widen the peer group in Compare."}
       </Empty>
     )
   }
@@ -45,7 +48,7 @@ export function FindingsEmpty({ result, where }: { result: FindingsResult; where
     return (
       <Empty title="Nothing unfavorable against these peers">
         Every judged metric is similar to or better than {lower(result.peerGroup.description)}, and no CMS penalty applies.
-        {where === "home" ? " Explore a topic below to see the details." : " The metric cards below show the details."}
+        {where === "home" ? " Explore a topic below to see the details." : " Topic details below show every measure."}
       </Empty>
     )
   }
@@ -54,7 +57,7 @@ export function FindingsEmpty({ result, where }: { result: FindingsResult; where
     return (
       <Empty title="Nothing clears the bar for primary">
         {n} finding{n === 1 ? "" : "s"} to watch{where === "benchmark" ? " below" : ""}: each scores under {result.minPrimary} or has Low confidence.
-        {where === "home" && " See them in Benchmark."}
+        {where === "home" && " See them in Compare."}
       </Empty>
     )
   }
@@ -110,7 +113,7 @@ function Body({
   if (error) {
     return (
       <div role="alert" className="rounded-xl bg-destructive/10 px-4 py-3 text-[13px] text-destructive">
-        Couldn&apos;t load key findings ({error}).{" "}
+        Couldn&apos;t load hospital priorities ({error}).{" "}
         <button type="button" onClick={retry} className="rounded font-medium underline outline-none focus-visible:ring-2 focus-visible:ring-ring">
           Try again
         </button>
@@ -206,11 +209,11 @@ export function KeyFindingsPanel({
   const counts = result ? `${result.primary.length} primary · ${result.secondary.length} to watch` : error ? "Couldn't load" : "Loading…"
   const briefing = (
     <Link
-      href="/briefing"
+      href="/briefings"
       className="glass-subtle inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[13px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <NotebookPen className="size-3.5" aria-hidden />
-      Briefing{pins.length > 0 && <span className="num text-muted-foreground">({pins.length})</span>}
+      Saved briefings{pins.length > 0 && <span className="num text-muted-foreground">({pins.length})</span>}
     </Link>
   )
   const body = <Body result={result} loading={loading} error={error} retry={retry} facilityName={facilityName} peerQuery={peerQuery} onOpen={onOpen} />
@@ -220,8 +223,9 @@ export function KeyFindingsPanel({
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="space-y-0.5">
             <h2 id="key-findings-title" className="text-[19px] font-semibold tracking-tight">
-              Key findings
+              Hospital priorities
             </h2>
+            <p className="text-[13px] text-muted-foreground">{SCOPE}</p>
             <p className="text-[13px] text-muted-foreground">
               {result ? (
                 <>
@@ -237,12 +241,12 @@ export function KeyFindingsPanel({
         {body}
       </section>
       <MobileSheet
-        title="Key findings"
+        title="Hospital priorities"
         className="scroll-mt-20"
-        triggerLabel={`Key findings: ${counts}`}
+        triggerLabel={`Hospital priorities: ${counts}`}
         summary={
           <>
-            <p className="truncate text-[13px] leading-tight font-semibold">Key findings</p>
+            <p className="truncate text-[13px] leading-tight font-semibold">Hospital priorities</p>
             <p className="truncate text-xs leading-tight text-muted-foreground">{counts}</p>
           </>
         }
@@ -253,7 +257,10 @@ export function KeyFindingsPanel({
           </>
         }
       >
-        {result && <p className="text-[13px] text-muted-foreground">Compared with {lower(result.peerGroup.description)}.</p>}
+        <p className="text-[13px] text-muted-foreground">
+          {SCOPE}
+          {result && <> Compared with {lower(result.peerGroup.description)}.</>}
+        </p>
         {body}
         <div className="pt-1">{briefing}</div>
       </MobileSheet>

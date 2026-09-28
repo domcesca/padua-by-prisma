@@ -24,7 +24,7 @@ const TOURS: Record<TourId, { label: string; steps: Step[] }> = {
       {
         target: "nav",
         title: "Every tool is here",
-        body: "Benchmark compares a hospital with its peers, Build makes charts and correlations, Propose builds a business case, and Translate explains HCAI's fields.",
+        body: "Compare sets a hospital against its peers, Reports makes charts and correlations, Business cases estimates whether an initiative pays off, and Data definitions explains HCAI's fields.",
       },
       {
         target: "hospital",
@@ -39,7 +39,7 @@ const TOURS: Record<TourId, { label: string; steps: Step[] }> = {
     ],
   },
   propose: {
-    label: "Propose walkthrough",
+    label: "Business case walkthrough",
     steps: [
       {
         target: "propose-method",

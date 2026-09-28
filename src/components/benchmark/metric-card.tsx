@@ -10,7 +10,7 @@ import { DATASETS, type MetricDef } from "@/lib/data/datasets"
 import type { SourceStatus } from "@/lib/data/freshness"
 import type { DictionaryMetric, PointDetail } from "@/lib/data/types"
 import { CONTEXT_REASONS } from "@/lib/favorability/directions"
-import { directionOf, metricStanding, rankText, trend } from "@/lib/favorability"
+import { directionOf, metricRankText, metricStanding, trend } from "@/lib/favorability"
 import { formatMetric } from "@/lib/format"
 import { auditLabel, type QualityFlag } from "@/lib/status"
 import { cn } from "@/lib/utils"
@@ -35,7 +35,7 @@ function Comparison({ point, metric }: { point: SeriesPoint; metric: DictionaryM
     <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
       <StandingBadge standing={standing} title={standing === "depends" ? CONTEXT_REASONS[metric.id] : undefined} />
       <p className="text-[13px] text-muted-foreground">
-        {rankText(point.percentile, point.n)}. Peer median {formatMetric(metric, point.median)}.
+        {metricRankText(metric.id, point.percentile, point.n)}. Peer median {formatMetric(metric, point.median)}.
       </p>
     </div>
   )
@@ -84,7 +84,7 @@ export function MetricCard({
   companion?: { meta: MetricDef; points: SeriesPoint[] }
   /** The source's publication and processing dates and this hospital's record match, for the status line. */
   source?: SourceStatus
-  /** The key finding that covers this metric: "Key finding 2 · Readmissions", opening its methodology. */
+  /** The key finding that covers this metric: "Priority 2 · Readmissions", opening its methodology. */
   related?: { label: string; onOpen: (opener: HTMLElement) => void }
   /** Guided mode: the chart only (no table toggle) and no confidence interval; the same values and status line. */
   guided?: boolean

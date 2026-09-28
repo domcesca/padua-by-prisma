@@ -6,9 +6,9 @@ import { PageHeader } from "@/components/shell/page-header"
 import { getFacilities, getLatestYear, lastReportedYear, toFacilityOption } from "@/lib/data/store"
 import { SOURCES } from "@/lib/deadlines/rules"
 
-export const metadata: Metadata = { title: "Deadlines" }
+export const metadata: Metadata = { title: "Filing calendar" }
 
-export default async function DeadlinesPage({ searchParams }: PageProps<"/deadlines">) {
+export default async function DeadlinesPage({ searchParams }: PageProps<"/filing-calendar">) {
   const sp = await searchParams
   const [facilities, latestYear] = await Promise.all([getFacilities(), getLatestYear()])
   // Only hospitals still reporting need a calendar.
@@ -20,7 +20,7 @@ export default async function DeadlinesPage({ searchParams }: PageProps<"/deadli
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Deadlines"
+        title="Filing calendar"
         actions={<AboutTool id="deadlines" />}
         description="HCAI financial reporting due dates for your hospital’s fiscal year, with extension limits and what’s coming up next."
       />

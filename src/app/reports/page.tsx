@@ -6,10 +6,10 @@ import { redirect } from "next/navigation"
 import { AboutTool } from "@/components/shell/about-tool"
 import { PageHeader } from "@/components/shell/page-header"
 
-export const metadata: Metadata = { title: "Build" }
+export const metadata: Metadata = { title: "Reports" }
 
-// Build is a landing page for two tools: the report builder (/build/report) and Correlate (/build/correlate). A hospital
-// and topic in the link (from the nav) carry through to both. Older /build links with report settings were the report
+// Reports (Build before V7.2) is a landing page for two tools: the report builder (/reports/build) and Correlate (/reports/correlate). A hospital
+// and topic in the link (from the nav) carry through to both. Older /build and /reports links with report settings were the report
 // builder itself, so they go straight there.
 
 // The peer group (Benchmark's peer filters) carries through too.
@@ -18,7 +18,7 @@ const PASS_THROUGH = new Set(["facility", "category", ...PEER_KEYS])
 
 const TOOLS = [
   {
-    href: "/build/report",
+    href: "/reports/build",
     icon: ChartColumnBig,
     title: "Build a report",
     body: "Pick measures and years for one hospital, or several side by side, and get a chart or table you can copy or download.",
@@ -27,7 +27,7 @@ const TOOLS = [
     cta: "Open the report builder",
   },
   {
-    href: "/build/correlate",
+    href: "/reports/correlate",
     icon: ChartScatter,
     title: "Correlate",
     body: "See whether two measures move together across a hospital's peers, one dot per hospital. It shows a pattern, not a cause.",
@@ -37,10 +37,10 @@ const TOOLS = [
   },
 ]
 
-export default async function BuildHubPage({ searchParams }: PageProps<"/build">) {
+export default async function BuildHubPage({ searchParams }: PageProps<"/reports">) {
   const sp = await searchParams
   const params = new URLSearchParams(Object.entries(sp).flatMap(([k, v]) => (typeof v === "string" ? [[k, v]] : [])))
-  if ([...params.keys()].some((k) => !PASS_THROUGH.has(k))) redirect(`/build/report?${params}`)
+  if ([...params.keys()].some((k) => !PASS_THROUGH.has(k))) redirect(`/reports/build?${params}`)
 
   const hrefFor = (href: string, keep: string[]) => {
     const q = new URLSearchParams([...params].filter(([k]) => keep.includes(k)))
@@ -49,7 +49,7 @@ export default async function BuildHubPage({ searchParams }: PageProps<"/build">
 
   return (
     <div className="space-y-8">
-      <PageHeader title="Build" description="Make your own view of the data. Two tools:" actions={<AboutTool id="build" />} />
+      <PageHeader title="Reports" description="Make your own view of the data. Two tools:" actions={<AboutTool id="build" />} />
       <div className="grid gap-4 md:grid-cols-2">
         {TOOLS.map(({ href, icon: Icon, title, body, example, keep, cta }) => (
           <Link

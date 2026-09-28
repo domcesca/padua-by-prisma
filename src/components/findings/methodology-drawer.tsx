@@ -6,7 +6,7 @@ import Link from "next/link"
 
 import { StandingBadge, TrendText } from "@/components/shell/standing"
 import { StatusLine } from "@/components/shell/status-line"
-import { rankText } from "@/lib/favorability"
+import { metricRankText } from "@/lib/favorability"
 import type { FindingContext } from "@/lib/findings/briefing"
 import { formatUsd } from "@/lib/format"
 import { FAMILY_BY_ID, SIGNAL_TYPE_LABEL } from "@/lib/findings/families"
@@ -117,7 +117,7 @@ function Evidence({ e }: { e: EvidencePoint }) {
         {e.percentile != null && (
           <>
             <dt>Rank</dt>
-            <dd className="text-foreground">{rankText(e.percentile, e.n)}</dd>
+            <dd className="text-foreground">{metricRankText(e.metric, e.percentile, e.n)}</dd>
           </>
         )}
         {e.compared && (
@@ -158,7 +158,7 @@ function Body({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-1.5">
           <p className="text-xs font-medium text-tertiary-foreground">
-            {tier === "primary" ? `Key finding ${rank}` : `To watch ${rank}`} · {SIGNAL_TYPE_LABEL[finding.type]} · {context.facilityName}
+            {tier === "primary" ? `Priority ${rank}` : `To watch ${rank}`} · {SIGNAL_TYPE_LABEL[finding.type]} · {context.facilityName}
           </p>
           <DialogPrimitive.Title className="text-[19px] leading-snug font-semibold tracking-tight">{finding.label}</DialogPrimitive.Title>
           <div className="flex flex-wrap items-center gap-2">
@@ -274,7 +274,7 @@ function Body({
               className="btn-accent inline-flex h-9 items-center gap-1.5 rounded-full px-4 text-[13px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Calculator className="size-3.5" aria-hidden />
-              Model in Propose: {finding.propose.module}
+              Model as a business case: {finding.propose.module}
             </Link>
             <p className="text-xs text-muted-foreground">
               {finding.propose.prefilled

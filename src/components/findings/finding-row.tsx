@@ -78,7 +78,7 @@ export function FindingRow({
   tier: "primary" | "secondary"
   context: FindingContext
   onMethodology: (finding: Finding, opener: HTMLElement) => void
-  /** Home: the Benchmark link for this finding. */
+  /** Overview: the Compare link for this finding. */
   reviewHref?: string
   className?: string
 }) {
@@ -102,7 +102,7 @@ export function FindingRow({
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <StandingBadge standing={findingStanding(finding)} short />
           <h3 id={headingId} className="text-[15px] leading-snug font-semibold tracking-tight">
-            <span className="sr-only">{tier === "primary" ? `Key finding ${rank}` : `To watch ${rank}`}: </span>
+            <span className="sr-only">{tier === "primary" ? `Priority ${rank}` : `To watch ${rank}`}: </span>
             {finding.label}
             {finding.lead.label !== finding.label && <span className="font-normal text-muted-foreground"> · {finding.lead.label}</span>}
           </h3>
@@ -125,7 +125,7 @@ export function FindingRow({
           </button>
           {reviewHref && (
             <Link href={reviewHref} className={cn(ACTION, "glass-subtle")}>
-              Review in Benchmark
+              Review in Compare
               <ArrowRight className="size-3.5" aria-hidden />
               <span className="sr-only">: {finding.label}</span>
             </Link>
@@ -133,7 +133,7 @@ export function FindingRow({
           {finding.propose && (
             <Link href={finding.propose.href} className={cn(ACTION, "glass-subtle")}>
               <Calculator className="size-3.5" aria-hidden />
-              Model in Propose
+              Model as a business case
               <span className="sr-only">: {finding.label}</span>
             </Link>
           )}

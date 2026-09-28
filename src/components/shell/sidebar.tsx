@@ -34,14 +34,14 @@ export function Sidebar() {
 
       <nav aria-label="Sections" data-tour="nav" className="flex-1 px-3">
         <ul className="space-y-0.5">
-          {NAV_ITEMS.map(({ href, label, icon: Icon, soon }) => {
+          {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
             const active = isActivePath(pathname, href)
             return (
               <li key={href}>
                 <Link
                   href={hrefWithSelection(href, selection)}
                   aria-current={active ? "page" : undefined}
-                  data-tour={`nav-${label.toLowerCase()}`}
+                  data-tour={`nav-${href.slice(1) || "overview"}`}
                   className={cn(
                     "group relative flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-sm transition-[background-color,color,box-shadow] duration-200",
                     "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
@@ -61,11 +61,6 @@ export function Sidebar() {
                     strokeWidth={2}
                   />
                   <span className="flex-1">{label}</span>
-                  {soon && (
-                    <span className="rounded-full bg-black/5 px-1.5 py-px text-[11px] font-medium tracking-wide text-muted-foreground uppercase dark:bg-white/10">
-                      Soon
-                    </span>
-                  )}
                 </Link>
               </li>
             )
@@ -73,6 +68,16 @@ export function Sidebar() {
         </ul>
       </nav>
 
+      <div className="px-5 pb-2">
+        {/* Tools still being built live on one page, not in the nav above. */}
+        <Link
+          href="/whats-next"
+          aria-current={pathname === "/whats-next" ? "page" : undefined}
+          className="rounded-sm text-xs text-tertiary-foreground hover:text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        >
+          What&apos;s next
+        </Link>
+      </div>
       <div className="flex items-center justify-between gap-2 border-t border-sidebar-border px-5 py-4">
         <p className="text-xs leading-tight text-tertiary-foreground">
           Source: HCAI via

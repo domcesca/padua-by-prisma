@@ -1,5 +1,5 @@
 import { CATEGORY_BY_ID, type MetricDef } from "@/lib/data/datasets"
-import { rankText, type Standing } from "@/lib/favorability"
+import { metricRankText, type Standing } from "@/lib/favorability"
 import { formatUsd } from "@/lib/format"
 import type { Finding } from "./score"
 
@@ -24,7 +24,7 @@ export function headlineOf(f: Finding): string {
     return `Hospital-acquired-condition penalty: Medicare payments cut 1%${lead.dollars ? ` (${approx(lead.dollars.amount)})` : ""}.`
   }
   const e = lead.evidence!
-  const rank = e.percentile != null ? rankText(e.percentile, e.n) : null
+  const rank = e.percentile != null ? metricRankText(e.metric, e.percentile, e.n) : null
   if (lead.kind === "verdict") return `${e.label} ${e.text.value} (${e.period}): ${e.compared ?? "worse than its benchmark"}.`
   return `${e.label} ${e.text.value} (${e.period}) vs peer median ${e.text.median}.${rank ? ` ${rank}.` : ""}`
 }
@@ -46,5 +46,5 @@ export function benchmarkHref(f: Finding, facilityId: string, metaById: Record<s
     if (meta.lens) p.set("payer", meta.lens)
   }
   p.set("finding", f.family)
-  return `/benchmark?${p}`
+  return `/compare?${p}`
 }

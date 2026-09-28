@@ -157,8 +157,8 @@ function PeersPanel({ peers, facility, onPicked }: { peers: PeersControl; facili
       ) : (
         <p className="border-t border-border pt-2 text-xs text-muted-foreground">
           Custom filters (county, radius, ownership, beds) are set in{" "}
-          <Link href={facility ? `/benchmark?facility=${facility.id}` : "/benchmark"} className="font-medium text-primary hover:underline">
-            Benchmark
+          <Link href={facility ? `/compare?facility=${facility.id}` : "/compare"} className="font-medium text-primary hover:underline">
+            Compare
           </Link>{" "}
           and carry over here.
         </p>

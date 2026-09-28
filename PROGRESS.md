@@ -292,6 +292,21 @@ downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and
   Outdated = newest report more than 2 years behind the newest data (13 hospitals, some of them campuses now reported
   under a parent).
 
+### V7.2 (navigation and language clarity)
+- Tabs renamed (Overview, Compare, Reports, Business cases, Filing calendar, Data definitions, Saved briefings) with
+  new addresses and 308 redirects from every old path, query string kept; Ask and Watch moved off the nav to one
+  "What's next" page. Rank wording reads from the value's side for favorable/unfavorable metrics ("Lower than 86%",
+  not "Higher than 14%"); context metrics unchanged. Compare's findings panel is "Hospital priorities" with a
+  "Topic details" heading over the cards. Details in the README.
+- Regression against main (V7.1): 7,216 API responses; Benchmark 2,706, Build reports 2,706 and Correlate 902
+  identical; findings 271 identical and 631 differing only in the Business cases handoff link (`/business-cases?…`
+  instead of `/propose?…`, and "From Padua's hospital priorities" in its prefilled description). Rank wording is
+  worded in the browser, so no API response carries it.
+- Review fixes: the report builder moved to `/reports/build` (`/build/report` and `/reports/report` redirect to it in
+  one hop); the phone tab bar keeps every label on one line, with "Business" and "Definitions" under 430px wide
+  (checked at 360, 375, 390 and 430px).
+- The phone-layout QA carried from V7.1 is closed with screenshots of the pinned context bar, its sheet and the tab bar at 390px.
+
 ### V7.1 (context bar, Guided / Analysis modes, peer-group presets and fit)
 - Shared context bar across Benchmark, Build, Correlate and Propose; peer-group presets; peer-fit label; Guided mode for
   Benchmark and Build. Details in the README. No data or calculation changes: Build and Correlate now resolve their
@@ -305,6 +320,8 @@ downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and
 - Regression against main (V7.0): 7,216/7,216 API responses identical for Similar and Statewide peers (Benchmark, all
   three topics; Build reports in all three groupings; Correlate; key findings; every active hospital), apart from the
   new peer-group metadata.
+- Carried to the next QA pass: the phone layout (one pinned context/filters bar and sheet, Key findings in the page
+  flow) was checked here in a 390px browser but not yet in the reviewer's own QA.
 
 ### V7.0 (Opportunity Finder and administrator front door)
 - Key findings engine (`src/lib/findings/`), `/api/findings`, Home's "Where to look first", Benchmark's Key findings

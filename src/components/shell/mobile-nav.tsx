@@ -25,11 +25,11 @@ export function MobileHeader() {
   )
 }
 
-/** iOS-style bottom tab bar; "coming soon" and desktop-only sections are left to the desktop sidebar. */
+/** iOS-style bottom tab bar; desktop-only sections are left to the desktop sidebar. */
 export function MobileTabBar() {
   const pathname = usePathname()
   const selection = useSelection()
-  const items = NAV_ITEMS.filter((i) => !i.soon && !i.desktopOnly)
+  const items = NAV_ITEMS.filter((i) => !i.desktopOnly)
   return (
     <nav
       data-tour="nav"
@@ -37,14 +37,15 @@ export function MobileTabBar() {
       className="fixed inset-x-0 bottom-0 z-30 border-t border-sidebar-border bg-sidebar pb-[env(safe-area-inset-bottom)] backdrop-blur-2xl backdrop-saturate-150 md:hidden print:hidden"
     >
       <ul className="grid" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
-        {items.map(({ href, label, icon: Icon }) => {
+        {items.map(({ href, label, shortLabel, icon: Icon }) => {
           const active = isActivePath(pathname, href)
           return (
             <li key={href}>
               <Link
                 href={hrefWithSelection(href, selection)}
                 aria-current={active ? "page" : undefined}
-                data-tour={`nav-${label.toLowerCase()}`}
+                aria-label={shortLabel ? label : undefined}
+                data-tour={`nav-${href.slice(1) || "overview"}`}
                 className={cn(
                   "relative flex h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors",
                   active ? "text-primary" : "text-tertiary-foreground"
@@ -54,7 +55,15 @@ export function MobileTabBar() {
                   <span aria-hidden className="absolute top-0 left-1/2 h-[3px] w-8 -translate-x-1/2 rounded-b-full bg-[image:var(--accent-gradient)]" />
                 )}
                 <Icon className="size-5" strokeWidth={active ? 2.25 : 1.75} />
-                {label}
+                {/* One line always: a two-word name ("Business cases") shows its short form below 430px. */}
+                {shortLabel ? (
+                  <>
+                    <span className="whitespace-nowrap min-[430px]:hidden">{shortLabel}</span>
+                    <span className="hidden whitespace-nowrap min-[430px]:inline">{label}</span>
+                  </>
+                ) : (
+                  <span className="whitespace-nowrap">{label}</span>
+                )}
               </Link>
             </li>
           )
