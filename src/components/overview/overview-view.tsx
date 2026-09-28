@@ -6,11 +6,13 @@ import { FacilityPicker, type FacilityOption } from "@/components/benchmark/faci
 import { useFindings } from "@/components/findings/use-findings"
 import { AboutTool } from "@/components/shell/about-tool"
 import { ContextBar } from "@/components/shell/context-bar"
+import { LiveStatus } from "@/components/shell/live-status"
 import type { BenchmarkResult } from "@/lib/benchmark/compute"
 import { filtersToParams, parseFilters, type PeerFilters } from "@/lib/benchmark/filters"
 import { APP_FULL_NAME, APP_SUMMARY } from "@/lib/brand"
 import type { MetricDef } from "@/lib/data/datasets"
 import type { MetricCategory } from "@/lib/data/types"
+import { HOME_COUNT } from "@/lib/findings/families"
 import { scanChanges } from "@/lib/overview/changes"
 import { rememberSelection, useSelection } from "@/lib/selection"
 import { useMounted } from "@/lib/use-mounted"
@@ -153,8 +155,17 @@ function Dashboard({
     return { category, scan: scanChanges(metrics, t.data.series), error: null }
   })
 
+  const worse = scans.reduce((n, t) => n + (t.scan?.changes.filter((c) => c.worse).length ?? 0), 0)
+  const status =
+    findings.loading || topics.loading
+      ? `Loading the overview for ${facility.name}…`
+      : findings.data
+        ? `Overview for ${facility.name} loaded: ${Math.min(findings.data.primary.length, HOME_COUNT)} priorit${Math.min(findings.data.primary.length, HOME_COUNT) === 1 ? "y" : "ies"} needing attention, ${worse} measure${worse === 1 ? "" : "s"} that changed for the worse.`
+        : ""
+
   return (
     <div className="space-y-6">
+      <LiveStatus message={status} />
       <ContextBar
         facilities={facilities}
         facilityId={facility.id}

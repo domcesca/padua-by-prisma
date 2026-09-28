@@ -11,6 +11,7 @@ import type { PayerMixComparison } from "@/lib/benchmark/compute"
 import type { DictionaryMetric, PayerGroup } from "@/lib/data/types"
 import { CONTEXT_REASONS } from "@/lib/favorability/directions"
 import { formatPercent } from "@/lib/format"
+import { onRadioGroupKeyDown, rovingTabIndex } from "@/lib/radio-group"
 import { cn } from "@/lib/utils"
 import { MetricInfo } from "./metric-info"
 
@@ -61,13 +62,14 @@ export function PayerMixCard({
               : "Payer mix is close to the peer average."}
           </p>
         </div>
-        <div role="radiogroup" aria-label="Measure payer mix by" className="flex rounded-lg bg-muted p-0.5">
-          {BASES.map((b) => (
+        <div role="radiogroup" aria-label="Measure payer mix by" onKeyDown={onRadioGroupKeyDown} className="flex rounded-lg bg-muted p-0.5">
+          {BASES.map((b, i) => (
             <button
               key={b.value}
               type="button"
               role="radio"
               aria-checked={basis === b.value}
+              tabIndex={rovingTabIndex(basis === b.value, i, true)}
               onClick={() => setBasis(b.value)}
               className={cn(
                 "rounded-md px-2.5 py-1 text-xs font-medium transition-colors duration-150",

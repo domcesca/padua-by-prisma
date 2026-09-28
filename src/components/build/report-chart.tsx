@@ -21,11 +21,26 @@ import { formatMetric } from "@/lib/format"
 import { niceTicks } from "@/lib/ticks"
 import { useMediaQuery } from "@/lib/use-media-query"
 import type { ChartKind, ReportPanel, ReportSeries } from "@/lib/report/spec"
+import { ScrollRegion } from "@/components/shell/scroll-region"
+import { MarkerShapeSvg, MarkerSwatch, markerOf, type MarkerShape } from "@/components/shell/series-marker"
 import { cn } from "@/lib/utils"
 
 // Colors are theme tokens (globals.css) so light/dark switch without re-rendering.
 // Hospitals take categorical slots in a fixed order; peer and state statistics
 // are neutral gray context.
+/** A hospital series' marker shape, so lines differ by shape as well as color (shell/series-marker.tsx). */
+export function seriesMarker(series: ReportSeries, panel: ReportPanel) {
+  const hospitals = panel.series.filter((s) => s.role === "focus" || s.role === "compare")
+  return markerOf(Math.max(hospitals.indexOf(series), 0))
+}
+
+type DotProps = { cx?: number; cy?: number; index?: number; value?: unknown }
+const markerDot = (shape: MarkerShape, color: string, r: number) =>
+  function MarkerDot({ cx, cy, index, value }: DotProps) {
+    if (cx == null || cy == null || value == null) return <g key={index} />
+    return <MarkerShapeSvg key={index} shape={shape} cx={cx} cy={cy} r={r} fill={color} stroke="var(--card)" strokeWidth={2} />
+  }
+
 export function seriesColor(series: ReportSeries, panel: ReportPanel) {
   if (series.role === "peer" || series.role === "state") return "var(--chart-2)"
   const hospitals = panel.series.filter((s) => s.role === "focus" || s.role === "compare")
@@ -50,7 +65,7 @@ function YearLines({ panel, metric }: { panel: ReportPanel; metric: MetricDef })
   return (
     <div className="h-64 w-full" aria-hidden>
       <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
+        <ComposedChart accessibilityLayer={false} data={data} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
           <CartesianGrid vertical={false} stroke="var(--border)" />
           <XAxis dataKey="label" tickLine={false} axisLine={{ stroke: "var(--border)" }} tick={axisTick} tickMargin={8} />
           <YAxis width={52} tickLine={false} axisLine={false} tick={axisTick} tickFormatter={(v: number) => formatMetric(metric, v, true)} ticks={ticks} domain={[ticks[0], ticks.at(-1)!]} allowDataOverflow />
@@ -69,8 +84,8 @@ function YearLines({ panel, metric }: { panel: ReportPanel; metric: MetricDef })
                 strokeWidth={2}
                 strokeDasharray={s.role === "state" ? "4 4" : undefined}
                 strokeLinecap="round"
-                dot={context ? false : { r: 4, fill: color, stroke: "var(--card)", strokeWidth: 2 }}
-                activeDot={context ? false : { r: 5.5, fill: color, stroke: "var(--card)", strokeWidth: 2 }}
+                dot={context ? false : markerDot(seriesMarker(s, panel), color, 4)}
+                activeDot={context ? false : markerDot(seriesMarker(s, panel), color, 5.5)}
                 connectNulls={context}
                 animationDuration={250}
               />
@@ -88,7 +103,7 @@ function YearBars({ panel, metric }: { panel: ReportPanel; metric: MetricDef }) 
   return (
     <div className="h-64 w-full" aria-hidden>
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={panel.rows} margin={{ top: 8, right: 12, bottom: 0, left: 0 }} barGap={2} barCategoryGap="22%">
+        <BarChart accessibilityLayer={false} data={panel.rows} margin={{ top: 8, right: 12, bottom: 0, left: 0 }} barGap={2} barCategoryGap="22%">
           <CartesianGrid vertical={false} stroke="var(--border)" />
           <XAxis dataKey="label" tickLine={false} axisLine={{ stroke: "var(--border)" }} tick={axisTick} tickMargin={8} />
           <YAxis width={52} tickLine={false} axisLine={false} tick={axisTick} tickFormatter={(v: number) => formatMetric(metric, v, true)} ticks={ticks} domain={[ticks[0], ticks.at(-1)!]} allowDataOverflow />
@@ -115,7 +130,7 @@ function RankedBars({ panel, metric }: { panel: ReportPanel; metric: MetricDef }
   return (
     <div className="w-full" style={{ height }} aria-hidden>
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={rows} layout="vertical" margin={{ top: 4, right: compact ? 48 : 64, bottom: 0, left: 0 }} barCategoryGap={4}>
+        <BarChart accessibilityLayer={false} data={rows} layout="vertical" margin={{ top: 4, right: compact ? 48 : 64, bottom: 0, left: 0 }} barCategoryGap={4}>
           <CartesianGrid horizontal={false} stroke="var(--border)" />
           <XAxis type="number" tickLine={false} axisLine={false} tick={axisTick} tickFormatter={(v: number) => formatMetric(metric, v, true)} ticks={ticks} domain={[ticks[0], ticks.at(-1)!]} />
           <YAxis type="category" dataKey="label" width={labelWidth} tickLine={false} axisLine={false} interval={0} tick={(props) => <CategoryTick {...props} rows={rows} maxChars={compact ? 14 : 26} />} />
@@ -176,30 +191,30 @@ function CategoryTick({
 
 // -- table view (always available; also the screen-reader view of every chart) ---
 
-export function ReportTable({ panel, metric, className }: { panel: ReportPanel; metric: MetricDef; className?: string }) {
+export function ReportTable({ panel, metric, className, scroll = true }: { panel: ReportPanel; metric: MetricDef; className?: string; scroll?: boolean }) {
   const snapshot = panel.rowKind !== "year"
   const band = panel.rows.some((r) => "p25" in r)
   const columns = snapshot ? [{ key: "value", label: panel.year != null ? String(panel.year) : metric.label }] : panel.series.map((s) => ({ key: s.key, label: s.label }))
   return (
-    <div className={cn("max-h-96 overflow-auto", className)}>
+    <ScrollRegion label={`${metric.label}, table`} scroll={scroll} className={cn("max-h-96 overflow-auto", className)}>
       <table className="num w-full text-left text-xs">
         <thead className="sticky top-0 bg-card text-muted-foreground">
           <tr className="border-b border-border">
-            <th className="py-1.5 pr-3 font-medium">{panel.rowKind === "year" ? "Year" : panel.rowKind === "facility" ? "Hospital" : ""}</th>
+            <th scope="col" className="py-1.5 pr-3 font-medium">{panel.rowKind === "year" ? "Year" : panel.rowKind === "facility" ? "Hospital" : "Group"}</th>
             {columns.map((c) => (
               <th key={c.key} className="max-w-40 truncate py-1.5 pl-3 text-right font-medium" title={c.label}>
                 {c.label}
               </th>
             ))}
-            {band && <th className="py-1.5 pl-3 text-right font-medium">Peer middle 50%</th>}
+            {band && <th scope="col" className="py-1.5 pl-3 text-right font-medium">Peer middle 50%</th>}
           </tr>
         </thead>
         <tbody>
           {panel.rows.map((r) => (
             <tr key={r.key} className={cn("border-b border-border last:border-0", r.role === "focus" && "font-semibold")}>
-              <td className="max-w-56 truncate py-1.5 pr-3" title={r.label}>
+              <th scope="row" className="font-normal max-w-56 truncate py-1.5 pr-3" title={r.label}>
                 {r.label}
-              </td>
+              </th>
               {columns.map((c) => (
                 <td key={c.key} className="py-1.5 pl-3 text-right">
                   {formatMetric(metric, num(r[c.key]))}
@@ -214,15 +229,15 @@ export function ReportTable({ panel, metric, className }: { panel: ReportPanel; 
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollRegion>
   )
 }
 
-export function ReportLegend({ panel }: { panel: ReportPanel }) {
+export function ReportLegend({ panel, chart = "line" }: { panel: ReportPanel; chart?: ChartKind }) {
   if (panel.rowKind !== "year") {
     return (
       <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted-foreground">
-        <LegendItem swatch={<span className="size-2.5 rounded-sm bg-(--series-1)" />}>Selected hospital</LegendItem>
+        <LegendItem swatch={<span className="size-2.5 rounded-sm bg-(--series-1)" />}>Selected hospital (its name in bold)</LegendItem>
         <LegendItem swatch={<span className="size-2.5 rounded-sm bg-(--chart-2)/50" />}>
           {panel.rowKind === "stat" ? "Peer group" : "Other hospitals"}
         </LegendItem>
@@ -231,26 +246,31 @@ export function ReportLegend({ panel }: { panel: ReportPanel }) {
     )
   }
   const band = panel.rows.some((r) => "p25" in r)
+  // Grouped bars can't carry markers: each year's bars stand in legend order, which the legend says.
+  const bars = chart === "bar"
+  const series = bars ? panel.series.filter((s) => s.role !== "state") : panel.series
   return (
     <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted-foreground">
-      {panel.series.map((s) => (
+      {series.map((s) => (
         <LegendItem
           key={s.key}
           swatch={
-            s.role === "state" ? (
+            bars ? (
+              <span className="size-2.5 rounded-sm" style={{ background: seriesColor(s, panel), opacity: s.role === "peer" ? 0.45 : 1 }} />
+            ) : s.role === "state" ? (
               <span className="w-4 border-t-2 border-dashed" style={{ borderColor: seriesColor(s, panel) }} />
+            ) : s.role === "peer" ? (
+              <span className="h-0.5 w-4 rounded-full" style={{ background: seriesColor(s, panel) }} />
             ) : (
-              <span className="relative flex h-2 w-4 items-center">
-                <span className="h-0.5 w-full rounded-full" style={{ background: seriesColor(s, panel) }} />
-                {s.role !== "peer" && <span className="absolute left-1/2 size-2 -translate-x-1/2 rounded-full" style={{ background: seriesColor(s, panel) }} />}
-              </span>
+              <MarkerSwatch shape={seriesMarker(s, panel)} color={seriesColor(s, panel)} />
             )
           }
         >
           <span className="max-w-56 truncate">{s.label}</span>
         </LegendItem>
       ))}
-      {band && <LegendItem swatch={<span className="h-2.5 w-4 rounded-sm bg-(--chart-2)/25" />}>Peer middle 50%</LegendItem>}
+      {band && !bars && <LegendItem swatch={<span className="h-2.5 w-4 rounded-sm bg-(--chart-2)/25" />}>Peer middle 50%</LegendItem>}
+      {bars && series.length > 1 && <span>Each year&apos;s bars run left to right in this order.</span>}
     </div>
   )
 }

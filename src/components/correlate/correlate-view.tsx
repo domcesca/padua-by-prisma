@@ -352,7 +352,7 @@ export function CorrelateView({
               <>
                 <ScatterPlot points={current.points} x={rx} y={ry} stats={stats ?? null} />
                 <div className="sr-only">
-                  <ScatterTable points={current.points} x={rx} y={ry} />
+                  <ScatterTable points={current.points} x={rx} y={ry} scroll={false} />
                 </div>
               </>
             ) : (

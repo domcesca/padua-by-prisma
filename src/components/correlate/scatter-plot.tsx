@@ -2,6 +2,7 @@
 
 import { CartesianGrid, ReferenceLine, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from "recharts"
 
+import { ScrollRegion } from "@/components/shell/scroll-region"
 import type { CorrelatePoint, CorrelateResult } from "@/lib/correlate/spec"
 import type { MetricDef } from "@/lib/data/datasets"
 import { formatMetric } from "@/lib/format"
@@ -51,7 +52,7 @@ export function ScatterPlot({
       <p className="mb-1 text-xs text-tertiary-foreground">↑ {y.label}</p>
       <div className="h-80 w-full sm:h-96">
         <ResponsiveContainer width="100%" height="100%">
-          <ScatterChart margin={{ top: 8, right: 12, bottom: 4, left: 0 }}>
+          <ScatterChart accessibilityLayer={false} margin={{ top: 8, right: 12, bottom: 4, left: 0 }}>
             <CartesianGrid stroke="var(--border)" />
             <XAxis
               type="number"
@@ -117,18 +118,18 @@ export function ScatterPlot({
   )
 }
 
-export function ScatterTable({ points, x, y }: { points: CorrelatePoint[]; x: MetricDef; y: MetricDef }) {
+export function ScatterTable({ points, x, y, scroll = true }: { points: CorrelatePoint[]; x: MetricDef; y: MetricDef; scroll?: boolean }) {
   const rows = [...points].sort((a, b) => a.x - b.x)
   return (
-    <div className="max-h-96 overflow-auto">
+    <ScrollRegion label={`${y.label} and ${x.label} by hospital`} scroll={scroll} className="max-h-96 overflow-auto">
       <table className="num w-full text-left text-xs">
         <thead className="sticky top-0 bg-card text-muted-foreground">
           <tr className="border-b border-border">
-            <th className="py-1.5 pr-3 font-medium">Hospital</th>
-            <th className="max-w-40 truncate py-1.5 pl-3 text-right font-medium" title={x.label}>
+            <th scope="col" className="py-1.5 pr-3 font-medium">Hospital</th>
+            <th scope="col" className="max-w-40 truncate py-1.5 pl-3 text-right font-medium" title={x.label}>
               {x.label}
             </th>
-            <th className="max-w-40 truncate py-1.5 pl-3 text-right font-medium" title={y.label}>
+            <th scope="col" className="max-w-40 truncate py-1.5 pl-3 text-right font-medium" title={y.label}>
               {y.label}
             </th>
           </tr>
@@ -136,15 +137,15 @@ export function ScatterTable({ points, x, y }: { points: CorrelatePoint[]; x: Me
         <tbody>
           {rows.map((p) => (
             <tr key={p.id} className={cn("border-b border-border last:border-0", p.focus && "font-semibold")}>
-              <td className="max-w-56 truncate py-1.5 pr-3" title={p.name}>
+              <th scope="row" className="font-normal max-w-56 truncate py-1.5 pr-3" title={p.name}>
                 {p.name}
-              </td>
+              </th>
               <td className="py-1.5 pl-3 text-right">{formatMetric(x, p.x)}</td>
               <td className="py-1.5 pl-3 text-right">{formatMetric(y, p.y)}</td>
             </tr>
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollRegion>
   )
 }

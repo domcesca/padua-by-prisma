@@ -1,6 +1,7 @@
 "use client"
 
 import { ChevronDown, SlidersHorizontal } from "lucide-react"
+import { ScrollRegion } from "@/components/shell/scroll-region"
 import { useState } from "react"
 
 import {
@@ -300,7 +301,7 @@ function PayerMix({ value, onChange, facilityId }: { value: AdvancedSettings; on
         (e.g. 0.70 for 70% of Medicare, 1.80 for 180%). Contract rates aren’t public, so the multipliers are yours; Medicare
         is 1.00 by definition. <SourceTag kind="assumption" />
       </p>
-      <div className="overflow-x-auto">
+      <ScrollRegion label="Payer rate multipliers" className="overflow-x-auto">
         <table className="num w-full text-[13px]">
           <thead>
             <tr className="text-left text-xs text-muted-foreground">
@@ -326,7 +327,7 @@ function PayerMix({ value, onChange, facilityId }: { value: AdvancedSettings; on
             })}
           </tbody>
         </table>
-      </div>
+      </ScrollRegion>
       <div className="flex flex-wrap items-center justify-between gap-2">
         {facilityId ? (
           <button

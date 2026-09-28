@@ -2,6 +2,7 @@
 
 import { Info, ShieldCheck } from "lucide-react"
 
+import { ScrollRegion } from "@/components/shell/scroll-region"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { formatInt, formatPercent, formatUsd } from "@/lib/format"
 import { defineModule, type BenefitLine, type ModuleEditorProps } from "@/lib/propose/module"
@@ -471,7 +472,7 @@ function ReadmissionAdvanced({ state, data, onChange }: { state: State; data: Pe
 /** Year-by-year phase-in, shown under the editor's totals. */
 function Timeline({ summary }: { summary: Summary }) {
   return (
-    <div className="max-h-64 overflow-auto rounded-lg border border-border">
+    <ScrollRegion label="Penalty phase-in by year" className="max-h-64 overflow-auto rounded-lg border border-border">
       <table className="num w-full text-xs">
         <thead className="sticky top-0 bg-background text-muted-foreground">
           <tr>
@@ -492,7 +493,7 @@ function Timeline({ summary }: { summary: Summary }) {
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollRegion>
   )
 }
 

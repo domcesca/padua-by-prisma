@@ -1,6 +1,7 @@
 "use client"
 
 import { ChevronRight, Info } from "lucide-react"
+import { ScrollRegion } from "@/components/shell/scroll-region"
 import { useState } from "react"
 
 import { SourceTag } from "@/components/propose/source-tag"
@@ -177,7 +178,7 @@ function LineTable({
   onUnit: (id: string) => void
 }) {
   return (
-    <div className="overflow-x-auto">
+    <ScrollRegion label="Service lines table" className="overflow-x-auto">
       <table className="w-full min-w-[44rem] text-[13px]">
         <caption className="sr-only">
           Licensed beds, patient days, discharges, occupancy with the peer median, and average length of stay by service
@@ -260,7 +261,7 @@ function LineTable({
           </tfoot>
         )}
       </table>
-    </div>
+    </ScrollRegion>
   )
 }
 

@@ -9,12 +9,12 @@ import { ContextBar, type PeriodControl } from "@/components/shell/context-bar"
 import { GroupedPicker } from "@/components/shell/grouped-picker"
 import { LiveStatus } from "@/components/shell/live-status"
 import { Segmented } from "@/components/shell/segmented"
-import { StandingBadge } from "@/components/shell/standing"
+import { StandingBadge, TrendText } from "@/components/shell/standing"
 import { StatusLine, type StatusLineProps } from "@/components/shell/status-line"
 import { filtersToParams } from "@/lib/benchmark/filters"
 import { DATASETS, type MetricDef } from "@/lib/data/datasets"
 import type { SourceStatus } from "@/lib/data/freshness"
-import { directionOf, metricStanding } from "@/lib/favorability"
+import { directionOf, metricStanding, trend } from "@/lib/favorability"
 import { CONTEXT_REASONS } from "@/lib/favorability/directions"
 import { metricPickerOptions } from "@/lib/data/metric-options"
 import { formatMetric } from "@/lib/format"
@@ -344,12 +344,13 @@ export function BuildView({
                       {typeof focusValue === "number" && panel.rowKind === "facility" && (
                         <RankLine panel={panel} metric={metric} value={focusValue} />
                       )}
-                      {current.spec.chart !== "table" && <ReportLegend panel={panel} />}
+                      {panel.rowKind === "year" && <YearSummary panel={panel} metric={metric} />}
+                      {current.spec.chart !== "table" && <ReportLegend panel={panel} chart={current.spec.chart} />}
                     </header>
                     <ReportChart panel={panel} metric={metric} chart={current.spec.chart} />
                     {current.spec.chart !== "table" && (
                       <div className="sr-only">
-                        <ReportTable panel={panel} metric={metric} />
+                        <ReportTable panel={panel} metric={metric} scroll={false} />
                       </div>
                     )}
                     {panel.note && <p className="mt-3 text-xs text-tertiary-foreground">{panel.note}</p>}
@@ -394,6 +395,37 @@ function RankLine({ panel, metric, value }: { panel: ReportResult["panels"][numb
         {ranked.length} hospitals charted.
       </p>
     </div>
+  )
+}
+
+/**
+ * A by-year chart in one line, for anyone who can't see it: the selected hospital's latest value, its change from the
+ * year before in the cards' own words (lib/favorability trend: "Improving from 3.1% in 2023"), and the peer median.
+ */
+function YearSummary({ panel, metric }: { panel: ReportResult["panels"][number]; metric: MetricDef }) {
+  const focus = panel.series.find((s) => s.role === "focus")
+  const peer = panel.series.find((s) => s.role === "peer")
+  if (!focus) return null
+  const withValue = panel.rows.filter((r) => typeof r[focus.key] === "number")
+  const latest = withValue.at(-1)
+  if (!latest) return null
+  const prior = withValue.at(-2)
+  const v = latest[focus.key] as number
+  const p = prior ? (prior[focus.key] as number) : null
+  const t = p != null ? trend(directionOf(metric.id), p, v, formatMetric(metric, p) === formatMetric(metric, v)) : null
+  const median = peer && typeof latest[peer.key] === "number" ? (latest[peer.key] as number) : null
+  return (
+    <p className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[13px] text-muted-foreground">
+      <span>
+        {focus.label}: <span className="num font-medium text-foreground">{formatMetric(metric, v)}</span> in {latest.label}
+      </span>
+      {t && p != null && (
+        <TrendText trend={t} rising={v > p}>
+          from {formatMetric(metric, p)} in {prior!.label}
+        </TrendText>
+      )}
+      {median != null && <span>· Peer median {formatMetric(metric, median)}</span>}
+    </p>
   )
 }
 

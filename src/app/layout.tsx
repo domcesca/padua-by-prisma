@@ -5,6 +5,7 @@ import { HelpPanel } from "@/components/shell/help-panel"
 import { MobileHeader, MobileTabBar } from "@/components/shell/mobile-nav"
 import { Sidebar } from "@/components/shell/sidebar"
 import { ThemeProvider } from "@/components/shell/theme-provider"
+import { Announcer } from "@/components/shell/live-status"
 import { Tour } from "@/components/shell/tour"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { APP_FULL_NAME } from "@/lib/brand"
@@ -37,11 +38,18 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full">
         <ThemeProvider>
           <TooltipProvider delay={150}>
+            {/* First stop for a keyboard: past the sidebar and header straight to the page (WCAG 2.4.1). */}
+            <a
+              href="#main"
+              className="btn-accent fixed top-3 left-3 z-[60] -translate-y-20 rounded-full px-4 py-2 text-sm font-medium opacity-0 focus-visible:translate-y-0 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            >
+              Skip to main content
+            </a>
             <div className="flex min-h-dvh">
               <Sidebar />
               <div className="flex min-w-0 flex-1 flex-col">
                 <MobileHeader />
-                <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-6 pb-24 sm:px-8 md:pt-10 md:pb-16">
+                <main id="main" tabIndex={-1} className="mx-auto w-full max-w-6xl flex-1 scroll-mt-4 px-4 pt-6 pb-24 outline-none sm:px-8 md:pt-10 md:pb-16">
                   {children}
                 </main>
               </div>
@@ -49,6 +57,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <MobileTabBar />
             <HelpPanel />
             <Tour />
+            <Announcer />
           </TooltipProvider>
         </ThemeProvider>
       </body>

@@ -3,7 +3,7 @@ import Link from "next/link"
 export default function NotFound() {
   return (
     <div className="mx-auto max-w-md py-24 text-center">
-      <p className="text-lg font-semibold tracking-tight">This page doesn’t exist.</p>
+      <h1 className="text-lg font-semibold tracking-tight">This page doesn’t exist.</h1>
       <p className="mt-2 text-sm text-muted-foreground">It may have moved, or the link may be mistyped.</p>
       <Link
         href="/compare"
