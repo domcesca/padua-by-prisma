@@ -260,6 +260,30 @@ values and have no switch.
 - **The switch**: next to Chart / Table, in Guided mode too. Both switches are remembered per measure for the browser
   session (`src/lib/card-prefs.ts`); a new session starts on Percent and Chart.
 
+## Chart tooltips and bar patterns (V7.5.1)
+
+Two gaps left open by the V7.4 pass, fixed in shared components so every chart gets them, including charts added later.
+No feature, data, or API change.
+
+- **Keyboard tooltips** (`shell/chart-keyboard.tsx`, `KeyboardChart`): each chart is one tab stop (a labeled
+  group around the aria-hidden drawing). Focusing it shows the tooltip on a point, as hovering would: the latest year
+  on a trend, the first bar or hospital on a ranking. The arrow keys step between points, Home and End jump to the
+  ends, and Escape hides the tooltip. The tooltip's content is also announced as a sentence. The mouse still works as
+  before and wins while it's over the chart. Recharts charts are driven through `<Tooltip defaultIndex>`: Compare's
+  trends, Reports' lines, grouped bars and ranked bars, Business cases' cumulative cash, and Correlate's scatter (one
+  series ordered left to right, with a solid ring on the point reached). The tornado shows its own tooltip and outline
+  on the bar reached. A click still focuses without opening a tooltip. Opening them surfaced one old contrast failure:
+  the cumulative chart's tooltip text was in the scenario colors, and is now the regular text color.
+- **Bar patterns** (`shell/fill-pattern.tsx`): grouped bars differ by fill pattern as well as color and order. The
+  selected hospital is solid, the peer figure dotted, and further hospitals are diagonal, cross-hatched, horizontal
+  and reverse-diagonal in turn. The marks are drawn in the card color, so they hold in light, dark and print. The
+  same patterns come as SVG (`PatternDefs`, `patternUrl`) for Recharts and CSS (`patternStyle`, `PatternSwatch`) for
+  HTML bars and legends. Used by Reports' grouped year bars and Compare's payer-mix card (peer bar dotted, now 10px
+  tall). Ranked and single-series bars are unchanged; their rows are named.
+- **Density:** at phone width a by-year bar chart with five hospitals plus the peer median has bars about 4px wide.
+  The patterns are there but busy, and the line chart (marker shapes) or table reads better. Vertical stripes were
+  dropped for reverse diagonals because they vanish in a narrow bar. Desktop and the two-bar payer mix read cleanly.
+
 ## Accessibility baseline (V7.4)
 
 WCAG 2.2 AA as a baseline, checked three ways: axe-core (wcag2a/aa, 2.1, 2.2 and best-practice rules) on 27 page
@@ -275,7 +299,8 @@ change (7,216/7,216 API responses match V7.3).
 - **Never color alone**: favorable/unfavorable, trends, filing status, peer fit and pins already paired color with a
   word and an icon or arrow. Charts now do too: Reports' hospitals each get a marker shape (circle, square, triangle,
   diamond, cross; `shell/series-marker.tsx`), Business cases' scenarios a line style (dashed, solid, dotted), the
-  tornado's "lowered" bars stripes, and grouped bars a legend line saying they run in legend order.
+  tornado's "lowered" bars stripes, and grouped bars a legend line saying they run in legend order (and, from V7.5.1,
+  fill patterns).
 - **Keyboard**: a "Skip to main content" link; every custom radio group (topic tabs, Guided/Analysis, Chart/Table,
   payer mix, theme, business-case methods, peer presets) is one tab stop with arrow keys, Home and End
   (`lib/radio-group.ts`; peer presets move focus without reloading until Enter). Scrolling tables are focusable,
@@ -285,7 +310,8 @@ change (7,216/7,216 API responses match V7.3).
   past the nav.
 - **Charts**: every chart has a visible table view (restored in Guided mode on Compare cards, added to the tornado),
   a screen-reader table, a text summary in the cards' own words (added for Reports' by-year charts), and labeled axis
-  units. Recharts' own keyboard layer is off: it put an unnamed tab stop inside the chart's aria-hidden wrapper.
+  units. Recharts' own keyboard layer is off: it put an unnamed tab stop inside the chart's aria-hidden wrapper (V7.5.1
+  adds a named one outside it; see above).
 - **Structure**: one H1 per page and no skipped heading levels (the 404 and error pages gained theirs); tables mark
   row and column headers; the business-case stat pairs no longer misuse `<dl>` inside a button; a picker group row no
   longer carries an ARIA attribute its role doesn't allow. An app-wide polite announcer confirms pins; the Overview

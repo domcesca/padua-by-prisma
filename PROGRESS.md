@@ -292,6 +292,19 @@ downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and
   Outdated = newest report more than 2 years behind the newest data (13 hospitals, some of them campuses now reported
   under a parent).
 
+### V7.5.1 (chart tooltips and grouped-bar patterns)
+- Two accessibility follow-ups from V7.4, fixed in shared components (`shell/chart-keyboard.tsx`,
+  `shell/fill-pattern.tsx`) ahead of V7.5.5's new charts. Details are in the README.
+- Keyboard tooltips on every chart that has tooltips: Compare trends, Reports (lines, grouped bars, ranked bars),
+  Correlate's scatter, and Business cases' cumulative and tornado charts. Focus shows a tooltip, the arrow keys step
+  between points, Escape hides it, and each point is announced.
+- Fill patterns on grouped bars: Reports' by-year bars and the payer-mix pairs.
+- Checked: axe-core on 124 page states (the V7.4 full-app set, the V7.5 pages, and 34 chart states with a tooltip
+  opened by keyboard, light and dark, desktop and phone): 0 violations. Opening tooltips by keyboard surfaced one old
+  failure (cumulative-chart tooltip text in scenario colors), now fixed. Lint and typecheck pass.
+- Flag: on phones, a by-year bar chart with 5 hospitals plus the peer median has ~4px bars and the patterns get busy;
+  the line chart or table reads better there. Vertical stripes were replaced by reverse diagonals for that reason.
+
 ### V7.5 (Reports, Correlate and Data definitions refinements)
 - Reports: purpose templates, settings grouped as Content / Comparison / Time period / Output, per-measure "latest N
   years", picker search that clears after a pick, Compare-by sketches, a one-line summary per chart in the printout
@@ -543,8 +556,8 @@ The utilities are all in `src/app/globals.css`. **Reuse them; don't invent new o
 - **Percent / Actual in unit and service-line views** (backlog, from V7.4.5): a unit's or line's occupancy comes from
   its own bed-classification fields, so its numerator and denominator need their own formulas and check. Pick up
   when someone asks for unit-level amounts.
-- **Accessibility follow-ups** (from V7.4): a real screen-reader pass (NVDA, JAWS, VoiceOver); keyboard access to chart
-  tooltips (the table view has the numbers today); patterns, not just color and order, for grouped bars.
+- **Accessibility follow-ups** (from V7.4): a real screen-reader pass (NVDA, JAWS, VoiceOver). Keyboard tooltips and
+  grouped-bar patterns were done in V7.5.1.
 
 ## 5. Deployment state (checked 2026-09-24)
 - **GitHub:** https://github.com/domcesca/padua-by-prisma (public; renamed from `usc-hcai-insights` in V6.2, old URLs redirect). `main` is pushed and in sync with `origin/main` at `b09ba3a`.

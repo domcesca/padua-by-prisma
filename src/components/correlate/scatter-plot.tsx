@@ -2,6 +2,7 @@
 
 import { CartesianGrid, ReferenceLine, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from "recharts"
 
+import { KeyboardChart } from "@/components/shell/chart-keyboard"
 import { ScrollRegion } from "@/components/shell/scroll-region"
 import type { CorrelatePoint, CorrelateResult } from "@/lib/correlate/spec"
 import type { MetricDef } from "@/lib/data/datasets"
@@ -18,8 +19,17 @@ type DotProps = { cx?: number; cy?: number; payload?: CorrelatePoint }
 function PeerDot({ cx = 0, cy = 0 }: DotProps) {
   return <circle cx={cx} cy={cy} r={4.5} fill="var(--chart-2)" fillOpacity={0.7} stroke="var(--card)" strokeWidth={1.5} />
 }
+/** Every hospital in one series (left to right, so the arrow keys move across the chart); the chosen one drawn again on top. */
+function AnyDot(props: DotProps) {
+  return props.payload?.focus ? <FocusDot {...props} /> : <PeerDot {...props} />
+}
 function FocusDot({ cx = 0, cy = 0 }: DotProps) {
   return <circle cx={cx} cy={cy} r={6.5} fill="var(--series-1)" stroke="var(--card)" strokeWidth={2} />
+}
+
+/** The point the keyboard is on: a solid ring, so it stands out in a cluster. */
+function KeyboardRing({ cx = 0, cy = 0 }: DotProps) {
+  return <circle cx={cx} cy={cy} r={9} fill="none" stroke="var(--foreground)" strokeWidth={2} />
 }
 
 /** The hospital the outlier recheck found driving r: a dashed ring, so it's marked by shape as well as position. */
@@ -43,7 +53,7 @@ export function ScatterPlot({
 }) {
   const xTicks = niceTicks(points.map((p) => p.x), false)
   const yTicks = niceTicks(points.map((p) => p.y), false)
-  const peers = points.filter((p) => !p.focus)
+  const ordered = [...points].sort((a, b) => a.x - b.x || a.y - b.y)
   const focus = points.filter((p) => p.focus)
   // Trend line across the range of the data (not the padded axis), so it doesn't extrapolate.
   const xs = points.map((p) => p.x)
@@ -56,6 +66,14 @@ export function ScatterPlot({
     : null
 
   return (
+    <KeyboardChart
+      label={`${y.label} against ${x.label}, one dot per hospital`}
+      count={ordered.length}
+      noun="hospitals, from left to right"
+      start="first"
+      describe={(i) => `${ordered[i].name}${ordered[i].focus ? " (chosen hospital)" : ""}: ${x.label} ${formatMetric(x, ordered[i].x)}, ${y.label} ${formatMetric(y, ordered[i].y)}.`}
+    >
+      {(active) => (
     <figure aria-hidden className="m-0">
       <p className="mb-1 text-xs text-tertiary-foreground">↑ {y.label}</p>
       <div className="h-80 w-full sm:h-96">
@@ -100,6 +118,7 @@ export function ScatterPlot({
             <Tooltip
               cursor={{ stroke: "var(--muted-foreground)", strokeOpacity: 0.3, strokeDasharray: "3 3" }}
               isAnimationActive={false}
+              defaultIndex={active ?? undefined}
               content={({ active, payload }) => {
                 const p = active ? (payload?.[0]?.payload as CorrelatePoint | undefined) : undefined
                 if (!p) return null
@@ -116,14 +135,17 @@ export function ScatterPlot({
                 )
               }}
             />
-            <Scatter data={peers} shape={PeerDot} isAnimationActive={false} />
-            <Scatter data={focus} shape={FocusDot} isAnimationActive={false} />
+            <Scatter data={ordered} shape={AnyDot} isAnimationActive={false} />
+            <Scatter data={focus} shape={FocusDot} isAnimationActive={false} tooltipType="none" />
+            {active != null && <Scatter data={[ordered[active]]} shape={KeyboardRing} isAnimationActive={false} tooltipType="none" />}
             {influential && <Scatter data={points.filter((p) => p.id === influential)} shape={InfluentialRing} isAnimationActive={false} />}
           </ScatterChart>
         </ResponsiveContainer>
       </div>
       <p className="mt-1 text-right text-xs text-tertiary-foreground">{x.label} →</p>
     </figure>
+      )}
+    </KeyboardChart>
   )
 }
 

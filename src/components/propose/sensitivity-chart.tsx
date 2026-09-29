@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { KeyboardChart } from "@/components/shell/chart-keyboard";
 import { Segmented } from "@/components/shell/segmented";
 import { formatUsd } from "@/lib/format";
 import type { Sensitivity, SensitivityBar } from "@/lib/propose/analysis";
@@ -99,18 +100,35 @@ export function SensitivityChart({ result }: { result: Sensitivity }) {
           Input raised {swing}%
         </span>
       </div>
-      <ul className="space-y-2.5" aria-hidden>
-        {bars.map((b) => (
-          <Row
-            key={b.id}
-            bar={b}
-            base={base}
-            max={max}
-            outcome={outcome}
-            swing={swing}
-          />
-        ))}
-      </ul>
+      {/* Keyboard: each input's lowered then raised bar, top to bottom, with its tooltip. */}
+      <KeyboardChart
+        label={`${outcome === "roi" ? "ROI" : "NPV"} with each input lowered and raised ${swing}%, largest effect first`}
+        count={bars.length * 2}
+        noun="bars"
+        start="first"
+        describe={(i) => {
+          const b = bars[Math.floor(i / 2)];
+          const low = i % 2 === 0;
+          const value = low ? b.low : b.high;
+          return `${b.label} ${low ? (b.lowText ?? `lowered ${swing}%`) : (b.highText ?? `raised ${swing}%`)}: ${formatOutcome(value, outcome)} (${signed(value - base, outcome)}).`;
+        }}
+      >
+        {(active) => (
+          <ul className="space-y-2.5" aria-hidden>
+            {bars.map((b, i) => (
+              <Row
+                key={b.id}
+                bar={b}
+                base={base}
+                max={max}
+                outcome={outcome}
+                swing={swing}
+                activeEnd={active != null && Math.floor(active / 2) === i ? (active % 2 === 0 ? "low" : "high") : null}
+              />
+            ))}
+          </ul>
+        )}
+      </KeyboardChart>
       <div
         className="mt-1 grid grid-cols-[minmax(0,11rem)_1fr] gap-3 max-sm:grid-cols-1"
         aria-hidden
@@ -135,12 +153,15 @@ function Row({
   max,
   outcome,
   swing,
+  activeEnd,
 }: {
   bar: SensitivityBar;
   base: number;
   max: number;
   outcome: Sensitivity["outcome"];
   swing: number;
+  /** The end the keyboard is on, whose tooltip shows as on hover. */
+  activeEnd: "low" | "high" | null;
 }) {
   const ends = [
     {
@@ -180,6 +201,7 @@ function Row({
               key={e.key}
               className={cn(
                 "group absolute top-1/2 h-4 -translate-y-1/2 ring-2 ring-background outline-none print:ring-0",
+                activeEnd === e.key && "z-10 ring-foreground",
                 left ? "rounded-l" : "rounded-r",
               )}
               style={{
@@ -190,7 +212,10 @@ function Row({
             >
               <span
                 role="tooltip"
-                className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1.5 hidden -translate-x-1/2 rounded-lg bg-popover px-2.5 py-1.5 text-[12px] whitespace-nowrap text-popover-foreground shadow-lg ring-1 ring-border group-hover:block"
+                className={cn(
+                  "pointer-events-none absolute bottom-full left-1/2 z-10 mb-1.5 hidden -translate-x-1/2 rounded-lg bg-popover px-2.5 py-1.5 text-[12px] whitespace-nowrap text-popover-foreground shadow-lg ring-1 ring-border group-hover:block",
+                  activeEnd === e.key && "block",
+                )}
               >
                 {bar.label} {e.text}:{" "}
                 <span className="num font-medium">
