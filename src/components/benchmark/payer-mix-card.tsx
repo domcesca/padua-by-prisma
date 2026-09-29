@@ -14,7 +14,7 @@ import { CONTEXT_REASONS } from "@/lib/favorability/directions"
 import { formatMetric, formatPercent } from "@/lib/format"
 import { onRadioGroupKeyDown, rovingTabIndex } from "@/lib/radio-group"
 import { cn } from "@/lib/utils"
-import { setValueBasis, useValueBasis } from "@/lib/value-basis"
+import { setValueBasis, useValueBasis } from "@/lib/card-prefs"
 import { MetricInfo } from "./metric-info"
 
 const BASES = [
