@@ -4,8 +4,10 @@ import { ArrowRight } from "lucide-react"
 import { useState } from "react"
 
 import { StandingBadge, TrendText } from "@/components/shell/standing"
+import { CardToggle } from "@/components/shell/card-toggle"
 import { ScrollRegion } from "@/components/shell/scroll-region"
 import { StatusLine } from "@/components/shell/status-line"
+import type { ComponentPoint, MetricComponents } from "@/lib/benchmark/component-defs"
 import type { SeriesPoint } from "@/lib/benchmark/compute"
 import { DATASETS, type MetricDef } from "@/lib/data/datasets"
 import type { SourceStatus } from "@/lib/data/freshness"
@@ -14,8 +16,7 @@ import { CONTEXT_REASONS } from "@/lib/favorability/directions"
 import { directionOf, metricRankText, metricStanding, trend } from "@/lib/favorability"
 import { formatMetric } from "@/lib/format"
 import { auditLabel, type QualityFlag } from "@/lib/status"
-import { onRadioGroupKeyDown, rovingTabIndex } from "@/lib/radio-group"
-import { cn } from "@/lib/utils"
+import { setValueBasis, useValueBasis } from "@/lib/value-basis"
 import { MetricInfo } from "./metric-info"
 import { TrendChart } from "./trend-chart"
 
@@ -77,6 +78,7 @@ export function MetricCard({
   source,
   related,
   guided = false,
+  components,
 }: {
   meta: MetricDef
   points: SeriesPoint[]
@@ -91,8 +93,12 @@ export function MetricCard({
   /** Guided mode: no confidence interval; the same values, status line and chart/table toggle (a chart always has a
    * table view, V7.4). */
   guided?: boolean
+  /** A ratio metric's numerator and denominator by year (V7.4.5): adds the Percent / Actual switch. */
+  components?: MetricComponents
 }) {
   const [view, setView] = useState<"chart" | "table">("chart")
+  const chosenBasis = useValueBasis(meta.id)
+  const basis = components ? chosenBasis : "percent"
 
   // Trailing years the source hasn't published yet are left off the chart and named instead.
   const lastPublished = allPoints.findLastIndex((p) => p.published)
@@ -140,7 +146,30 @@ export function MetricCard({
           </h2>
           <MetricInfo metric={meta} />
         </div>
-        {latest && <ViewToggle value={view} onChange={setView} label={meta.label} />}
+        {latest && (
+          <div className="flex flex-wrap justify-end gap-1.5">
+            {components && (
+              <CardToggle
+                label={`${meta.label}: percent or actual numbers`}
+                value={basis}
+                onChange={(b) => setValueBasis(meta.id, b)}
+                options={[
+                  { value: "percent", label: "Percent" },
+                  { value: "actual", label: "Actual" },
+                ]}
+              />
+            )}
+            <CardToggle
+              label={`${meta.label} view`}
+              value={view}
+              onChange={setView}
+              options={[
+                { value: "chart", label: "Chart" },
+                { value: "table", label: "Table" },
+              ]}
+            />
+          </div>
+        )}
       </header>
       {tags.length > 0 && (
         <ul className="mt-1.5 flex flex-wrap gap-1" aria-label="About this measure">
@@ -159,6 +188,8 @@ export function MetricCard({
           notYet={notYet}
           peersReported={points.some((p) => p.n > 0)}
         />
+      ) : basis === "actual" && components ? (
+        <ActualView meta={meta} components={components} points={points} latest={latest} view={view} />
       ) : (
         <>
           <div className="mt-1.5 flex flex-wrap items-baseline gap-x-2">
@@ -241,37 +272,6 @@ function NotReported({
   )
 }
 
-function ViewToggle({
-  value,
-  onChange,
-  label,
-}: {
-  value: "chart" | "table"
-  onChange: (v: "chart" | "table") => void
-  label: string
-}) {
-  return (
-    <div role="radiogroup" aria-label={`${label} view`} onKeyDown={onRadioGroupKeyDown} className="flex rounded-md bg-black/5 p-0.5 dark:bg-white/8">
-      {(["chart", "table"] as const).map((v, i) => (
-        <button
-          key={v}
-          type="button"
-          role="radio"
-          aria-checked={value === v}
-          tabIndex={rovingTabIndex(value === v, i, true)}
-          onClick={() => onChange(v)}
-          className={cn(
-            "rounded px-2 py-0.5 text-xs font-medium capitalize transition-colors duration-150",
-            "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
-            value === v ? "bg-card text-foreground shadow-sm dark:bg-white/15" : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          {v}
-        </button>
-      ))}
-    </div>
-  )
-}
 
 function MetricTable({
   metric,
@@ -327,6 +327,138 @@ function MetricTable({
               )}
             </tr>
           ))}
+        </tbody>
+      </table>
+    </ScrollRegion>
+  )
+}
+
+// -- Actual view (V7.4.5) -------------------------------------------------------------------------------------------
+
+/** One part of a ratio, formatted like a metric of its own unit (dollars compact over $1M, days, counts). */
+function partMeta(meta: MetricDef, part: MetricComponents["numerator"]): MetricDef {
+  return { ...meta, id: `${meta.id}.${part.unit}`, label: part.label, unit: part.unit, decimals: 0, reference: undefined, unitLabel: undefined }
+}
+
+const lowerFirst = (s: string) => s.charAt(0).toLowerCase() + s.slice(1)
+
+/**
+ * A ratio card's numbers as the amounts behind them: the hospital's numerator and denominator for the latest year, the
+ * peers' median of each, a chart of the numerator against the peer median, and a table of both parts by year.
+ */
+function ActualView({
+  meta,
+  components,
+  points,
+  latest,
+  view,
+}: {
+  meta: MetricDef
+  components: MetricComponents
+  points: SeriesPoint[]
+  latest: SeriesPoint
+  view: "chart" | "table"
+}) {
+  const num = partMeta(meta, components.numerator)
+  const den = partMeta(meta, components.denominator)
+  const byYear = new Map(components.points.map((p) => [p.year, p]))
+  const now = byYear.get(latest.year)
+  const numeratorSeries: SeriesPoint[] = points.map((p) => {
+    const c = byYear.get(p.year)
+    return { ...p, value: c?.hospital?.numerator ?? null, median: c?.peers?.numerator ?? null, p25: null, p75: null, percentile: null, n: c?.peers?.n ?? 0 }
+  })
+  const table = (scroll: boolean) => <ActualTable meta={meta} num={num} den={den} points={points} byYear={byYear} scroll={scroll} />
+  return (
+    <>
+      <div className="mt-1.5 flex flex-wrap items-baseline gap-x-2">
+        <p className="num text-[28px] leading-tight font-semibold tracking-tight">{formatMetric(num, now?.hospital?.numerator)}</p>
+        <p className="text-xs text-muted-foreground">{lowerFirst(num.label)}</p>
+        <p className="text-xs text-tertiary-foreground">{latest.detail?.period ?? latest.year}</p>
+      </div>
+      <p className="mt-0.5 text-[13px] text-muted-foreground">
+        of <span className="num font-medium text-foreground">{formatMetric(den, now?.hospital?.denominator)}</span> {lowerFirst(den.label)} ={" "}
+        <span className="num font-medium text-foreground">{formatMetric(meta, latest.value)}</span>
+      </p>
+      <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
+        {now?.peers ? (
+          <>
+            Peer medians: <span className="num font-medium text-foreground">{formatMetric(num, now.peers.numerator)}</span> and{" "}
+            <span className="num font-medium text-foreground">{formatMetric(den, now.peers.denominator)}</span> ({now.peers.n} peers). Each is the median
+            of that amount alone, so they needn&apos;t divide to the peer median {lowerFirst(meta.label)} of {formatMetric(meta, latest.median)}.
+          </>
+        ) : (
+          "No peers reported both amounts this year."
+        )}
+      </p>
+      <div className="mt-4">
+        {view === "chart" ? (
+          <>
+            <p className="mb-1 text-xs text-tertiary-foreground">{num.label}: this hospital and the peer median</p>
+            <TrendChart metric={num} points={numeratorSeries} />
+            <div className="sr-only">{table(false)}</div>
+          </>
+        ) : (
+          table(true)
+        )}
+      </div>
+    </>
+  )
+}
+
+function ActualTable({
+  meta,
+  num,
+  den,
+  points,
+  byYear,
+  scroll,
+}: {
+  meta: MetricDef
+  num: MetricDef
+  den: MetricDef
+  points: SeriesPoint[]
+  byYear: Map<number, ComponentPoint>
+  scroll: boolean
+}) {
+  const hasPeriods = points.some((p) => p.detail?.period)
+  return (
+    <ScrollRegion label={`${meta.label}: amounts by year`} scroll={scroll} className="h-48 overflow-auto">
+      <table className="num w-full text-left text-xs">
+        <caption className="sr-only">
+          {num.label} and {lowerFirst(den.label)} by year, this hospital and the peer median of each
+        </caption>
+        <thead className="sticky top-0 bg-card text-muted-foreground">
+          <tr className="border-b border-border">
+            <th scope="col" className="py-1.5 font-medium">{hasPeriods ? "Measurement period" : "Year"}</th>
+            <th scope="col" className="py-1.5 text-right font-medium">{num.label}</th>
+            <th scope="col" className="py-1.5 text-right font-medium">{den.label}</th>
+            <th scope="col" className="py-1.5 text-right font-medium">Peer median, {lowerFirst(num.label)}</th>
+            <th scope="col" className="py-1.5 text-right font-medium">Peer median, {lowerFirst(den.label)}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {points.map((p) => {
+            const c = byYear.get(p.year)
+            return (
+              <tr key={p.year} className="border-b border-border last:border-0">
+                <th scope="row" className="py-1.5 font-normal">
+                  {p.detail?.period ?? p.year}
+                </th>
+                {p.published ? (
+                  <>
+                    <td className="py-1.5 text-right font-medium">{formatMetric(num, c?.hospital?.numerator)}</td>
+                    <td className="py-1.5 text-right">{formatMetric(den, c?.hospital?.denominator)}</td>
+                    <td className="py-1.5 text-right text-muted-foreground">{formatMetric(num, c?.peers?.numerator)}</td>
+                    <td className="py-1.5 text-right text-muted-foreground">{formatMetric(den, c?.peers?.denominator)}</td>
+                  </>
+                ) : (
+                  <td colSpan={4} className="py-1.5 text-right text-muted-foreground">
+                    Not published this year
+                  </td>
+                )}
+              </tr>
+            )
+          })}
         </tbody>
       </table>
     </ScrollRegion>

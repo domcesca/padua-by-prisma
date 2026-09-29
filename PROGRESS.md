@@ -292,6 +292,15 @@ downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and
   Outdated = newest report more than 2 years behind the newest data (13 hospitals, some of them campuses now reported
   under a parent).
 
+### V7.4.5 (Percent / Actual on Compare's ratio cards)
+- Numerator and denominator for 7 ratio metrics plus payer-mix amounts, hospital and peer medians of each part; details
+  in the README. Checked: every published ratio reproduced from its parts (15,163 hospital-years, `npm run
+  check:components`). Regression against main (V7.4): 9,020/9,020 responses identical apart from the two new fields
+  (`components` in 3,608 Compare responses, `payerMix.amounts` in 1,800), Medicare payer views included.
+- Choices to confirm: occupancy's denominator is licensed bed-days, not beds; unit and service-line views have no
+  switch; the Chart / Table switch is still per card and not remembered (Percent / Actual is, per session); the
+  card toggles grew from 20px to 24px tall (WCAG 2.2 target size).
+
 ### V7.4 (accessibility baseline, WCAG 2.2 AA)
 - Audit-and-fix pass; details in the README. axe-core: 7 failing rule types (355 element hits across 54 page states) → 0.
   Keyboard-only walk: pick a hospital, Compare, switch topics, open and close a drawer, peer popover, modes, table
