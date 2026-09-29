@@ -5,6 +5,7 @@ import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Too
 import { formatUsd } from "@/lib/format"
 import type { Projection, ScenarioId } from "@/lib/propose/engine"
 import { niceTicks } from "@/lib/ticks"
+import { KeyboardChart } from "@/components/shell/chart-keyboard"
 
 export const SCENARIO_COLOR: Record<ScenarioId, string> = {
   conservative: "var(--series-2)",
@@ -37,7 +38,19 @@ export function CumulativeChart({ projections, focus }: { projections: Projectio
   }))
   const ticks = niceTicks(projections.flatMap((p) => p.rows.map((r) => r.cumulative)).concat(0), true)
 
+  const yearLabel = (y: number) => (y === 0 ? "Start (up-front cost)" : `End of year ${y}`)
+
   return (
+    <KeyboardChart
+      label="Cumulative net cash by year, one line per scenario"
+      count={data.length}
+      noun="years"
+      start="first"
+      describe={(i) =>
+        `${yearLabel(years[i])}: ${projections.map((p) => `${p.label} ${formatUsd(p.rows[years[i]].cumulative)}`).join(", ")}.`
+      }
+    >
+      {(active) => (
     <div className="h-72 w-full" aria-hidden>
       <ResponsiveContainer width="100%" height="100%">
         <LineChart accessibilityLayer={false} data={data} margin={{ top: 8, right: 16, bottom: 4, left: 4 }}>
@@ -70,7 +83,10 @@ export function CumulativeChart({ projections, focus }: { projections: Projectio
               fontSize: 12,
               color: "var(--popover-foreground)",
             }}
-            labelFormatter={(y) => (y === 0 ? "Start (up-front cost)" : `End of year ${y}`)}
+            // Text in the popover's own color: the scenario colors fall short of 4.5:1 as text; each line is named.
+            itemStyle={{ color: "var(--popover-foreground)" }}
+            labelFormatter={(y) => yearLabel(Number(y))}
+            defaultIndex={active ?? undefined}
             formatter={(value, name) => [formatUsd(Number(value)), projections.find((p) => p.scenario === name)?.label ?? name]}
           />
           {projections.map((p) => (
@@ -91,5 +107,7 @@ export function CumulativeChart({ projections, focus }: { projections: Projectio
         </LineChart>
       </ResponsiveContainer>
     </div>
+      )}
+    </KeyboardChart>
   )
 }

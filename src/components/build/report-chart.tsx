@@ -1,5 +1,6 @@
 "use client"
 
+import { useId } from "react"
 import {
   Area,
   Bar,
@@ -21,6 +22,8 @@ import { formatMetric } from "@/lib/format"
 import { niceTicks } from "@/lib/ticks"
 import { useMediaQuery } from "@/lib/use-media-query"
 import type { ChartKind, ReportPanel, ReportSeries } from "@/lib/report/spec"
+import { KeyboardChart } from "@/components/shell/chart-keyboard"
+import { hospitalPattern, PatternDefs, PatternSwatch, patternUrl, PEER_PATTERN } from "@/components/shell/fill-pattern"
 import { ScrollRegion } from "@/components/shell/scroll-region"
 import { MarkerShapeSvg, MarkerSwatch, markerOf, type MarkerShape } from "@/components/shell/series-marker"
 import { cn } from "@/lib/utils"
@@ -41,6 +44,16 @@ const markerDot = (shape: MarkerShape, color: string, r: number) =>
     return <MarkerShapeSvg key={index} shape={shape} cx={cx} cy={cy} r={r} fill={color} stroke="var(--card)" strokeWidth={2} />
   }
 
+/** A bar series' fill pattern (shell/fill-pattern.tsx): hospitals in marker order, the peer median dotted. */
+export function seriesPattern(series: ReportSeries, panel: ReportPanel) {
+  if (series.role === "peer" || series.role === "state") return PEER_PATTERN
+  const hospitals = panel.series.filter((s) => s.role === "focus" || s.role === "compare")
+  return hospitalPattern(hospitals.indexOf(series))
+}
+
+/** Peer-median bars: lighter than a hospital's, but opaque enough for their dots to show. */
+const PEER_BAR_OPACITY = 0.7
+
 export function seriesColor(series: ReportSeries, panel: ReportPanel) {
   if (series.role === "peer" || series.role === "state") return "var(--chart-2)"
   const hospitals = panel.series.filter((s) => s.role === "focus" || s.role === "compare")
@@ -52,13 +65,45 @@ const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : n
 
 export function ReportChart({ panel, metric, chart }: { panel: ReportPanel; metric: MetricDef; chart: ChartKind }) {
   if (chart === "table") return <ReportTable panel={panel} metric={metric} />
-  if (panel.rowKind === "year") return chart === "line" ? <YearLines panel={panel} metric={metric} /> : <YearBars panel={panel} metric={metric} />
-  return <RankedBars panel={panel} metric={metric} />
+  const byYear = panel.rowKind === "year"
+  // The rows the chart draws, in its order, so the keys step through exactly what's shown.
+  const rows = byYear ? panel.rows : rankedRows(panel)
+  return (
+    <KeyboardChart
+      label={`${metric.label}${byYear ? " by year" : panel.rowKind === "facility" ? `, hospitals ranked, ${panel.year}` : `, against the peer group, ${panel.year}`}`}
+      count={rows.length}
+      noun={byYear ? "years" : panel.rowKind === "facility" ? "hospitals" : "bars"}
+      start={byYear ? "last" : "first"}
+      describe={(i) => describeRow(rows[i], panel, metric)}
+    >
+      {(active) =>
+        byYear ? (
+          chart === "line" ? (
+            <YearLines panel={panel} metric={metric} keyboardIndex={active} />
+          ) : (
+            <YearBars panel={panel} metric={metric} keyboardIndex={active} />
+          )
+        ) : (
+          <RankedBars panel={panel} metric={metric} keyboardIndex={active} />
+        )
+      }
+    </KeyboardChart>
+  )
+}
+
+const rankedRows = (panel: ReportPanel) => panel.rows.filter((r) => num(r.value) != null)
+
+/** A row's tooltip as one sentence, for the keyboard announcement. */
+function describeRow(row: Row, panel: ReportPanel, metric: MetricDef) {
+  if (panel.rowKind !== "year") return `${row.label}: ${formatMetric(metric, num(row.value))}.`
+  const parts = panel.series.map((s) => `${s.label} ${formatMetric(metric, num(row[s.key]))}`)
+  if (num(row.p25) != null) parts.push(`peer middle 50% ${formatMetric(metric, num(row.p25))} to ${formatMetric(metric, num(row.p75))}`)
+  return `${row.label}: ${parts.join(", ")}${typeof row.n === "number" ? `; ${row.n} peers reporting` : ""}.`
 }
 
 // -- by year: one line per hospital, peer/state medians as gray context ---------
 
-function YearLines({ panel, metric }: { panel: ReportPanel; metric: MetricDef }) {
+function YearLines({ panel, metric, keyboardIndex }: { panel: ReportPanel; metric: MetricDef; keyboardIndex: number | null }) {
   const band = panel.rows.some((r) => "p25" in r)
   const data = panel.rows.map((r) => ({ ...r, band: num(r.p25) != null && num(r.p75) != null ? [r.p25, r.p75] : null }))
   const ticks = niceTicks(valuesOf(panel), includeZero(metric))
@@ -70,7 +115,7 @@ function YearLines({ panel, metric }: { panel: ReportPanel; metric: MetricDef })
           <XAxis dataKey="label" tickLine={false} axisLine={{ stroke: "var(--border)" }} tick={axisTick} tickMargin={8} />
           <YAxis width={52} tickLine={false} axisLine={false} tick={axisTick} tickFormatter={(v: number) => formatMetric(metric, v, true)} ticks={ticks} domain={[ticks[0], ticks.at(-1)!]} allowDataOverflow />
           {ticks[0] < 0 && <ReferenceLine y={0} stroke="var(--muted-foreground)" strokeOpacity={0.5} />}
-          <Tooltip cursor={{ stroke: "var(--muted-foreground)", strokeOpacity: 0.4 }} content={({ active, payload, label }) => <PanelTooltip active={active} payload={payload} label={label} panel={panel} metric={metric} />} isAnimationActive={false} />
+          <Tooltip cursor={{ stroke: "var(--muted-foreground)", strokeOpacity: 0.4 }} content={({ active, payload, label }) => <PanelTooltip active={active} payload={payload} label={label} panel={panel} metric={metric} />} isAnimationActive={false} defaultIndex={keyboardIndex ?? undefined} />
           {band && <Area dataKey="band" stroke="none" fill="var(--chart-2)" fillOpacity={0.14} activeDot={false} connectNulls animationDuration={250} />}
           {panel.series.map((s) => {
             const color = seriesColor(s, panel)
@@ -97,19 +142,32 @@ function YearLines({ panel, metric }: { panel: ReportPanel; metric: MetricDef })
   )
 }
 
-function YearBars({ panel, metric }: { panel: ReportPanel; metric: MetricDef }) {
+function YearBars({ panel, metric, keyboardIndex }: { panel: ReportPanel; metric: MetricDef; keyboardIndex: number | null }) {
   const ticks = niceTicks(valuesOf(panel), true)
   const shown = panel.series.filter((s) => s.role !== "state")
+  const id = useId()
   return (
     <div className="h-64 w-full" aria-hidden>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart accessibilityLayer={false} data={panel.rows} margin={{ top: 8, right: 12, bottom: 0, left: 0 }} barGap={2} barCategoryGap="22%">
+          <PatternDefs
+            id={id}
+            fills={shown.map((s) => ({ key: s.key, color: seriesColor(s, panel), pattern: seriesPattern(s, panel), opacity: s.role === "peer" ? PEER_BAR_OPACITY : 1 }))}
+          />
           <CartesianGrid vertical={false} stroke="var(--border)" />
           <XAxis dataKey="label" tickLine={false} axisLine={{ stroke: "var(--border)" }} tick={axisTick} tickMargin={8} />
           <YAxis width={52} tickLine={false} axisLine={false} tick={axisTick} tickFormatter={(v: number) => formatMetric(metric, v, true)} ticks={ticks} domain={[ticks[0], ticks.at(-1)!]} allowDataOverflow />
-          <Tooltip cursor={{ fill: "var(--muted-foreground)", fillOpacity: 0.08 }} content={({ active, payload, label }) => <PanelTooltip active={active} payload={payload} label={label} panel={panel} metric={metric} />} isAnimationActive={false} />
+          <Tooltip cursor={{ fill: "var(--muted-foreground)", fillOpacity: 0.08 }} content={({ active, payload, label }) => <PanelTooltip active={active} payload={payload} label={label} panel={panel} metric={metric} />} isAnimationActive={false} defaultIndex={keyboardIndex ?? undefined} />
           {shown.map((s) => (
-            <Bar key={s.key} dataKey={s.key} name={s.label} fill={seriesColor(s, panel)} fillOpacity={s.role === "peer" ? 0.45 : 1} radius={[4, 4, 0, 0]} maxBarSize={28} animationDuration={250} />
+            <Bar
+              key={s.key}
+              dataKey={s.key}
+              name={s.label}
+              fill={patternUrl(id, s.key, seriesPattern(s, panel), seriesColor(s, panel))}
+              radius={[4, 4, 0, 0]}
+              maxBarSize={28}
+              animationDuration={250}
+            />
           ))}
         </BarChart>
       </ResponsiveContainer>
@@ -119,8 +177,8 @@ function YearBars({ panel, metric }: { panel: ReportPanel; metric: MetricDef }) 
 
 // -- by hospital / vs peer group: horizontal bars, labeled at the tip ------------
 
-function RankedBars({ panel, metric }: { panel: ReportPanel; metric: MetricDef }) {
-  const rows = panel.rows.filter((r) => num(r.value) != null)
+function RankedBars({ panel, metric, keyboardIndex }: { panel: ReportPanel; metric: MetricDef; keyboardIndex: number | null }) {
+  const rows = rankedRows(panel)
   const values = rows.map((r) => r.value as number)
   const ticks = niceTicks(values, true)
   const height = Math.max(120, rows.length * 30 + 36)
@@ -135,7 +193,7 @@ function RankedBars({ panel, metric }: { panel: ReportPanel; metric: MetricDef }
           <XAxis type="number" tickLine={false} axisLine={false} tick={axisTick} tickFormatter={(v: number) => formatMetric(metric, v, true)} ticks={ticks} domain={[ticks[0], ticks.at(-1)!]} />
           <YAxis type="category" dataKey="label" width={labelWidth} tickLine={false} axisLine={false} interval={0} tick={(props) => <CategoryTick {...props} rows={rows} maxChars={compact ? 14 : 26} />} />
           {ticks[0] < 0 && <ReferenceLine x={0} stroke="var(--muted-foreground)" strokeOpacity={0.5} />}
-          <Tooltip cursor={{ fill: "var(--muted-foreground)", fillOpacity: 0.08 }} content={({ active, payload, label }) => <PanelTooltip active={active} payload={payload} label={label} panel={panel} metric={metric} />} isAnimationActive={false} />
+          <Tooltip cursor={{ fill: "var(--muted-foreground)", fillOpacity: 0.08 }} content={({ active, payload, label }) => <PanelTooltip active={active} payload={payload} label={label} panel={panel} metric={metric} />} isAnimationActive={false} defaultIndex={keyboardIndex ?? undefined} />
           <Bar dataKey="value" name={metric.label} radius={4} maxBarSize={22} animationDuration={250}>
             {rows.map((r) => (
               <Cell
@@ -246,7 +304,7 @@ export function ReportLegend({ panel, chart = "line" }: { panel: ReportPanel; ch
     )
   }
   const band = panel.rows.some((r) => "p25" in r)
-  // Grouped bars can't carry markers: each year's bars stand in legend order, which the legend says.
+  // Grouped bars carry fill patterns instead of markers, and each year's bars stand in legend order, which the legend says.
   const bars = chart === "bar"
   const series = bars ? panel.series.filter((s) => s.role !== "state") : panel.series
   return (
@@ -256,7 +314,10 @@ export function ReportLegend({ panel, chart = "line" }: { panel: ReportPanel; ch
           key={s.key}
           swatch={
             bars ? (
-              <span className="size-2.5 rounded-sm" style={{ background: seriesColor(s, panel), opacity: s.role === "peer" ? 0.45 : 1 }} />
+              <PatternSwatch
+                pattern={seriesPattern(s, panel)}
+                color={s.role === "peer" ? `color-mix(in oklab, ${seriesColor(s, panel)} ${PEER_BAR_OPACITY * 100}%, transparent)` : seriesColor(s, panel)}
+              />
             ) : s.role === "state" ? (
               <span className="w-4 border-t-2 border-dashed" style={{ borderColor: seriesColor(s, panel) }} />
             ) : s.role === "peer" ? (
@@ -270,7 +331,7 @@ export function ReportLegend({ panel, chart = "line" }: { panel: ReportPanel; ch
         </LegendItem>
       ))}
       {band && !bars && <LegendItem swatch={<span className="h-2.5 w-4 rounded-sm bg-(--chart-2)/25" />}>Peer middle 50%</LegendItem>}
-      {bars && series.length > 1 && <span>Each year&apos;s bars run left to right in this order.</span>}
+      {bars && series.length > 1 && <span>Each year&apos;s bars run left to right in this order, each with its own fill pattern.</span>}
     </div>
   )
 }

@@ -4,6 +4,7 @@ import { useState } from "react"
 
 import { CardToggle } from "@/components/shell/card-toggle"
 import { StandingBadge } from "@/components/shell/standing"
+import { PatternSwatch, patternStyle, PEER_PATTERN } from "@/components/shell/fill-pattern"
 import { StatusLine } from "@/components/shell/status-line"
 import type { SourceStatus } from "@/lib/data/freshness"
 import { auditLabel } from "@/lib/status"
@@ -112,10 +113,10 @@ export function PayerMixCard({
 
       <div className="mt-2 flex items-center gap-5 text-xs text-muted-foreground">
         <span className="inline-flex items-center gap-1.5">
-          <span className="size-2 rounded-sm bg-(--chart-1)" /> This hospital
+          <PatternSwatch pattern="solid" color="var(--chart-1)" className="size-3 rounded-[3px]" /> This hospital
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="size-2 rounded-sm bg-(--chart-2)" /> {actual ? `Peer median (${amounts?.n ?? 0})` : `Peer average (${current.n})`}
+          <PatternSwatch pattern={PEER_PATTERN} color="var(--chart-2)" className="size-3 rounded-[3px]" /> {actual ? `Peer median (${amounts?.n ?? 0})` : `Peer average (${current.n})`}
         </span>
       </div>
 
@@ -143,8 +144,8 @@ export function PayerMixCard({
                   {g.label}
                 </th>
                 <td className="space-y-0.5">
-                  <Bar value={mine} max={actual ? amountMax : max} className="bg-(--chart-1)" label="This hospital" format={format} />
-                  <Bar value={peer} max={actual ? amountMax : max} className="bg-(--chart-2)" label={actual ? "Peer median" : "Peer average"} format={format} />
+                  <Bar value={mine} max={actual ? amountMax : max} fill={patternStyle("solid", "var(--chart-1)")} label="This hospital" format={format} />
+                  <Bar value={peer} max={actual ? amountMax : max} fill={patternStyle(PEER_PATTERN, "var(--chart-2)")} label={actual ? "Peer median" : "Peer average"} format={format} />
                 </td>
               </tr>
             )
@@ -172,13 +173,14 @@ export function PayerMixCard({
 function Bar({
   value,
   max,
-  className,
+  fill,
   label,
   format,
 }: {
   value: number | null
   max: number
-  className: string
+  /** Color and pattern (shell/fill-pattern.tsx): the peer bar is dotted, so the pair differs by more than color. */
+  fill: React.CSSProperties
   label: string
   /** Actual view: the amount's own format; otherwise a share. */
   format?: (v: number) => string
@@ -189,8 +191,8 @@ function Bar({
     // Bars use 85% of the row so the value label always fits at the tip.
     <div className="flex h-3 items-center gap-1.5" title={`${label}: ${text}`}>
       <div
-        className={cn("h-2 shrink-0 rounded-r-[4px] transition-[width] duration-250 ease-out", className)}
-        style={{ width: `${width * 0.85}%` }}
+        className="h-2.5 shrink-0 rounded-r-[4px] transition-[width] duration-250 ease-out"
+        style={{ ...fill, width: `${width * 0.85}%` }}
       />
       <span className="num text-xs text-muted-foreground">{text}</span>
     </div>

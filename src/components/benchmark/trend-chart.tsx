@@ -16,6 +16,7 @@ import type { SeriesPoint } from "@/lib/benchmark/compute"
 import type { DictionaryMetric } from "@/lib/data/types"
 import { formatMetric } from "@/lib/format"
 import { niceTicks } from "@/lib/ticks"
+import { KeyboardChart } from "@/components/shell/chart-keyboard"
 
 type Row = SeriesPoint & { band: [number, number] | null }
 
@@ -43,6 +44,13 @@ export function TrendChart({ metric, points }: { metric: DictionaryMetric; point
   const showZero = ticks[0] < 0 && ticks.at(-1)! > 0
 
   return (
+    <KeyboardChart
+      label={`${metric.label} by year${points.length ? `, ${points[0].year} to ${points.at(-1)!.year}` : ""}`}
+      count={data.length}
+      noun="years"
+      describe={(i) => describePoint(data[i], metric)}
+    >
+      {(active) => (
     <div className="h-48 w-full" aria-hidden>
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart accessibilityLayer={false} data={data} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
@@ -79,6 +87,7 @@ export function TrendChart({ metric, points }: { metric: DictionaryMetric; point
             cursor={{ stroke: "var(--muted-foreground)", strokeOpacity: 0.4, strokeWidth: 1 }}
             content={({ active, payload }) => <ChartTooltip active={active} payload={payload} metric={metric} />}
             isAnimationActive={false}
+            defaultIndex={active ?? undefined}
           />
           <Area
             dataKey="band"
@@ -114,7 +123,15 @@ export function TrendChart({ metric, points }: { metric: DictionaryMetric; point
         </ComposedChart>
       </ResponsiveContainer>
     </div>
+      )}
+    </KeyboardChart>
   )
+}
+
+/** The tooltip as one sentence, for the keyboard announcement. */
+function describePoint(row: Row, metric: DictionaryMetric) {
+  const band = row.p25 != null ? `, middle 50% ${formatMetric(metric, row.p25)} to ${formatMetric(metric, row.p75)}` : ""
+  return `${row.detail?.period ?? row.year}: this hospital ${formatMetric(metric, row.value)}, peer median ${formatMetric(metric, row.median)}${band}; ${row.n} peer${row.n === 1 ? "" : "s"} reporting.`
 }
 
 function ChartTooltip({
