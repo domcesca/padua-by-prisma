@@ -182,6 +182,64 @@ used (they cover traditional Medicare only, by calendar year, and need a CCN cro
   fiscal-year and include long-term care units. Cards say so.
 - Medicare Advantage share (MA discharges ÷ all Medicare discharges) is available under the Medicare view and in Build.
 
+## Reports, Correlate and Data definitions (V7.5)
+
+A content and usability pass on three tools. No data or existing calculation changed; the API regression against main
+matched every existing response (details in PROGRESS).
+
+**Reports** (`/reports/build`)
+
+- **Templates** (`src/lib/report/templates.ts`): Board performance snapshot (margin, days cash, occupancy, star rating
+  against the peer group, latest year), Quality trend (hospital-wide readmissions, patient rating, CLABSI, PSI 90 against
+  the peer band, latest 5 years), Financial and utilization trend (margin, cost per case, occupancy, length of stay, by
+  year, latest 5 years), Peer comparison (ranked among peers, latest year), and Custom (blank). A template only fills in
+  the settings; the current one shows as pressed until something is changed. The Reports page links to each
+  (`/reports/build?template=board`).
+- **Settings in four groups:** Content (template, measures), Comparison (compare by, hospitals, peer group), Time
+  period (latest 3 / 5 / all years for charts over time; one year for snapshots), Output (show as, export). The
+  context bar now just states the period.
+- **Latest N years** (`?last=5`) counts back from each measure's own newest year, since measures end in different years
+  (HCAI 2024, Care Compare readmissions 2023, star ratings 2026).
+- **Measure picker:** groups stay closed; a search lists direct matches, Enter adds the top one, and the search clears
+  so the list folds back up with the pick shown as a chip.
+- **Compare by** is three cards, each with a small sketch of the chart (or table) it makes with the current Show as.
+- **Summary lines and export** (`src/lib/report/commentary.ts`): each chart gets one sentence in the wording the cards
+  use ("Operating margin was 15.0% in 2024, improving from 7.4% in 2023; the peer median was −1.3%"; ranked: the
+  standing and rank; against peers: where it sits among the 25th/50th/75th percentiles). No new numbers: every figure
+  is on the chart. "Print or save as PDF" prints the report with each summary and status line; the CSV gains a Summary
+  column on each measure's first row.
+
+**Correlate** (labeled Advanced analysis; still its own tool beside the report builder)
+
+- **Question starters** (`src/lib/correlate/questions.ts`): six plain-language questions that set both axes, e.g. "Are
+  higher costs associated with greater case complexity?" (case mix index against expense per adjusted discharge).
+- **Outlier recheck:** r is refit leaving out each hospital in turn; the one whose removal moves r most is named. It
+  "changes the reading" when the plain-language description (describeR) changes and r moves by 0.1 or more; then the
+  hospital is ringed (dashed) on the chart and marked in the table.
+- **Other factors to check:** seven candidates (licensed beds, discharges, case mix index, occupancy, length of stay,
+  Medicare and Medi-Cal shares of gross charges) are tested against the plotted hospitals, same year. One is suggested
+  when it correlates |r| ≥ 0.3 with both measures over at least 8 hospitals (and under 0.95, so near-duplicates are
+  skipped); up to three, strongest first, each with r after accounting for it (partial correlation).
+- New `/api/correlate` fields: `robustness`, `confounders`. Existing fields are unchanged.
+
+**Data definitions**
+
+- **Focused** (default): notable changes for the chosen hospital, then your watchlist, then key measures (the source's
+  Compare measures, worsening first), with recent searches under the search box. **Browse all fields**
+  (`?view=browse`, and any deep link to a field): every field by section with a sticky section index (a chip row on
+  phones) showing notable counts, notable fields first within each section (or HCAI form order).
+- **Notable** (`src/lib/translate/notable.ts`): a year-over-year move of 20% or more (the threshold the list always
+  flagged) that's material: at least 1% of total operating expenses for dollar fields, and at least 20 in one of the
+  two years otherwise. The focused view shows the top 5 dollar changes (by share of operating expenses) and the top 5
+  others (by percent), with a link to all of them in Browse.
+- **Detail panel**, the same for every field and measure: what it means, current value, recent change (with history),
+  likely drivers, formula (a field's is "reported directly", plus the measures that use it), source field(s), and
+  where it's used (Compare, Reports, Correlate links).
+- **Labels:** plain-language name and summary first; the HCAI field code second.
+- **Watchlist and recent searches** are browser-local (`src/lib/translate/watchlist.ts`: `padua-definitions-watch-v1`,
+  `padua-definitions-recent-v1`).
+- `/api/facilities/[id]/fields` adds `metrics`: the dictionary measures' values by year, straight from `metrics.json`.
+
 ## Percent / Actual on Compare (V7.4.5)
 
 Ratio cards on Compare switch between the ratio (Percent, as before) and the two amounts behind it (Actual): operating

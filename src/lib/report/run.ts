@@ -7,7 +7,7 @@ import { isTrendMetric, type MetricDef } from "@/lib/data/datasets"
 import { getFacilities, getManifest, getMetricCatalog, getMetrics } from "@/lib/data/store"
 import { getSourceStatus } from "@/lib/data/freshness"
 import type { Facility } from "@/lib/data/types"
-import { MAX_PEER_BARS, type ReportPanel, type ReportResult, type ReportSpec } from "./spec"
+import { isOverTime, MAX_PEER_BARS, type ReportPanel, type ReportResult, type ReportSpec } from "./spec"
 
 type RunError = { error: string; status: number }
 
@@ -31,16 +31,24 @@ export async function runReport(spec: ReportSpec): Promise<ReportResult | RunErr
   const built = await Promise.all(
     metrics.map(async (metric): Promise<Omit<ReportPanel, "through" | "latestYear">> => {
       const [file, manifest] = await Promise.all([getMetrics(metric.dataset), getManifest(metric.dataset)])
-      const years = manifest.years
+      // "Latest N years" (V7.5) trims the charts over time to the N years ending with this measure's newest year for any
+      // hospital (a source's measures can end in different years: Care Compare's readmissions trail its star ratings).
+      const allYears = manifest.years
+      let years = allYears
+      if (spec.last != null && isOverTime(spec)) {
+        const hospitals = Object.keys(file)
+        const end = [...allYears].reverse().find((y) => hospitals.some((id) => metricValue(file, id, y, metric.id) != null)) ?? allYears.at(-1)!
+        years = allYears.filter((y) => y <= end).slice(-spec.last)
+      }
       const value = (id: string, year: number) => metricValue(file, id, year, metric.id)
       const peerValues = (ids: string[], year: number) =>
         ids.map((id) => value(id, year)).filter((v): v is number => v != null)
       const peerIds = group.peers.map((p) => p.id)
       const stateIds = state.peers.map((p) => p.id)
       const snapshotYear =
-        spec.year != null && years.includes(spec.year)
+        spec.year != null && allYears.includes(spec.year)
           ? spec.year
-          : ([...years].reverse().find((y) => value(focus.id, y) != null) ?? years.at(-1)!)
+          : ([...allYears].reverse().find((y) => value(focus.id, y) != null) ?? allYears.at(-1)!)
 
       if (spec.groupBy === "year") {
         const hospitals = [focus, ...compare]

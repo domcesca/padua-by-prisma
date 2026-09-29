@@ -31,6 +31,11 @@ export type ReportSpec = {
   peers: PeerFilters
   /** Snapshot year for "facility" and bar/table "peerGroup"; null = latest with data. */
   year: number | null
+  /**
+   * Charts over time ("year", and line/table "peerGroup"): show only each measure's latest this-many years; null = every
+   * year (V7.5). Counted per measure, since measures end in different years (HCAI 2024, Care Compare readmissions 2023).
+   */
+  last: number | null
 }
 
 export const MAX_METRICS = 4
@@ -47,7 +52,12 @@ export const DEFAULT_SPEC: ReportSpec = {
   hospitals: "peers",
   peers: DEFAULT_FILTERS,
   year: null,
+  last: null,
 }
+
+/** Whether a grouping shows years along the axis (so a year range applies) or one snapshot year. */
+export const isOverTime = (spec: Pick<ReportSpec, "groupBy" | "chart">) =>
+  spec.groupBy === "year" || (spec.groupBy === "peerGroup" && spec.chart !== "bar")
 
 /** Line charts need an ordered x-axis; hospitals side by side can't be a line. */
 export const chartAllowed = (chart: ChartKind, groupBy: GroupBy) => !(chart === "line" && groupBy === "facility")
@@ -60,6 +70,7 @@ export function parseSpec(params: ParamSource, validMetricIds?: Set<string>): Re
   const chart = params.get("chart")
   const group = params.get("group")
   const year = Number.parseInt(params.get("year") ?? "", 10)
+  const last = Number.parseInt(params.get("last") ?? "", 10)
   const spec: ReportSpec = {
     facilityId: params.get("facility") || null,
     metrics: list(params.get("metrics"))
@@ -71,6 +82,7 @@ export function parseSpec(params: ParamSource, validMetricIds?: Set<string>): Re
     hospitals: params.get("hospitals") === "picked" ? "picked" : "peers",
     peers: parseFilters(params),
     year: Number.isFinite(year) && year > 1990 ? year : null,
+    last: Number.isFinite(last) && last >= 2 && last <= 20 ? last : null,
   }
   if (!chartAllowed(spec.chart, spec.groupBy)) spec.chart = "bar"
   return spec
@@ -86,6 +98,7 @@ export function specToParams(spec: ReportSpec) {
   if (spec.groupBy === "facility" && spec.hospitals === "picked") p.set("hospitals", "picked")
   filtersToParams(spec.peers, p)
   if (spec.year != null) p.set("year", String(spec.year))
+  if (spec.last != null && isOverTime(spec)) p.set("last", String(spec.last))
   return p
 }
 

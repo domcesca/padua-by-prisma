@@ -6,7 +6,19 @@ import { isTrendMetric, type MetricDef } from "@/lib/data/datasets"
 import { getSourceStatus } from "@/lib/data/freshness"
 import { getFacilities, getManifest, getMetricCatalog, getMetrics } from "@/lib/data/store"
 import type { DatasetId } from "@/lib/data/types"
-import { lowerLabel, MIN_POINTS, type CorrelatePoint, type CorrelateResult, type CorrelateSpec } from "./spec"
+import {
+  CONFOUNDER_MAX_R,
+  CONFOUNDER_MIN_R,
+  describeR,
+  lowerLabel,
+  MIN_POINTS,
+  ROBUST_DELTA,
+  SMALL_SAMPLE,
+  type Confounder,
+  type CorrelatePoint,
+  type CorrelateResult,
+  type CorrelateSpec,
+} from "./spec"
 
 type RunError = { error: string; status: number }
 
@@ -69,6 +81,85 @@ function spearman(points: { x: number; y: number }[]) {
   return sxx && syy ? sxy / Math.sqrt(sxx * syy) : 0
 }
 
+/**
+ * The outlier recheck: refit without each hospital in turn and keep the one whose removal moves r the most. Its effect
+ * counts as meaningful when the plain-language reading changes (e.g. "Moderate positive" to "Weak positive") and r moves
+ * by ROBUST_DELTA or more, so a nudge across a boundary (0.31 to 0.29) isn't flagged.
+ */
+export function outlierRecheck(points: CorrelatePoint[], r: number): CorrelateResult["robustness"] {
+  if (points.length < MIN_POINTS + 1) return null
+  let best: { i: number; r: number; rho: number } | null = null
+  points.forEach((_, i) => {
+    const f = fit(points.filter((_, j) => j !== i))
+    if (f && (!best || Math.abs(f.r - r) > Math.abs(best.r - r))) best = { i, r: f.r, rho: f.rho }
+  })
+  if (!best) return null
+  const { i, r: without, rho } = best as { i: number; r: number; rho: number }
+  const p = points[i]
+  return {
+    without: { id: p.id, name: p.name, x: p.x, y: p.y, focus: p.focus },
+    r: without,
+    rho,
+    changes: describeR(without) !== describeR(r) && Math.abs(without - r) >= ROBUST_DELTA,
+  }
+}
+
+/**
+ * Candidate third factors: the structural things that most often sit behind two hospital measures moving together —
+ * size, volume, case mix, how full and how long, and who pays. Each is tested against this peer group's own data; only
+ * those that move with both measures are suggested.
+ */
+const CONFOUNDER_CANDIDATES: { id: string; label?: string; dataset: DatasetId; get: (row: Record<string, unknown> | undefined) => number | null }[] = [
+  ...(["licensedBeds", "discharges", "occupancy", "alos"] as const).map((id) => ({ id, dataset: "hau" as const, get: numberAt(id) })),
+  { id: "caseMixIndex", dataset: "case-mix-index", get: numberAt("caseMixIndex") },
+  { id: "medicareShare", label: "Medicare share of gross charges", dataset: "hafd-selected", get: payerShare("medicare") },
+  { id: "mediCalShare", label: "Medi-Cal share of gross charges", dataset: "hafd-selected", get: payerShare("medical") },
+]
+
+function numberAt(key: string) {
+  return (row: Record<string, unknown> | undefined) => {
+    const v = row?.[key]
+    return typeof v === "number" && Number.isFinite(v) ? v : null
+  }
+}
+
+/** A payer group's share of gross patient revenue, as Compare's payer-mix card shows it. */
+function payerShare(group: string) {
+  return (row: Record<string, unknown> | undefined) => {
+    const mix = row?.payerMixRevenue as Record<string, unknown> | undefined
+    const v = mix?.[group]
+    return typeof v === "number" && Number.isFinite(v) ? v : null
+  }
+}
+
+async function suggestConfounders(
+  points: CorrelatePoint[],
+  year: number,
+  exclude: string[],
+  labelOf: (id: string) => string | undefined
+): Promise<Confounder[]> {
+  const out: Confounder[] = []
+  for (const c of CONFOUNDER_CANDIDATES) {
+    if (exclude.includes(c.id)) continue
+    const file = await getMetrics(c.dataset)
+    const triples = points.flatMap((p) => {
+      const z = c.get(file[p.id]?.[year] as Record<string, unknown> | undefined)
+      return z != null ? [{ x: p.x, y: p.y, z }] : []
+    })
+    if (triples.length < SMALL_SAMPLE) continue
+    const xy = fit(triples)
+    const xz = fit(triples.map((t) => ({ x: t.x, y: t.z })))
+    const yz = fit(triples.map((t) => ({ x: t.y, y: t.z })))
+    if (!xy || !xz || !yz) continue
+    const [rx, ry] = [xz.r, yz.r]
+    if (Math.abs(rx) < CONFOUNDER_MIN_R || Math.abs(ry) < CONFOUNDER_MIN_R) continue
+    if (Math.abs(rx) > CONFOUNDER_MAX_R || Math.abs(ry) > CONFOUNDER_MAX_R) continue
+    const partial = (xy.r - rx * ry) / Math.sqrt((1 - rx * rx) * (1 - ry * ry))
+    out.push({ id: c.id, label: c.label ?? labelOf(c.id) ?? c.id, n: triples.length, rx, ry, rxy: xy.r, partial })
+  }
+  return out.sort((a, b) => Math.abs(b.rx * b.ry) - Math.abs(a.rx * a.ry)).slice(0, 3)
+}
+
 export async function runCorrelate(spec: CorrelateSpec): Promise<CorrelateResult | RunError> {
   const [facilities, catalog] = await Promise.all([getFacilities(), getMetricCatalog()])
   const focus = facilities.find((f) => f.id === spec.facilityId)
@@ -105,6 +196,7 @@ export async function runCorrelate(spec: CorrelateSpec): Promise<CorrelateResult
       : years.find((y) => y.n >= 0.8 * best)!.year
 
   const points = pointsFor(year)
+  const stats = fit(points)
   const notes: string[] = []
   const kinds = [YEAR_KIND[mx.dataset], YEAR_KIND[my.dataset]]
   if (kinds[0] !== kinds[1]) {
@@ -123,10 +215,12 @@ export async function runCorrelate(spec: CorrelateSpec): Promise<CorrelateResult
     points,
     missing: hospitals.length - points.length,
     focusReported: points.some((p) => p.focus),
-    stats: fit(points),
+    stats,
     peerGroup: { description: group.description, count: group.peers.length, note: group.note, filters: group.filters },
     notes,
     sources: { x: await getSourceStatus(mx.dataset, focus.id), y: await getSourceStatus(my.dataset, focus.id) },
     latestYears: { x: manX.years.at(-1)!, y: manY.years.at(-1)! },
+    robustness: stats ? outlierRecheck(points, stats.r) : null,
+    confounders: stats ? await suggestConfounders(points, year, [mx.id, my.id], (id) => catalog.find((m) => m.id === id)?.label) : [],
   }
 }

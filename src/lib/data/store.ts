@@ -244,6 +244,25 @@ export async function getFacilityFieldValues(dataset: HcaiDatasetId, id: string)
   return { values, meta: file.meta[id] ?? {} }
 }
 
+/**
+ * A hospital's values for the measures documented in a dataset's dictionary (Data definitions' key measures, V7.5),
+ * by year, as the metrics file has them: no new calculation.
+ */
+export async function getFacilityMetricValues(dataset: HcaiDatasetId, id: string) {
+  const [file, dictionary] = await Promise.all([getMetrics(dataset), getDictionary(dataset)])
+  const byYear = file[id]
+  if (!byYear) return {}
+  const ids = dictionary.metrics.filter((m) => m.unit !== "share").map((m) => m.id)
+  const out: Record<string, Record<string, number | null>> = {}
+  for (const [year, row] of Object.entries(byYear)) {
+    out[year] = Object.fromEntries(ids.map((m) => {
+      const v = (row as Record<string, unknown>)[m]
+      return [m, typeof v === "number" && Number.isFinite(v) ? v : null]
+    }))
+  }
+  return out
+}
+
 // -- county context -------------------------------------------------------------
 
 /** A county-level context file, or null when that source hasn't been processed (e.g. no Census key yet). */

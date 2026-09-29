@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/shell/page-header"
 import { TranslateView } from "@/components/translate/translate-view"
 import { DATASET_SLUG, parseDatasetSlug } from "@/lib/data/datasets"
 import { getSourceStatus } from "@/lib/data/freshness"
-import { getDictionary, getFacilities, getFacilityFieldValues, getLatestYear, getManifest, toFacilityOption } from "@/lib/data/store"
+import { getDictionary, getFacilities, getFacilityFieldValues, getFacilityMetricValues, getLatestYear, getManifest, toFacilityOption } from "@/lib/data/store"
 
 export const metadata: Metadata = { title: "Data definitions" }
 
@@ -36,7 +36,9 @@ export default async function TranslatePage({ searchParams }: PageProps<"/data-d
 
   const facilityParam = one(sp.facility)
   const facilityId = facilityParam && facilities.some((f) => f.id === facilityParam) ? facilityParam : null
-  const initialFacilityData = facilityId ? await getFacilityFieldValues(dataset, facilityId) : null
+  const [initialFacilityData, initialMetrics] = facilityId
+    ? await Promise.all([getFacilityFieldValues(dataset, facilityId), getFacilityMetricValues(dataset, facilityId)])
+    : [null, {}]
 
   return (
     <div className="space-y-8">
@@ -45,8 +47,8 @@ export default async function TranslatePage({ searchParams }: PageProps<"/data-d
         actions={<AboutTool id="translate" />}
         description={
           <>
-            {INTRO[dataset]}: what it means, what can make it move, and — for any hospital — how it changed year over
-            year.
+            {INTRO[dataset]}: what it means, how it&apos;s calculated, what can make it move, and — for any hospital — what
+            changed most this year. Pin the ones you check often.
           </>
         }
       />
@@ -60,8 +62,9 @@ export default async function TranslatePage({ searchParams }: PageProps<"/data-d
         sourceStatus={source}
         sourceLatestYear={manifest.years.at(-1)!}
         initialFacilityId={facilityId}
-        initialFacilityData={facilityId ? (initialFacilityData ?? { values: {}, meta: {} }) : null}
+        initialFacilityData={facilityId ? { ...(initialFacilityData ?? { values: {}, meta: {} }), metrics: initialMetrics } : null}
         initialFocus={one(sp.metric) ?? one(sp.field)?.toUpperCase() ?? null}
+        initialMode={one(sp.view) === "browse" ? "browse" : "focused"}
       />
       <p className="border-t border-border pt-6 text-xs leading-relaxed text-tertiary-foreground">
         {CREDIT[dataset]} Plain-language wording and drivers are editorial guidance for administrators, not HCAI

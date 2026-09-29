@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowLeftRight, Check, Download, Link2, Loader2, TriangleAlert } from "lucide-react"
+import { ArrowLeftRight, Check, Download, Link2, Loader2, MessageCircleQuestion, TriangleAlert } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 
 import type { FacilityOption } from "@/components/benchmark/facility-picker"
@@ -10,6 +10,7 @@ import { LiveStatus } from "@/components/shell/live-status"
 import { ContextBar, type PeriodControl } from "@/components/shell/context-bar"
 import { Segmented } from "@/components/shell/segmented"
 import {
+  CONFOUNDER_MIN_R,
   correlateSpecToParams,
   describeR,
   lowerLabel,
@@ -18,12 +19,15 @@ import {
   type CorrelateSpec,
 } from "@/lib/correlate/spec"
 import { StatusLine, type StatusLineProps } from "@/components/shell/status-line"
+import { CORRELATE_QUESTIONS, questionFor } from "@/lib/correlate/questions"
 import { filtersToParams } from "@/lib/benchmark/filters"
 import { DATASETS, type MetricDef } from "@/lib/data/datasets"
 import type { SourceStatus } from "@/lib/data/freshness"
 import type { QualityFlag } from "@/lib/status"
 import { metricPickerOptions } from "@/lib/data/metric-options"
 import { rememberSelection } from "@/lib/selection"
+import { formatMetric } from "@/lib/format"
+import { ScrollRegion } from "@/components/shell/scroll-region"
 import { cn } from "@/lib/utils"
 import { ScatterPlot, ScatterTable } from "./scatter-plot"
 
@@ -103,6 +107,11 @@ export function CorrelateView({
   const rx = current ? byId.get(current.spec.x) : undefined
   const ry = current ? byId.get(current.spec.y) : undefined
   const stats = current?.stats
+  const robust = current?.robustness ?? null
+  const influential = robust?.changes ? robust.without.id : null
+  const questions = CORRELATE_QUESTIONS.filter((q) => byId.has(q.x) && byId.has(q.y))
+  const asked = questionFor(spec.x, spec.y)
+  const shownQuestion = current ? questionFor(current.spec.x, current.spec.y) : null
   const small = current != null && current.points.length < SMALL_SAMPLE
 
   function downloadCsv() {
@@ -240,6 +249,30 @@ export function CorrelateView({
         toolControls={controls}
         topic={mx && my ? `${my.label} vs. ${lowerLabel(mx.label)}` : "Correlate"}
       />
+      <section aria-labelledby="correlate-questions" className="space-y-2">
+        <h2 id="correlate-questions" className="flex items-center gap-1.5 text-[13px] font-medium">
+          <MessageCircleQuestion className="size-4 text-tertiary-foreground" aria-hidden />
+          Start from a question
+        </h2>
+        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Questions">
+          {questions.map((q) => (
+            <button
+              key={q.id}
+              type="button"
+              aria-pressed={asked?.id === q.id}
+              onClick={() => update({ x: q.x, y: q.y, year: null })}
+              className={cn(
+                "inline-flex min-h-8 items-center rounded-full px-3 py-1 text-left text-[13px] leading-snug transition-[background-color,box-shadow] duration-200",
+                "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+                asked?.id === q.id ? "surface ring-accent glow-soft font-medium text-foreground" : "glass-subtle text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {q.question}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground">Or pick any two measures{" "}<span className="md:hidden">under Filters</span><span className="hidden md:inline">below</span>.</p>
+      </section>
       <div className="hidden space-y-3 md:block">{controls}</div>
 
       <div className="-my-3 h-0.5" aria-hidden>
@@ -281,6 +314,9 @@ export function CorrelateView({
                   One of the measures is the same for every hospital here, so there’s nothing to correlate.
                 </p>
               )}
+              {robust && stats && (
+                <RobustnessNote robust={robust} r={stats.r} x={rx} y={ry} />
+              )}
               {small && (
                 <p className="mt-2 flex items-start gap-2 rounded-xl bg-black/4 px-3 py-2 text-[13px] leading-snug dark:bg-white/6">
                   <TriangleAlert className="mt-0.5 size-3.5 shrink-0 text-warning" aria-hidden />
@@ -319,6 +355,7 @@ export function CorrelateView({
           <section aria-label={`${ry.label} against ${rx.label}`} data-tour="correlate-chart" className="glass fade-up min-w-0 rounded-2xl p-5">
             <header className="mb-3 flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0 space-y-1">
+                {shownQuestion && <p className="text-[13px] font-medium text-muted-foreground">{shownQuestion.question}</p>}
                 <h2 className="text-[15px] font-semibold tracking-tight">
                   {ry.label} <span className="font-normal text-muted-foreground">vs.</span> {lowerLabel(rx.label)}
                 </h2>
@@ -329,6 +366,12 @@ export function CorrelateView({
                     <span className="inline-flex items-center gap-1.5">
                       <span className="h-0.5 w-4 rounded-full bg-(--muted-foreground)" aria-hidden />
                       Trend line
+                    </span>
+                  )}
+                  {influential && (
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="size-3 rounded-full border-[1.5px] border-dashed border-foreground" aria-hidden />
+                      Changes the reading if left out
                     </span>
                   )}
                 </div>
@@ -350,13 +393,13 @@ export function CorrelateView({
             </header>
             {view === "chart" ? (
               <>
-                <ScatterPlot points={current.points} x={rx} y={ry} stats={stats ?? null} />
+                <ScatterPlot points={current.points} x={rx} y={ry} stats={stats ?? null} influential={influential} />
                 <div className="sr-only">
-                  <ScatterTable points={current.points} x={rx} y={ry} scroll={false} />
+                  <ScatterTable points={current.points} x={rx} y={ry} scroll={false} influential={influential} />
                 </div>
               </>
             ) : (
-              <ScatterTable points={current.points} x={rx} y={ry} />
+              <ScatterTable points={current.points} x={rx} y={ry} influential={influential} />
             )}
             <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1">
@@ -371,6 +414,8 @@ export function CorrelateView({
               <AxisStatus axis="Vertical" metric={ry} year={current.year} latest={current.latestYears.y} source={current.sources.y} reported={current.focusReported} />
             </div>
           </section>
+
+          {stats && <ConfounderPanel confounders={current.confounders} x={rx} y={ry} r={stats.r} year={current.year} />}
 
           <p data-tour="correlate-notes" className="text-xs leading-relaxed text-tertiary-foreground">
             r runs from −1 to 1: near 0 means no straight-line relationship, and the sign says whether the measures rise
@@ -399,6 +444,92 @@ export function CorrelateView({
 
 
 const fmtR = (r: number) => r.toFixed(2).replace("-", "−")
+
+/** The outlier recheck (V7.5): does the reading survive leaving out the one hospital that moves r the most? */
+function RobustnessNote({ robust, r, x, y }: { robust: NonNullable<CorrelateResult["robustness"]>; r: number; x: MetricDef; y: MetricDef }) {
+  const who = robust.without.focus ? `${robust.without.name} (the chosen hospital)` : robust.without.name
+  const where = `${formatMetric(x, robust.without.x)}, ${formatMetric(y, robust.without.y)}`
+  if (!robust.changes) {
+    return (
+      <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
+        <span className="font-medium text-foreground">Holds without its most extreme hospital.</span> Leaving out {who} ({where}),
+        the hospital that moves r the most, gives r = {fmtR(robust.r)}: still {describeR(robust.r).toLowerCase()}.
+      </p>
+    )
+  }
+  return (
+    <p className="mt-2 flex items-start gap-2 rounded-xl bg-black/4 px-3 py-2 text-[13px] leading-snug dark:bg-white/6">
+      <TriangleAlert className="mt-0.5 size-3.5 shrink-0 text-warning" aria-hidden />
+      <span>
+        <span className="font-medium">One hospital is shaping this.</span>{" "}
+        <span className="text-muted-foreground">
+          Without {who} ({where}; ringed on the chart), r is {fmtR(robust.r)} instead of {fmtR(r)}: {describeR(robust.r).toLowerCase()}. Read the
+          pattern as tentative.
+        </span>
+      </span>
+    </p>
+  )
+}
+
+/** Other factors to check (V7.5): measures that move with both X and Y in this peer group, from its own data. */
+function ConfounderPanel({ confounders, x, y, r, year }: { confounders: CorrelateResult["confounders"]; x: MetricDef; y: MetricDef; r: number; year: number }) {
+  return (
+    <section aria-labelledby="confounders" className="widget fade-up space-y-3 p-5">
+      <div className="space-y-1">
+        <h2 id="confounders" className="text-[15px] font-semibold tracking-tight">
+          Other factors to check
+        </h2>
+        <p className="text-[13px] leading-relaxed text-muted-foreground">
+          Measures that rise and fall with both {lowerLabel(x.label)} and {lowerLabel(y.label)} across these same hospitals in {year}. Any of them
+          could be behind the pattern. “After accounting for it” is r between the two once that factor is held constant (partial correlation).
+        </p>
+      </div>
+      {confounders.length === 0 ? (
+        <p className="rounded-xl bg-black/4 px-3 py-2.5 text-[13px] text-muted-foreground dark:bg-white/6">
+          None of the usual suspects — size, volume, case mix, occupancy, length of stay, or payer mix — moves with both measures in this peer
+          group (|r| of {CONFOUNDER_MIN_R} or more with each, over at least {SMALL_SAMPLE} hospitals). Other differences between the hospitals can
+          still matter.
+        </p>
+      ) : (
+        <ScrollRegion label="Other factors to check, table" className="overflow-x-auto">
+          <table className="num w-full min-w-[34rem] text-left text-[13px]">
+            <thead className="text-xs text-muted-foreground">
+              <tr className="border-b border-border">
+                <th scope="col" className="py-1.5 pr-3 font-medium">Factor</th>
+                <th scope="col" className="py-1.5 pl-3 text-right font-medium">r with {lowerLabel(x.label)}</th>
+                <th scope="col" className="py-1.5 pl-3 text-right font-medium">r with {lowerLabel(y.label)}</th>
+                <th scope="col" className="py-1.5 pl-3 text-right font-medium">r after accounting for it</th>
+              </tr>
+            </thead>
+            <tbody>
+              {confounders.map((c) => (
+                <tr key={c.id} className="border-b border-border last:border-0">
+                  <th scope="row" className="py-1.5 pr-3 font-medium">
+                    {c.label}
+                    <span className="block text-xs font-normal text-muted-foreground">{c.n} hospitals report all three</span>
+                  </th>
+                  <td className="py-1.5 pl-3 text-right">{fmtR(c.rx)}</td>
+                  <td className="py-1.5 pl-3 text-right">{fmtR(c.ry)}</td>
+                  <td className="py-1.5 pl-3 text-right">
+                    {fmtR(c.partial)}
+                    <span className="block text-xs text-muted-foreground">
+                      {Math.abs(c.partial) < Math.abs(c.rxy) - 0.1 ? "weaker" : Math.abs(c.partial) > Math.abs(c.rxy) + 0.1 ? "stronger" : "about the same"} (from{" "}
+                      {fmtR(c.rxy)})
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </ScrollRegion>
+      )}
+      <p className="text-xs text-tertiary-foreground">
+        Checked: licensed beds, discharges, case mix index, occupancy, length of stay, and Medicare and Medi-Cal shares of gross charges. The
+        chart’s r is {fmtR(r)}; each row’s “from” value is r over just the hospitals reporting that factor.
+      </p>
+    </section>
+  )
+}
 
 function LegendDot({ className, children }: { className: string; children: React.ReactNode }) {
   return (

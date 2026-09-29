@@ -1,13 +1,13 @@
 "use client"
 
-import { ChevronRight, FileUp, Loader2, Search, X } from "lucide-react"
+import { FileUp, Gauge, History, ListTree, Loader2, Pin, Search, Sparkles, X } from "lucide-react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useRef, useState } from "react"
 
-import Link from "next/link"
-
 import { FacilityPicker, type FacilityOption } from "@/components/benchmark/facility-picker"
 import { FilterPill } from "@/components/benchmark/filter-pill"
+import { OverviewSection, SectionEmpty } from "@/components/overview/section"
 import { LiveStatus } from "@/components/shell/live-status"
 import { Segmented } from "@/components/shell/segmented"
 import { StatusLine } from "@/components/shell/status-line"
@@ -15,20 +15,34 @@ import { DATASET_SLUG, DATASETS, parseDatasetSlug } from "@/lib/data/datasets"
 import type { SourceStatus } from "@/lib/data/freshness"
 import type { Dictionary, DictionaryField, DictionaryMetric, FieldYearMeta, HcaiDatasetId } from "@/lib/data/types"
 import { normalizeColumn, type Extract } from "@/lib/translate/columns"
+import { isNotable, materiality } from "@/lib/translate/notable"
+import { clearRecentSearches, rememberSearch, toggleWatch, useRecentSearches, useWatchlist } from "@/lib/translate/watchlist"
 import { rememberSelection } from "@/lib/selection"
 import { auditLabel } from "@/lib/status"
-import { cn } from "@/lib/utils"
 import { ExtractInput } from "./extract-input"
-import { BIG_CHANGE, FieldRow, type FieldValues } from "./field-row"
+import { FieldRow, metricTrend, MetricRow, type FieldValues, type MetricValues, type ValueContext } from "./field-row"
+
+// Data definitions (V7.5) has two modes. Focused, the default: what's notable for the chosen hospital first, then the
+// fields and measures the viewer pinned, then the key measures, with recent searches under the search box. Browse all
+// fields: every field, section by section, with a sticky index of sections; a deep link to one field opens here. Both
+// lead with plain-language names; HCAI's field codes come second.
 
 type FacilityFields = {
   values: Record<string, Record<string, number | null>>
   meta: Record<string, FieldYearMeta>
+  /** The dictionary's measures by year (V7.5). */
+  metrics?: Record<string, Record<string, number | null>>
 }
 
-type SortMode = "hcai" | "change"
+export type DefinitionsMode = "focused" | "browse"
+type Order = "notable" | "hcai"
 
 export type { FacilityFields }
+
+/** Most rows in each of the focused view's "notable" lists. */
+const NOTABLE_SHOWN = 5
+/** Most search results listed in the focused view. */
+const RESULTS_SHOWN = 30
 
 export function TranslateView({
   dataset,
@@ -41,6 +55,7 @@ export function TranslateView({
   initialFacilityId,
   initialFacilityData,
   initialFocus,
+  initialMode,
 }: {
   dataset: HcaiDatasetId
   dictionary: Dictionary
@@ -56,20 +71,24 @@ export function TranslateView({
   initialFacilityData: FacilityFields | null
   /** Field code or metric id to open and scroll to on load. */
   initialFocus: string | null
+  initialMode: DefinitionsMode
 }) {
   const router = useRouter()
+  const [mode, setMode] = useState<DefinitionsMode>(initialFocus ? "browse" : initialMode)
   const [query, setQuery] = useState("")
-  const [section, setSection] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(initialFocus ? [initialFocus] : []))
   const [facilityId, setFacilityId] = useState<string | null>(initialFacilityId)
   const [facilityData, setFacilityData] = useState<FacilityFields | null>(initialFacilityData)
   const [loadingFacility, setLoadingFacility] = useState(false)
   const [year, setYear] = useState<number | null>(null)
-  const [sort, setSort] = useState<SortMode>("hcai")
+  const [order, setOrder] = useState<Order>("notable")
   const [showExtractInput, setShowExtractInput] = useState(false)
   const [extract, setExtract] = useState<Extract | null>(null)
   const [extractRow, setExtractRow] = useState(0)
+  const [scrollTo, setScrollTo] = useState<string | null>(initialFocus)
   const fetched = useRef<string | null>(null)
+  const watchlist = useWatchlist(dataset)
+  const recent = useRecentSearches()
   useEffect(() => {
     rememberSelection({ ...(facilityId ? { facilityId } : {}), category: dataset === "hau" ? "utilization" : "financial" })
   }, [facilityId, dataset])
@@ -79,16 +98,29 @@ export function TranslateView({
     for (const [k, v] of Object.entries(params)) if (v) qs.set(k, v)
     return `/data-definitions?${qs}`
   }
+  const syncUrl = (next: { facility?: string | null; mode?: DefinitionsMode }) =>
+    window.history.replaceState(
+      null,
+      "",
+      hrefFor({ facility: next.facility !== undefined ? next.facility : facilityId, view: (next.mode ?? mode) === "browse" ? "browse" : null })
+    )
 
   const sections = useMemo(() => new Map(dictionary.sections.map((s) => [s.id, s])), [dictionary.sections])
   const fieldByCode = useMemo(() => new Map(dictionary.fields.map((f) => [f.code, f])), [dictionary.fields])
+  // Measures documented with this source (payer mix is a composition, not one number).
+  const measures = useMemo(() => dictionary.metrics.filter((m) => m.unit !== "share"), [dictionary.metrics])
+  const usedIn = useMemo(() => {
+    const map = new Map<string, DictionaryMetric[]>()
+    for (const m of measures) for (const code of m.inputs) map.set(code, [...(map.get(code) ?? []), m])
+    return map
+  }, [measures])
 
   // -- facility values -------------------------------------------------------
   async function selectFacility(id: string | null) {
     setFacilityId(id)
     setFacilityData(null)
     setYear(null)
-    window.history.replaceState(null, "", hrefFor({ facility: id }))
+    syncUrl({ facility: id })
     if (!id) return
     fetched.current = id
     setLoadingFacility(true)
@@ -102,18 +134,33 @@ export function TranslateView({
     }
   }
 
-  // Scroll a deep-linked field (e.g. from a Benchmark "Why this number moves" link) into view.
+  function switchMode(next: DefinitionsMode) {
+    setMode(next)
+    syncUrl({ mode: next })
+  }
+
+  /** Open a field or measure in Browse all fields and bring it into view (from a measure's source fields, or a list). */
+  function openInBrowse(id: string) {
+    setQuery("")
+    setExpanded((prev) => new Set(prev).add(id))
+    switchMode("browse")
+    setScrollTo(id)
+  }
+
+  // Scroll a deep-linked or jumped-to entry into view once it's rendered.
   useEffect(() => {
-    if (!initialFocus) return
-    const frame = requestAnimationFrame(() =>
-      document.getElementById(`field-${initialFocus}`)?.scrollIntoView({ behavior: "smooth", block: "start" })
-    )
+    if (!scrollTo) return
+    const frame = requestAnimationFrame(() => {
+      document.getElementById(`field-${scrollTo}`)?.scrollIntoView({ behavior: "smooth", block: "start" })
+      setScrollTo(null)
+    })
     return () => cancelAnimationFrame(frame)
-  }, [initialFocus])
+  }, [scrollTo, mode])
 
   const years = facilityData ? Object.keys(facilityData.values).map(Number).sort((a, b) => a - b) : []
   const activeYear = year ?? years.at(-1) ?? null
   const prevYear = activeYear != null ? (years.filter((y) => y < activeYear).at(-1) ?? null) : null
+  const operatingExpense = activeYear != null ? (facilityData?.values[activeYear]?.TOT_OP_EXP ?? null) : null
 
   // -- extract mapping -------------------------------------------------------
   const extractColumns = useMemo(() => {
@@ -134,7 +181,7 @@ export function TranslateView({
     return id && facilities.some((f) => f.id === id) ? id : null
   }, [extract, extractColumns, extractRow, facilities])
 
-  // -- values per field ------------------------------------------------------
+  // -- values per field and measure ------------------------------------------
   function valuesFor(field: DictionaryField): FieldValues | null {
     if (extract && extractColumns) {
       const col = extractColumns.find((c) => c.code === field.code)
@@ -160,50 +207,82 @@ export function TranslateView({
     }
   }
 
-  // -- filtering & ordering --------------------------------------------------
+  function metricValuesFor(metric: DictionaryMetric): MetricValues | null {
+    if (extract || !facilityData?.metrics || activeYear == null) return null
+    const at = (y: number | null) => (y != null ? (facilityData.metrics?.[y]?.[metric.id] ?? null) : null)
+    return { current: at(activeYear), previous: at(prevYear), history: years.map((y) => ({ year: y, value: at(y) })) }
+  }
+
+  const notableCodes = useMemo(() => {
+    const set = new Set<string>()
+    if (!facilityData || extract) return set
+    for (const f of dictionary.fields) {
+      const v = valuesFor(f)
+      if (v && typeof v.current !== "string" && isNotable(f, { current: v.current, previous: v.previous ?? null, change: v.change ?? null }, operatingExpense)) {
+        set.add(f.code)
+      }
+    }
+    return set
+    // valuesFor reads the hospital's values for the active year.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [facilityData, activeYear, prevYear, extract, dictionary.fields, operatingExpense])
+
+  // -- search ----------------------------------------------------------------
   const terms = query.toLowerCase().split(/\s+/).filter(Boolean)
+  const searching = terms.length > 0
   const matches = (hay: string) => terms.every((t) => hay.includes(t))
+  const fieldMatches = (f: DictionaryField) => matches(`${f.label} ${f.summary} ${f.hcaiLabel} ${f.code}`.toLowerCase())
+  const measureMatches = (m: DictionaryMetric) => matches(`${m.label} ${m.summary} ${m.formula} ${m.id}`.toLowerCase())
 
-  let fields: DictionaryField[] = extractColumns
-    ? extractColumns.map((c) => fieldByCode.get(c.code)).filter((f): f is DictionaryField => !!f)
-    : dictionary.fields
-  if (section) fields = fields.filter((f) => f.section === section)
-  if (terms.length) {
-    fields = fields.filter((f) => matches(`${f.code} ${f.label} ${f.hcaiLabel} ${f.summary}`.toLowerCase()))
-  }
-  const rows = fields.map((f) => ({ field: f, values: valuesFor(f) }))
-  if (sort === "change" && facilityData && !extract) {
-    rows.sort((a, b) => Math.abs(b.values?.change ?? -1) - Math.abs(a.values?.change ?? -1))
-  }
-  const bigMoves = rows.filter((r) => r.values?.change != null && Math.abs(r.values.change) >= BIG_CHANGE).length
-
-  const metrics = extract
-    ? []
-    : dictionary.metrics.filter(
-        (m) => !section && (!terms.length || matches(`${m.id} ${m.label} ${m.summary} ${m.formula}`.toLowerCase()))
-      )
-
-  function toggle(code: string) {
+  function toggle(id: string) {
+    // Opening a search result counts the search as one worth remembering.
+    if (searching && !expanded.has(id)) rememberSearch(query)
     setExpanded((prev) => {
       const next = new Set(prev)
-      if (next.has(code)) next.delete(code)
-      else next.add(code)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
       return next
     })
   }
 
-  const grouped = sort === "hcai" || !facilityData || !!extract
-  const groups = grouped
-    ? dictionary.sections
-        .map((s) => ({ section: s, rows: rows.filter((r) => r.field.section === s.id) }))
-        .filter((g) => g.rows.length)
-    : [{ section: null, rows }]
-  // Keep extract column order when translating an upload.
-  if (extract && grouped) groups.sort((a, b) => rows.indexOf(a.rows[0]) - rows.indexOf(b.rows[0]))
-
-  const compareLabel = prevYear != null && activeYear != null ? `from ${prevYear} to ${activeYear}` : undefined
-  const facilityName = facilities.find((f) => f.id === facilityId)?.name
+  const facilityName = facilities.find((f) => f.id === facilityId)?.name ?? null
+  const context: ValueContext = { facilityId, facilityName, year: activeYear, prevYear, extract: !!extract }
   const campuses = activeYear != null ? (facilityData?.meta[activeYear]?.campuses ?? []) : []
+
+  const fieldRow = (field: DictionaryField, { badge = true }: { badge?: boolean } = {}) => (
+    <FieldRow
+      key={field.code}
+      dataset={dataset}
+      field={field}
+      section={sections.get(field.section)}
+      values={valuesFor(field)}
+      usedIn={usedIn.get(field.code) ?? []}
+      notable={badge && notableCodes.has(field.code)}
+      pinned={watchlist.includes(field.code)}
+      onPin={() => toggleWatch(dataset, field.code)}
+      expanded={expanded.has(field.code)}
+      onToggle={() => toggle(field.code)}
+      context={context}
+    />
+  )
+  const measureRow = (metric: DictionaryMetric) => (
+    <MetricRow
+      key={metric.id}
+      dataset={dataset}
+      metric={metric}
+      values={metricValuesFor(metric)}
+      inputs={metric.inputs.map((c) => fieldByCode.get(c)).filter((f): f is DictionaryField => !!f)}
+      pinned={watchlist.includes(metric.id)}
+      onPin={() => toggleWatch(dataset, metric.id)}
+      expanded={expanded.has(metric.id)}
+      onToggle={() => toggle(metric.id)}
+      onJump={openInBrowse}
+      context={context}
+    />
+  )
+
+  const browsing = mode === "browse" || !!extract
+  const liveCount = searching ? dictionary.fields.filter(fieldMatches).length + measures.filter(measureMatches).length : 0
 
   return (
     <div className="space-y-6">
@@ -211,48 +290,84 @@ export function TranslateView({
         message={
           loadingFacility
             ? `Loading ${facilityName ?? "the hospital"}’s values…`
-            : query.trim()
-              ? `${rows.length + metrics.length} ${rows.length + metrics.length === 1 ? "match" : "matches"} for “${query.trim()}”.`
+            : searching
+              ? `${liveCount} ${liveCount === 1 ? "match" : "matches"} for “${query.trim()}”.`
               : ""
         }
       />
-      <Segmented
-        label="Which HCAI dataset"
-        value={source}
-        onChange={(slug) => router.push(`/data-definitions?${new URLSearchParams({ source: slug, ...(facilityId ? { facility: facilityId } : {}) })}`, { scroll: false })}
-        options={(["hafd-selected", "hau"] as const).map((d) => ({ value: DATASET_SLUG[d], label: DATASETS[d].shortLabel }))}
-      />
-
-      {/* Search + value source */}
-      <div className="grid gap-3 md:grid-cols-2">
-        <label className="glass flex h-11 min-w-0 items-center gap-2.5 rounded-xl px-3.5 transition-shadow duration-200 focus-within:glow-soft focus-within:ring-2 focus-within:ring-ring">
-          <Search className="size-4 shrink-0 text-tertiary-foreground" aria-hidden />
-          <span className="sr-only">Search fields</span>
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={
-              dataset === "hau"
-                ? "Search a field: ER_TRAFFIC_TOT, ICU days, diversion…"
-                : "Search a field: NETRV_MCAL_MC, charity care, staffed beds…"
-            }
-            className="h-full min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground"
-          />
-          {query && (
-            <button type="button" onClick={() => setQuery("")} aria-label="Clear search" className="text-tertiary-foreground hover:text-foreground">
-              <X className="size-4" />
-            </button>
-          )}
-        </label>
+      <div className="flex flex-wrap items-center gap-2">
+        <Segmented
+          label="Which HCAI dataset"
+          value={source}
+          onChange={(slug) =>
+            router.push(
+              `/data-definitions?${new URLSearchParams({ source: slug, ...(facilityId ? { facility: facilityId } : {}), ...(mode === "browse" ? { view: "browse" } : {}) })}`,
+              { scroll: false }
+            )
+          }
+          options={(["hafd-selected", "hau"] as const).map((d) => ({ value: DATASET_SLUG[d], label: DATASETS[d].shortLabel }))}
+        />
         {!extract && (
-          <div className="flex min-w-0 items-center gap-2">
-            <FacilityPicker
-              facilities={facilities}
-              value={facilityId}
-              onChange={(id) => void selectFacility(id)}
-              latestYear={latestYear}
+          <Segmented
+            label="View"
+            value={mode}
+            onChange={switchMode}
+            options={[
+              { value: "focused", label: "Focused" },
+              { value: "browse", label: "Browse all fields" },
+            ]}
+          />
+        )}
+      </div>
+
+      {/* Search + hospital */}
+      <div className="grid gap-3 md:grid-cols-2">
+        <div className="min-w-0 space-y-2">
+          <label className="glass flex h-11 min-w-0 items-center gap-2.5 rounded-xl px-3.5 transition-shadow duration-200 focus-within:glow-soft focus-within:ring-2 focus-within:ring-ring">
+            <Search className="size-4 shrink-0 text-tertiary-foreground" aria-hidden />
+            <span className="sr-only">Search fields and measures</span>
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && rememberSearch(query)}
+              placeholder={dataset === "hau" ? "Search: ICU days, ED visits, diversion…" : "Search: charity care, Medi-Cal revenue, staffed beds…"}
+              className="h-full min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground"
             />
+            {query && (
+              <button type="button" onClick={() => setQuery("")} aria-label="Clear search" className="text-tertiary-foreground hover:text-foreground">
+                <X className="size-4" />
+              </button>
+            )}
+          </label>
+          {recent.length > 0 && !searching && (
+            <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Recent searches">
+              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                <History className="size-3.5" aria-hidden /> Recent:
+              </span>
+              {recent.map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setQuery(r)}
+                  className="glass-subtle inline-flex h-7 max-w-48 items-center rounded-full px-2.5 text-[12px] focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                >
+                  <span className="truncate">{r}</span>
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={clearRecentSearches}
+                className="h-7 px-1 text-xs text-muted-foreground hover:text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+              >
+                Clear
+              </button>
+            </div>
+          )}
+        </div>
+        {!extract && (
+          <div className="flex min-w-0 items-start gap-2">
+            <FacilityPicker facilities={facilities} value={facilityId} onChange={(id) => void selectFacility(id)} latestYear={latestYear} />
             {facilityId && (
               <button
                 type="button"
@@ -267,39 +382,31 @@ export function TranslateView({
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <FilterPill
-          label="Section"
-          summary={section ? (sections.get(section)?.title ?? null) : null}
-          options={[{ value: "__all", label: "All sections" }, ...dictionary.sections.map((s) => ({ value: s.id, label: s.title }))]}
-          selected={[section ?? "__all"]}
-          onChange={([v]) => setSection(v === "__all" ? null : v)}
-          searchable
-        />
+      <div className="flex flex-wrap items-center gap-2 empty:hidden">
         {facilityData && !extract && years.length > 1 && (
-          <>
-            <FilterPill
-              label="Year"
-              summary={activeYear != null ? `${activeYear}${prevYear ? ` vs ${prevYear}` : ""}` : null}
-              options={years.slice(1).reverse().map((y) => ({ value: String(y), label: `${y} vs ${years.filter((p) => p < y).at(-1)}` }))}
-              selected={activeYear != null ? [String(activeYear)] : []}
-              active={year != null && year !== years.at(-1)}
-              onChange={([v]) => setYear(Number(v))}
-            />
-            <FilterPill
-              label="Order"
-              summary={sort === "change" ? "Biggest changes first" : "HCAI order"}
-              options={[
-                { value: "hcai", label: "HCAI order" },
-                { value: "change", label: "Biggest changes first" },
-              ]}
-              selected={[sort]}
-              active={sort !== "hcai"}
-              onChange={([v]) => setSort(v as SortMode)}
-            />
-          </>
+          <FilterPill
+            label="Year"
+            summary={activeYear != null ? `${activeYear}${prevYear ? ` vs ${prevYear}` : ""}` : null}
+            options={years.slice(1).reverse().map((y) => ({ value: String(y), label: `${y} vs ${years.filter((p) => p < y).at(-1)}` }))}
+            selected={activeYear != null ? [String(activeYear)] : []}
+            active={year != null && year !== years.at(-1)}
+            onChange={([v]) => setYear(Number(v))}
+          />
         )}
-        {!extract && !showExtractInput && (
+        {browsing && facilityData && !extract && (
+          <FilterPill
+            label="Order"
+            summary={order === "notable" ? "Notable first" : "HCAI form order"}
+            options={[
+              { value: "notable", label: "Notable first, within each section" },
+              { value: "hcai", label: "HCAI form order" },
+            ]}
+            selected={[order]}
+            active={order !== "notable"}
+            onChange={([v]) => setOrder(v as Order)}
+          />
+        )}
+        {browsing && !extract && !showExtractInput && (
           <button
             type="button"
             onClick={() => setShowExtractInput(true)}
@@ -321,7 +428,7 @@ export function TranslateView({
             setExtract(e)
             setExtractRow(0)
             setShowExtractInput(false)
-            setSort("hcai")
+            setOrder("hcai")
           }}
           onCancel={() => setShowExtractInput(false)}
         />
@@ -360,92 +467,398 @@ export function TranslateView({
       )}
 
       {facilityData && !extract && activeYear != null && (
-        <p className="text-[13px] text-muted-foreground">
-          Showing {facilityName}&apos;s {activeYear} values
-          {prevYear != null && <> and the change from {prevYear}</>}.{" "}
-          {campuses.length > 0 && (
-            <>
-              Includes the {new Intl.ListFormat("en-US").format(campuses)} campus{campuses.length === 1 ? "" : "es"} on the
-              same license.{" "}
-            </>
-          )}
-          {bigMoves > 0 && (
-            <>
-              <span className="font-medium text-foreground">{bigMoves}</span> field{bigMoves === 1 ? "" : "s"} moved by 20% or more.
-            </>
-          )}
-        </p>
-      )}
-      {facilityData && !extract && activeYear != null && (
-        <StatusLine
-          through={String(activeYear)}
-          periodType={DATASETS[dataset].periodType}
-          published={
-            sourceStatus.published[activeYear]
-              ? `Published ${sourceStatus.published[activeYear]}`
-              : sourceStatus.sourceUpdated
-                ? `Source updated ${sourceStatus.sourceUpdated}`
-                : null
-          }
-          processed={`Processed ${sourceStatus.processed}`}
-          audit={dataset === "hafd-selected" ? auditLabel(facilityData.meta[activeYear]?.status) : null}
-          flags={[
-            ...(years.at(-1)! < sourceLatestYear ? (["stale"] as const) : []),
-            ...(sourceStatus.provisional.includes(activeYear) ? (["provisional"] as const) : []),
-            ...(facilityData.meta[activeYear]?.annualized ? (["partial-period"] as const) : []),
-          ]}
-          flagDetail={{ stale: `This hospital's latest report is ${years.at(-1)}; HCAI has published ${sourceLatestYear}.` }}
-        />
-      )}
-
-      {/* Benchmark metrics share this dictionary; list them first. */}
-      {metrics.length > 0 && <MetricsList metrics={metrics} expanded={expanded} onToggle={toggle} />}
-
-      {groups.map(({ section: s, rows: groupRows }) => (
-        <section key={s?.id ?? "all"} aria-labelledby={s ? `section-${s.id}` : undefined} className="space-y-2">
-          {s && (
-            <div className="px-1">
-              <h2 id={`section-${s.id}`} className="text-[13px] font-semibold tracking-tight">
-                {s.title}
-              </h2>
-              <p className="text-xs text-muted-foreground">{s.summary}</p>
-            </div>
-          )}
-          <ul className="surface divide-y divide-border overflow-hidden rounded-2xl">
-            {groupRows.map(({ field, values }) => (
-              <FieldRow
-                key={field.code}
-                field={field}
-                section={sections.get(field.section)}
-                values={values}
-                expanded={expanded.has(field.code)}
-                onToggle={() => toggle(field.code)}
-                compareLabel={compareLabel}
-              />
-            ))}
-          </ul>
-        </section>
-      ))}
-
-      {rows.length === 0 && metrics.length === 0 && (
-        <div className="glass rounded-2xl p-10 text-center">
-          <p className="font-medium">No fields match “{query}”.</p>
-          <p className="mt-1 text-sm text-muted-foreground">Try a field code like CASH, or a plain word like “charity”.</p>
+        <div className="space-y-2">
+          <p className="text-[13px] text-muted-foreground">
+            Showing {facilityName}&apos;s {activeYear} values
+            {prevYear != null && <> and the change from {prevYear}</>}.{" "}
+            {campuses.length > 0 && (
+              <>
+                Includes the {new Intl.ListFormat("en-US").format(campuses)} campus{campuses.length === 1 ? "" : "es"} on the same
+                license.{" "}
+              </>
+            )}
+            {notableCodes.size > 0 && (
+              <>
+                <span className="font-medium text-foreground">{notableCodes.size}</span> field{notableCodes.size === 1 ? "" : "s"} had a notable
+                change.
+              </>
+            )}
+          </p>
+          <StatusLine
+            through={String(activeYear)}
+            periodType={DATASETS[dataset].periodType}
+            published={
+              sourceStatus.published[activeYear]
+                ? `Published ${sourceStatus.published[activeYear]}`
+                : sourceStatus.sourceUpdated
+                  ? `Source updated ${sourceStatus.sourceUpdated}`
+                  : null
+            }
+            processed={`Processed ${sourceStatus.processed}`}
+            audit={dataset === "hafd-selected" ? auditLabel(facilityData.meta[activeYear]?.status) : null}
+            flags={[
+              ...(years.at(-1)! < sourceLatestYear ? (["stale"] as const) : []),
+              ...(sourceStatus.provisional.includes(activeYear) ? (["provisional"] as const) : []),
+              ...(facilityData.meta[activeYear]?.annualized ? (["partial-period"] as const) : []),
+            ]}
+            flagDetail={{ stale: `This hospital's latest report is ${years.at(-1)}; HCAI has published ${sourceLatestYear}.` }}
+          />
         </div>
+      )}
+
+      {browsing ? (
+        <BrowseAll
+          dictionary={dictionary}
+          measures={measures}
+          fields={extractColumns ? extractColumns.map((c) => fieldByCode.get(c.code)).filter((f): f is DictionaryField => !!f) : dictionary.fields}
+          keepFileOrder={!!extract}
+          fieldFilter={searching ? fieldMatches : null}
+          measureFilter={extract ? () => false : searching ? measureMatches : null}
+          notable={notableCodes}
+          notableFirst={order === "notable" && !!facilityData && !extract}
+          fieldRow={fieldRow}
+          measureRow={measureRow}
+          query={query}
+        />
+      ) : searching ? (
+        <SearchResults
+          fields={dictionary.fields.filter(fieldMatches)}
+          measures={measures.filter(measureMatches)}
+          fieldRow={fieldRow}
+          measureRow={measureRow}
+          query={query}
+          onBrowse={() => switchMode("browse")}
+        />
+      ) : (
+        <Focused
+          dataset={dataset}
+          facilityName={facilityName}
+          loading={loadingFacility}
+          hasValues={!!facilityData && activeYear != null}
+          yearLabel={prevYear != null && activeYear != null ? `${prevYear} to ${activeYear}` : null}
+          notableFields={dictionary.fields
+            .filter((f) => notableCodes.has(f.code))
+            .map((f) => {
+              const v = valuesFor(f)!
+              return { field: f, score: materiality(f, { current: v.current as number, previous: v.previous ?? null, change: v.change ?? null }, operatingExpense) }
+            })
+            .sort((a, b) => b.score - a.score)
+            .map((x) => x.field)}
+          watched={watchlist.flatMap((id): FocusedEntry[] => {
+            const m = measures.find((x) => x.id === id)
+            if (m) return [{ kind: "measure", metric: m }]
+            const f = fieldByCode.get(id)
+            return f ? [{ kind: "field", field: f }] : []
+          })}
+          keyMeasures={keyMeasures(measures, metricValuesFor)}
+          fieldRow={fieldRow}
+          measureRow={measureRow}
+          onBrowseNotable={() => {
+            setOrder("notable")
+            switchMode("browse")
+          }}
+        />
       )}
 
       {unknownColumns.length > 0 && (
         <section className="surface rounded-2xl p-5">
           <h2 className="text-[13px] font-semibold">Columns not in this dictionary ({unknownColumns.length})</h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            These may come from a different HCAI dataset (like the Quarterly or complete Annual Disclosure file), which
-            this app doesn&apos;t cover yet.
+            These may come from a different HCAI dataset (like the Quarterly or complete Annual Disclosure file), which this app doesn&apos;t
+            cover yet.
           </p>
-          <p className="mt-3 font-mono text-xs leading-relaxed text-muted-foreground">
-            {unknownColumns.map((c) => c.header).join(" · ")}
-          </p>
+          <p className="mt-3 font-mono text-xs leading-relaxed text-muted-foreground">{unknownColumns.map((c) => c.header).join(" · ")}</p>
         </section>
       )}
+    </div>
+  )
+}
+
+/**
+ * The key measures for the focused view: the source's own measures on Compare (not the Medicare versions, which Browse
+ * lists), exceptions first — worsening, then improving, then the rest in the dictionary's order.
+ */
+function keyMeasures(measures: DictionaryMetric[], valuesOf: (m: DictionaryMetric) => MetricValues | null) {
+  const rank = { worsening: 0, improving: 1 } as Record<string, number>
+  return measures
+    .filter((m) => m.category != null && !m.lens)
+    .map((m, i) => ({ m, i, t: metricTrend(m, valuesOf(m)) }))
+    .sort((a, b) => (rank[a.t ?? ""] ?? 2) - (rank[b.t ?? ""] ?? 2) || a.i - b.i)
+    .map((x) => x.m)
+}
+
+type FocusedEntry = { kind: "measure"; metric: DictionaryMetric } | { kind: "field"; field: DictionaryField }
+
+function RowList({ children }: { children: React.ReactNode }) {
+  return <ul className="divide-y divide-border overflow-hidden rounded-xl bg-card ring-1 ring-border">{children}</ul>
+}
+
+function Focused({
+  dataset,
+  facilityName,
+  loading,
+  hasValues,
+  yearLabel,
+  notableFields,
+  watched,
+  keyMeasures,
+  fieldRow,
+  measureRow,
+  onBrowseNotable,
+}: {
+  dataset: HcaiDatasetId
+  facilityName: string | null
+  loading: boolean
+  hasValues: boolean
+  yearLabel: string | null
+  /** Notable fields, most material first. */
+  notableFields: DictionaryField[]
+  watched: FocusedEntry[]
+  keyMeasures: DictionaryMetric[]
+  fieldRow: (f: DictionaryField, opts?: { badge?: boolean }) => React.ReactNode
+  measureRow: (m: DictionaryMetric) => React.ReactNode
+  onBrowseNotable: () => void
+}) {
+  const dollars = notableFields.filter((f) => f.unit === "usd")
+  const volumes = notableFields.filter((f) => f.unit !== "usd")
+  const lists = [
+    { title: "Biggest dollar changes", note: "Ranked by size against total operating expenses.", rows: dollars },
+    { title: dataset === "hau" ? "Biggest changes" : "Biggest volume and staffing changes", note: "Ranked by percent change.", rows: volumes },
+  ].filter((l) => l.rows.length)
+  return (
+    <div className="space-y-5">
+      <OverviewSection
+        id="definitions-notable"
+        icon={Sparkles}
+        title={facilityName ? `Notable for ${facilityName}` : "Notable changes"}
+        description={
+          hasValues && yearLabel
+            ? `Fields that moved 20% or more from ${yearLabel}, by a material amount: at least 1% of operating expenses for dollars, and not tiny counts.`
+            : "Fields that moved a lot from one year to the next, for the hospital you choose."
+        }
+        busy={loading}
+      >
+        {!facilityName ? (
+          <SectionEmpty title="Choose a hospital to see what changed">
+            Pick one above: the fields that moved most for it come first, with what can drive each change.
+          </SectionEmpty>
+        ) : loading || !hasValues ? (
+          loading ? (
+            <p className="text-[13px] text-muted-foreground">Loading {facilityName}&apos;s values…</p>
+          ) : (
+            <SectionEmpty title="No year-over-year change to show">This hospital has fewer than two years of this report.</SectionEmpty>
+          )
+        ) : lists.length === 0 ? (
+          <SectionEmpty title="Nothing notable">
+            No field moved 20% or more by a material amount{yearLabel ? ` from ${yearLabel}` : ""}.
+          </SectionEmpty>
+        ) : (
+          <div className="space-y-4">
+            {lists.map((l) => (
+              <div key={l.title} className="space-y-2">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+                  <h3 className="text-[13px] font-semibold">{l.title}</h3>
+                  <p className="text-xs text-muted-foreground">
+                    {l.rows.length > NOTABLE_SHOWN ? `Top ${NOTABLE_SHOWN} of ${l.rows.length}. ` : ""}
+                    {l.note}
+                  </p>
+                </div>
+                <RowList>{l.rows.slice(0, NOTABLE_SHOWN).map((f) => fieldRow(f, { badge: false }))}</RowList>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={onBrowseNotable}
+              className="inline-flex items-center gap-1.5 text-[13px] font-medium text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+            >
+              <ListTree className="size-3.5" aria-hidden />
+              See all {notableFields.length} notable field{notableFields.length === 1 ? "" : "s"} in Browse all fields
+            </button>
+          </div>
+        )}
+      </OverviewSection>
+
+      <OverviewSection
+        id="definitions-watchlist"
+        icon={Pin}
+        title="Your watchlist"
+        description="Fields and measures you pinned. Saved in this browser only."
+      >
+        {watched.length === 0 ? (
+          <SectionEmpty title="Nothing pinned yet">
+            Use the pin on any field or measure to keep it here, with its latest value for the hospital you choose.
+          </SectionEmpty>
+        ) : (
+          <RowList>{watched.map((e) => (e.kind === "measure" ? measureRow(e.metric) : fieldRow(e.field)))}</RowList>
+        )}
+      </OverviewSection>
+
+      <OverviewSection
+        id="definitions-key"
+        icon={Gauge}
+        title="Key measures"
+        description={
+          hasValues
+            ? "The measures Compare shows from this report, worsening first, then improving. Open one for its formula and source fields."
+            : "The measures Compare shows from this report. Open one for its formula and source fields."
+        }
+      >
+        <RowList>{keyMeasures.map(measureRow)}</RowList>
+      </OverviewSection>
+    </div>
+  )
+}
+
+function SearchResults({
+  fields,
+  measures,
+  fieldRow,
+  measureRow,
+  query,
+  onBrowse,
+}: {
+  fields: DictionaryField[]
+  measures: DictionaryMetric[]
+  fieldRow: (f: DictionaryField) => React.ReactNode
+  measureRow: (m: DictionaryMetric) => React.ReactNode
+  query: string
+  onBrowse: () => void
+}) {
+  if (!fields.length && !measures.length) return <NoMatches query={query} />
+  return (
+    <div className="space-y-5">
+      {measures.length > 0 && (
+        <section aria-labelledby="results-measures" className="space-y-2">
+          <h2 id="results-measures" className="px-1 text-[13px] font-semibold">
+            Measures ({measures.length})
+          </h2>
+          <RowList>{measures.map(measureRow)}</RowList>
+        </section>
+      )}
+      {fields.length > 0 && (
+        <section aria-labelledby="results-fields" className="space-y-2">
+          <h2 id="results-fields" className="px-1 text-[13px] font-semibold">
+            Fields ({fields.length})
+          </h2>
+          <RowList>{fields.slice(0, RESULTS_SHOWN).map((f) => fieldRow(f))}</RowList>
+          {fields.length > RESULTS_SHOWN && (
+            <p className="px-1 text-[13px] text-muted-foreground">
+              {fields.length - RESULTS_SHOWN} more.{" "}
+              <button type="button" onClick={onBrowse} className="font-medium text-primary hover:underline">
+                See them all in Browse all fields
+              </button>{" "}
+              or search for something more specific.
+            </p>
+          )}
+        </section>
+      )}
+    </div>
+  )
+}
+
+function NoMatches({ query }: { query: string }) {
+  return (
+    <div className="glass rounded-2xl p-10 text-center">
+      <p className="font-medium">Nothing matches “{query}”.</p>
+      <p className="mt-1 text-sm text-muted-foreground">Try a plain word like “charity” or “ICU”, or a field code like CASH.</p>
+    </div>
+  )
+}
+
+/** Every field, section by section, with a sticky index; the measures come first. */
+function BrowseAll({
+  dictionary,
+  measures,
+  fields,
+  keepFileOrder,
+  fieldFilter,
+  measureFilter,
+  notable,
+  notableFirst,
+  fieldRow,
+  measureRow,
+  query,
+}: {
+  dictionary: Dictionary
+  measures: DictionaryMetric[]
+  fields: DictionaryField[]
+  keepFileOrder: boolean
+  fieldFilter: ((f: DictionaryField) => boolean) | null
+  measureFilter: ((m: DictionaryMetric) => boolean) | null
+  notable: Set<string>
+  notableFirst: boolean
+  fieldRow: (f: DictionaryField) => React.ReactNode
+  measureRow: (m: DictionaryMetric) => React.ReactNode
+  query: string
+}) {
+  const shownMeasures = measureFilter ? measures.filter(measureFilter) : measures
+  const shownFields = fieldFilter ? fields.filter(fieldFilter) : fields
+  const groups = dictionary.sections
+    .map((s) => {
+      let rows = shownFields.filter((f) => f.section === s.id)
+      if (notableFirst) rows = [...rows.filter((f) => notable.has(f.code)), ...rows.filter((f) => !notable.has(f.code))]
+      return { section: s, rows, notable: rows.filter((f) => notable.has(f.code)).length }
+    })
+    .filter((g) => g.rows.length)
+  // Keep an uploaded file's column order.
+  if (keepFileOrder) groups.sort((a, b) => shownFields.indexOf(a.rows[0]) - shownFields.indexOf(b.rows[0]))
+  if (!groups.length && !shownMeasures.length) return <NoMatches query={query} />
+
+  const index = [
+    ...(shownMeasures.length ? [{ id: "section-measures", label: "Measures", count: shownMeasures.length, notable: 0 }] : []),
+    ...groups.map((g) => ({ id: `section-${g.section.id}`, label: g.section.title, count: g.rows.length, notable: g.notable })),
+  ]
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-6 md:grid-cols-[13rem_minmax(0,1fr)]">
+      <nav aria-label="Field sections" className="glass-strong sticky top-12 z-10 -mx-4 border-b border-border px-4 py-2 md:top-24 md:mx-0 md:self-start md:rounded-2xl md:border-0 md:p-2">
+        <p className="sr-only md:not-sr-only md:px-2 md:pt-1 md:pb-2 md:text-xs md:font-semibold md:tracking-wide md:text-tertiary-foreground md:uppercase">
+          Sections
+        </p>
+        <ul className="relative flex gap-1.5 overflow-x-auto md:max-h-[calc(100dvh-9rem)] md:flex-col md:gap-0.5 md:overflow-y-auto">
+          {index.map((i) => (
+            <li key={i.id} className="shrink-0">
+              <a
+                href={`#${i.id}`}
+                className="flex h-8 items-center gap-2 rounded-full px-3 text-[13px] whitespace-nowrap text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none md:h-auto md:rounded-lg md:px-2 md:py-1.5 md:whitespace-normal"
+              >
+                <span className="md:flex-1">{i.label}</span>
+                {i.notable > 0 && (
+                  <span className="inline-flex items-center gap-1 text-xs text-foreground" title={`${i.notable} notable`}>
+                    <span className="size-1.5 rounded-full bg-warning" aria-hidden />
+                    {i.notable}
+                    <span className="sr-only"> notable</span>
+                  </span>
+                )}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+      <div className="min-w-0 space-y-6">
+        {shownMeasures.length > 0 && (
+          <section id="section-measures" aria-labelledby="section-measures-title" className="scroll-mt-28 space-y-2 md:scroll-mt-24">
+            <div className="px-1">
+              <h2 id="section-measures-title" className="text-[13px] font-semibold tracking-tight">
+                Measures
+              </h2>
+              <p className="text-xs text-muted-foreground">The measures Padua calculates from these fields, with their formulas.</p>
+            </div>
+            <RowList>{shownMeasures.map(measureRow)}</RowList>
+          </section>
+        )}
+        {groups.map(({ section: s, rows, notable: n }) => (
+          <section key={s.id} id={`section-${s.id}`} aria-labelledby={`section-${s.id}-title`} className="scroll-mt-28 space-y-2 md:scroll-mt-24">
+            <div className="px-1">
+              <h2 id={`section-${s.id}-title`} className="text-[13px] font-semibold tracking-tight">
+                {s.title}
+                {n > 0 && <span className="ml-2 text-xs font-normal text-muted-foreground">{n} notable</span>}
+              </h2>
+              <p className="text-xs text-muted-foreground">{s.summary}</p>
+            </div>
+            <RowList>{rows.map((f) => fieldRow(f))}</RowList>
+          </section>
+        ))}
+      </div>
     </div>
   )
 }
@@ -515,67 +928,3 @@ function ExtractBanner({
   )
 }
 
-function MetricsList({
-  metrics,
-  expanded,
-  onToggle,
-}: {
-  metrics: DictionaryMetric[]
-  expanded: Set<string>
-  onToggle: (id: string) => void
-}) {
-  return (
-    <section aria-labelledby="section-metrics" className="space-y-2">
-      <div className="px-1">
-        <h2 id="section-metrics" className="text-[13px] font-semibold tracking-tight">
-          Compare metrics
-        </h2>
-        <p className="text-xs text-muted-foreground">The ratios on the Compare tab, and how each is calculated from HCAI fields.</p>
-      </div>
-      <ul className="surface divide-y divide-border overflow-hidden rounded-2xl">
-        {metrics.map((m) => {
-          const open = expanded.has(m.id)
-          return (
-            <li key={m.id} id={`field-${m.id}`} className="scroll-mt-24">
-              <button
-                type="button"
-                aria-expanded={open}
-                onClick={() => onToggle(m.id)}
-                className={cn(
-                  "grid w-full grid-cols-[1fr_auto] items-start gap-4 px-4 py-3.5 text-left transition-colors duration-150 sm:px-5",
-                  "hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:outline-none",
-                  open && "bg-muted/40"
-                )}
-              >
-                <span>
-                  <span className="block text-[15px] font-medium">{m.label}</span>
-                  <span className="mt-0.5 block text-[13px] leading-relaxed text-muted-foreground">{m.summary}</span>
-                </span>
-                <ChevronRight className={cn("mt-1 size-4 text-tertiary-foreground transition-transform duration-200", open && "rotate-90")} />
-              </button>
-              {open && (
-                <div className="fade-up grid gap-5 bg-muted/40 px-4 pt-1 pb-5 sm:grid-cols-2 sm:px-5">
-                  <div className="space-y-3">
-                    <p className="rounded-lg bg-card px-3 py-2 font-mono text-xs leading-relaxed ring-1 ring-border">{m.formula}</p>
-                    {m.caution && <p className="text-[13px] leading-relaxed text-muted-foreground">{m.caution}</p>}
-                  </div>
-                  <div>
-                    <p className="text-[13px] font-medium">Why this number moves</p>
-                    <ul className="mt-2 space-y-2">
-                      {m.drivers.map((d) => (
-                        <li key={d} className="flex gap-2.5 text-[13px] leading-relaxed text-muted-foreground">
-                          <span className="mt-2 size-1 shrink-0 rounded-full bg-tertiary-foreground" aria-hidden />
-                          {d}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              )}
-            </li>
-          )
-        })}
-      </ul>
-    </section>
-  )
-}
