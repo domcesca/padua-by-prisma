@@ -3,7 +3,7 @@
 export default function Error({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
   return (
     <div className="mx-auto max-w-md py-24 text-center">
-      <p className="text-lg font-semibold tracking-tight">Something went wrong loading this page.</p>
+      <h1 className="text-lg font-semibold tracking-tight">Something went wrong loading this page.</h1>
       <p className="mt-2 text-sm text-muted-foreground">
         The data may be temporarily unavailable. Try again, or pick a different tab.
       </p>

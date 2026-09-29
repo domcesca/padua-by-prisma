@@ -292,6 +292,16 @@ downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and
   Outdated = newest report more than 2 years behind the newest data (13 hospitals, some of them campuses now reported
   under a parent).
 
+### V7.4 (accessibility baseline, WCAG 2.2 AA)
+- Audit-and-fix pass; details in the README. axe-core: 7 failing rule types (355 element hits across 54 page states) → 0.
+  Keyboard-only walk: pick a hospital, Compare, switch topics, open and close a drawer, peer popover, modes, table
+  view, phone Filters sheet, all by keyboard. API regression against main (V7.3): 7,216/7,216 identical.
+- Decisions to confirm: Compare cards show the Chart/Table toggle in Guided mode too (V7.1 hid it); dark-mode link
+  blue is lighter (#5aaaff) and light-mode blue a touch deeper (#0062c4); gradient buttons use deeper stops.
+- Known gaps, not fixed here: no real screen reader was run (NVDA, JAWS, VoiceOver), only Chromium's accessibility
+  tree; chart tooltips are hover-only (the table view carries the numbers); grouped bars differ by color and order,
+  not pattern; glass contrast is computed for the design's fills, not for every backdrop the blur can sit over.
+
 ### V7.3 (Home → Overview dashboard)
 - Home's step sequence replaced by an Overview for the remembered hospital: Needs attention, What changed, Upcoming
   filings, Saved work, Common actions, under the shared context bar; a focused hospital pick on the first visit only.

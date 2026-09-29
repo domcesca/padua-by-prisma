@@ -1,7 +1,7 @@
 "use client"
 
 import { ChevronsUpDown, Search } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -29,6 +29,16 @@ export type FacilityOption = {
   closure: FacilityClosure | null
 }
 
+/** What cmdk matches a hospital on: its name, city, county, former names and id. */
+const searchValue = (f: FacilityOption) => [f.name, f.city, f.county, ...f.formerNames, f.id].filter(Boolean).join(" ")
+
+/** Every search word must appear; a match at the start ranks first. */
+function matchScore(itemValue: string, search: string) {
+  const terms = search.toLowerCase().split(/\s+/).filter(Boolean)
+  const hay = itemValue.toLowerCase()
+  return terms.every((t) => hay.includes(t)) ? (hay.startsWith(terms[0] ?? "") ? 1 : 0.5) : 0
+}
+
 export function FacilityPicker({
   facilities,
   value,
@@ -52,6 +62,16 @@ export function FacilityPicker({
   className?: string
 }) {
   const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState("")
+  const [announced, setAnnounced] = useState("")
+  useEffect(() => {
+    if (!open) return
+    const timer = setTimeout(() => {
+      const n = search.trim() ? facilities.filter((f) => matchScore(searchValue(f), search) > 0).length : facilities.length
+      setAnnounced(n === 0 ? "No hospitals match." : `${n.toLocaleString("en-US")} hospital${n === 1 ? "" : "s"}${search.trim() ? " match" : ""}. Use the arrow keys to choose.`)
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [search, open, facilities])
   const selected = facilities.find((f) => f.id === value) ?? null
   const selectedFlag = selected ? facilityFlag(selected, latestYear) : null
 
@@ -78,14 +98,15 @@ export function FacilityPicker({
       </PopoverTrigger>
       <PopoverContent align="start" className="w-(--anchor-width) min-w-80 p-0">
         <Command
+          label="Hospital search"
           // cmdk ranks on `value`, which includes city, county, and former names.
-          filter={(itemValue, search) => {
-            const terms = search.toLowerCase().split(/\s+/).filter(Boolean)
-            const hay = itemValue.toLowerCase()
-            return terms.every((t) => hay.includes(t)) ? (hay.startsWith(terms[0] ?? "") ? 1 : 0.5) : 0
-          }}
+          filter={matchScore}
         >
-          <CommandInput placeholder="Hospital, city, or county…" autoFocus />
+          <CommandInput placeholder="Hospital, city, or county…" autoFocus value={search} onValueChange={setSearch} />
+          {/* The combobox doesn't say how many results a search leaves; this does, once typing pauses. */}
+          <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+            {announced}
+          </p>
           <CommandList className="max-h-80">
             <CommandEmpty>No hospitals match.</CommandEmpty>
             <CommandGroup>
@@ -94,7 +115,7 @@ export function FacilityPicker({
                 return (
                 <CommandItem
                   key={f.id}
-                  value={[f.name, f.city, f.county, ...f.formerNames, f.id].filter(Boolean).join(" ")}
+                  value={searchValue(f)}
                   onSelect={() => {
                     onChange(f.id)
                     setOpen(false)

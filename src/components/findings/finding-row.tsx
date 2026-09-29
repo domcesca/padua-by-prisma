@@ -8,6 +8,7 @@ import { pin, snapshotOf, unpin, usePins, type FindingContext } from "@/lib/find
 import { SIGNAL_TYPE_LABEL } from "@/lib/findings/families"
 import { findingStanding, headlineOf } from "@/lib/findings/links"
 import { CONFIDENCE_LABEL, type Finding } from "@/lib/findings/score"
+import { announce } from "@/components/shell/live-status"
 import { cn } from "@/lib/utils"
 
 // One finding as a row: the standing badge and title first (the shared vocabulary), one line of evidence, the score
@@ -42,8 +43,9 @@ export function PinButton({
     <button
       type="button"
       aria-pressed={pinned}
-      onClick={() =>
-        pinned
+      onClick={() => {
+        announce(pinned ? `Removed ${finding.label} from Saved briefings.` : `Pinned ${finding.label} to Saved briefings.`)
+        return pinned
           ? unpin(finding.id)
           : pin({
               id: finding.id,
@@ -53,7 +55,7 @@ export function PinButton({
               peerQuery: context.peerQuery,
               snapshot: snapshotOf(finding, tier, context.peerGroup, headlineOf(finding)),
             })
-      }
+      }}
       className={cn(ACTION, pinned ? "bg-primary/10 text-primary" : "glass-subtle", className)}
     >
       {pinned ? <PinOff className="size-3.5" aria-hidden /> : <Pin className="size-3.5" aria-hidden />}

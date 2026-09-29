@@ -4,6 +4,7 @@ import { ChevronDown, Sparkles } from "lucide-react"
 
 import type { IntakeSuggestion } from "@/lib/propose/intake"
 import type { ProposalModule } from "@/lib/propose/module"
+import { onRadioGroupKeyDown, rovingTabIndex } from "@/lib/radio-group"
 import { cn } from "@/lib/utils"
 
 /**
@@ -97,8 +98,8 @@ export function ModuleIntake({
         )}
 
         {open && (
-          <div id="module-options" role="radiogroup" aria-labelledby="module-label" className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-            {modules.map((m) => {
+          <div id="module-options" role="radiogroup" aria-labelledby="module-label" onKeyDown={onRadioGroupKeyDown} className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+            {modules.map((m, i) => {
               const on = m.id === current.id
               const Icon = m.icon
               return (
@@ -107,6 +108,7 @@ export function ModuleIntake({
                   type="button"
                   role="radio"
                   aria-checked={on}
+                  tabIndex={rovingTabIndex(on, i, modules.some((x) => x.id === current.id))}
                   onClick={() => onPick(m.id)}
                   className={cn(
                     "glass flex items-start gap-3 rounded-xl px-3.5 py-3 text-left transition-shadow duration-200",

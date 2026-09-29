@@ -1,8 +1,9 @@
 "use client"
 
+import { onRadioGroupKeyDown, rovingTabIndex } from "@/lib/radio-group"
 import { cn } from "@/lib/utils"
 
-/** iOS-style segmented control (a radio group). */
+/** iOS-style segmented control (a radio group): one tab stop, arrow keys move and select (lib/radio-group.ts). */
 export function Segmented<T extends string>({
   value,
   onChange,
@@ -19,13 +20,14 @@ export function Segmented<T extends string>({
   className?: string
 }) {
   return (
-    <div role="radiogroup" aria-label={label} className={cn("glass-subtle inline-flex rounded-full p-0.5", className)}>
-      {options.map((o) => (
+    <div role="radiogroup" aria-label={label} onKeyDown={onRadioGroupKeyDown} className={cn("glass-subtle inline-flex rounded-full p-0.5", className)}>
+      {options.map((o, i) => (
         <button
           key={o.value}
           type="button"
           role="radio"
           aria-checked={value === o.value}
+          tabIndex={rovingTabIndex(value === o.value, i, options.some((x) => x.value === value))}
           onClick={() => onChange(o.value)}
           className={cn(
             "rounded-full font-medium transition-[background-color,color,box-shadow] duration-200",

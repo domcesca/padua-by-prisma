@@ -76,12 +76,15 @@ export function UpcomingFilings({
                 const Icon = s.icon
                 return (
                   <li key={d.id} className="flex items-start gap-3 py-2.5 first:pt-0.5 last:pb-0.5">
-                    <div className="w-11 shrink-0 text-center">
+                    <div className="w-11 shrink-0 text-center" aria-hidden>
                       <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">{formatDate(due, { month: "short" })}</p>
                       <p className="num text-lg leading-none font-semibold">{formatDate(due, { day: "numeric" })}</p>
                     </div>
                     <div className="min-w-0 space-y-0.5">
-                      <p className="text-[14px] leading-snug font-medium">{KIND_LABEL[d.kind](d)}</p>
+                      <p className="text-[14px] leading-snug font-medium">
+                        {KIND_LABEL[d.kind](d)}
+                        <span className="sr-only">, due {formatDate(due)}</span>
+                      </p>
                       <p className={cn("inline-flex flex-wrap items-center gap-1 text-xs font-medium", s.className)}>
                         <Icon className="size-3.5 shrink-0" aria-hidden />
                         {s.label}

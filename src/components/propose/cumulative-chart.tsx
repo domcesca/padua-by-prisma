@@ -12,6 +12,22 @@ export const SCENARIO_COLOR: Record<ScenarioId, string> = {
   optimistic: "var(--series-3)",
 }
 
+/** Line style per scenario, so the three lines differ by more than color: dashed, solid, dotted. */
+export const SCENARIO_DASH: Record<ScenarioId, string | undefined> = {
+  conservative: "7 4",
+  expected: undefined,
+  optimistic: "1.5 3.5",
+}
+
+/** The legend's swatch: the scenario's color and line style. */
+export function ScenarioSwatch({ scenario }: { scenario: ScenarioId }) {
+  return (
+    <svg width="20" height="4" viewBox="0 0 20 4" aria-hidden className="shrink-0">
+      <line x1="1" y1="2" x2="19" y2="2" stroke={SCENARIO_COLOR[scenario]} strokeWidth="2.5" strokeLinecap="round" strokeDasharray={SCENARIO_DASH[scenario]} />
+    </svg>
+  )
+}
+
 /** Cumulative net cash over the useful life, one line per scenario; where a line crosses zero is payback. */
 export function CumulativeChart({ projections, focus }: { projections: Projection[]; focus: ScenarioId }) {
   const years = projections[0].rows.map((r) => r.year)
@@ -24,7 +40,7 @@ export function CumulativeChart({ projections, focus }: { projections: Projectio
   return (
     <div className="h-72 w-full" aria-hidden>
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 8, right: 16, bottom: 4, left: 4 }}>
+        <LineChart accessibilityLayer={false} data={data} margin={{ top: 8, right: 16, bottom: 4, left: 4 }}>
           <CartesianGrid vertical={false} stroke="var(--border)" />
           <XAxis
             dataKey="year"
@@ -63,6 +79,8 @@ export function CumulativeChart({ projections, focus }: { projections: Projectio
               type="linear"
               dataKey={p.scenario}
               stroke={SCENARIO_COLOR[p.scenario]}
+              strokeDasharray={SCENARIO_DASH[p.scenario]}
+              strokeLinecap="round"
               strokeWidth={p.scenario === focus ? 2.75 : 1.75}
               strokeOpacity={p.scenario === focus ? 1 : 0.55}
               dot={p.rows.length <= 12 ? { r: p.scenario === focus ? 3 : 2, strokeWidth: 0, fill: SCENARIO_COLOR[p.scenario] } : false}

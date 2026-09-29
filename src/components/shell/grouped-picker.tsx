@@ -73,6 +73,7 @@ function matchedTag(o: PickerOption, terms: string[]) {
 }
 
 export function GroupedPicker({ noun, options, selected, onChange, multiple = false, max, autoFocus, listClassName, emptyText }: PickerProps) {
+  const [active, setActive] = useState("")
   const [query, setQuery] = useState("")
   const groups = [...new Set(options.map((o) => o.group ?? ""))]
   // One group (or none) is short enough to list as is.
@@ -130,7 +131,8 @@ export function GroupedPicker({ noun, options, selected, onChange, multiple = fa
     return (
       <CommandItem
         value={`__group ${id}`}
-        aria-expanded={open}
+        // An option can't carry aria-expanded, so the name says it: "Financials, expand group".
+        aria-label={`${label}${chosenCount > 0 ? `, ${chosenCount} chosen` : ""}${count != null ? `, ${count} options` : ""}, ${open ? "collapse" : "expand"} group`}
         onSelect={() => toggleGroup(id)}
         // The item's built-in check icon means nothing on a heading.
         className="font-medium [&>svg:last-child]:hidden"
@@ -138,7 +140,7 @@ export function GroupedPicker({ noun, options, selected, onChange, multiple = fa
         <Chevron className="size-3.5! text-tertiary-foreground" />
         <span className="min-w-0 flex-1 truncate">{label}</span>
         {chosenCount > 0 && (
-          <span className="rounded-full bg-primary/12 px-1.5 text-xs font-medium text-primary">
+          <span className="rounded-full bg-primary/12 px-1.5 text-xs font-medium text-foreground">
             {count == null ? chosenCount : `${chosenCount} chosen`}
           </span>
         )}
@@ -148,7 +150,15 @@ export function GroupedPicker({ noun, options, selected, onChange, multiple = fa
   }
 
   return (
-    <Command shouldFilter={false} loop className="p-0">
+    <Command
+      shouldFilter={false}
+      loop
+      className="p-0"
+      // Inline (not in a popover), nothing is highlighted until the viewer is in the picker: cmdk scrolls its highlighted
+      // option into view, and in Chrome a scrollIntoView moves where the next Tab starts, so on page load the first Tab
+      // skipped everything above the picker (Reports). In a popover it's opened on purpose, so the first option lights.
+      {...(autoFocus ? {} : { value: active, onValueChange: setActive })}
+    >
       {multiple && chosen.length > 0 && chosen.length <= CHIP_LIMIT && (
         <div className="flex flex-wrap gap-1 px-1 pt-1 pb-1.5" aria-label={`Chosen ${noun}`}>
           {chosen.map((o) => (

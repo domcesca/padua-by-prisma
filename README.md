@@ -182,6 +182,40 @@ used (they cover traditional Medicare only, by calendar year, and need a CCN cro
   fiscal-year and include long-term care units. Cards say so.
 - Medicare Advantage share (MA discharges ÷ all Medicare discharges) is available under the Medicare view and in Build.
 
+## Accessibility baseline (V7.4)
+
+WCAG 2.2 AA as a baseline, checked three ways: axe-core (wcag2a/aa, 2.1, 2.2 and best-practice rules) on 27 page
+states in light and dark at desktop and phone widths (0 violations after, 7 rule types before); contrast worked out by
+hand for the translucent surfaces axe can't read; and a keyboard-only walk of every page. No calculation, data or API
+change (7,216/7,216 API responses match V7.3).
+
+- **Contrast** (`globals.css`): every text color clears 4.5:1 on every surface it sits on, computed against the
+  composited glass, the muted boxes and its own 12% tint. Muted and tertiary text already did (≥4.8:1). The link
+  blue, green, amber and red didn't on tinted and muted backgrounds; each is a touch deeper in light mode and lighter
+  (blue, red) in dark mode. Dark mode needs two blues, so solid fills behind white text use `--primary-fill`; gradient
+  buttons use `--accent-gradient-button` (the same hues, ≥4.8:1 under white text).
+- **Never color alone**: favorable/unfavorable, trends, filing status, peer fit and pins already paired color with a
+  word and an icon or arrow. Charts now do too: Reports' hospitals each get a marker shape (circle, square, triangle,
+  diamond, cross; `shell/series-marker.tsx`), Business cases' scenarios a line style (dashed, solid, dotted), the
+  tornado's "lowered" bars stripes, and grouped bars a legend line saying they run in legend order.
+- **Keyboard**: a "Skip to main content" link; every custom radio group (topic tabs, Guided/Analysis, Chart/Table,
+  payer mix, theme, business-case methods, peer presets) is one tab stop with arrow keys, Home and End
+  (`lib/radio-group.ts`; peer presets move focus without reloading until Enter). Scrolling tables are focusable,
+  named regions (`shell/scroll-region.tsx`). The hospital search announces how many hospitals match. The tour hands
+  focus back when it closes. The help button's focus ring now shows (its glass shadow hid it). Reports' inline
+  metrics picker no longer highlights an option on load: cmdk's scrollIntoView moved Chrome's Tab starting point
+  past the nav.
+- **Charts**: every chart has a visible table view (restored in Guided mode on Compare cards, added to the tornado),
+  a screen-reader table, a text summary in the cards' own words (added for Reports' by-year charts), and labeled axis
+  units. Recharts' own keyboard layer is off: it put an unnamed tab stop inside the chart's aria-hidden wrapper.
+- **Structure**: one H1 per page and no skipped heading levels (the 404 and error pages gained theirs); tables mark
+  row and column headers; the business-case stat pairs no longer misuse `<dl>` inside a button; a picker group row no
+  longer carries an ARIA attribute its role doesn't allow. An app-wide polite announcer confirms pins; the Overview
+  announces when it has loaded.
+- **Motion**: under reduced motion, drawer, sheet, popover and tour transitions are near-instant (not removed, so
+  overlays still close), and charts follow through Recharts' `isAnimationActive="auto"`. Every page reflows at 320px
+  with no sideways scroll.
+
 ## Overview (V7.3)
 
 The front door (`/`, `src/components/overview/`). It assembles what the other tools already serve; nothing is

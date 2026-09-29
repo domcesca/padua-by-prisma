@@ -4,6 +4,7 @@ import { Monitor, Moon, Sun } from "lucide-react"
 import { useTheme } from "next-themes"
 
 import { useMounted } from "@/lib/use-mounted"
+import { onRadioGroupKeyDown, rovingTabIndex } from "@/lib/radio-group"
 import { cn } from "@/lib/utils"
 
 const OPTIONS = [
@@ -22,9 +23,10 @@ export function ThemeToggle({ className }: { className?: string }) {
     <div
       role="radiogroup"
       aria-label="Appearance"
+      onKeyDown={onRadioGroupKeyDown}
       className={cn("inline-flex items-center rounded-lg bg-black/5 p-0.5 dark:bg-white/10", className)}
     >
-      {OPTIONS.map(({ value, label, icon: Icon }) => {
+      {OPTIONS.map(({ value, label, icon: Icon }, i) => {
         const active = mounted && theme === value
         return (
           <button
@@ -32,6 +34,7 @@ export function ThemeToggle({ className }: { className?: string }) {
             type="button"
             role="radio"
             aria-checked={active}
+            tabIndex={rovingTabIndex(active, i, mounted && OPTIONS.some((o) => o.value === theme))}
             aria-label={label}
             title={label}
             onClick={() => setTheme(value)}

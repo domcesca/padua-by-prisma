@@ -12,6 +12,7 @@ import type { PeerFilters } from "@/lib/benchmark/filters"
 import { peerFit, type PeerFitLevel } from "@/lib/benchmark/peer-fit"
 import { setDisplayMode, useDisplayMode, type DisplayMode } from "@/lib/display-mode"
 import { QUALITY_FLAGS } from "@/lib/status"
+import { onRadioGroupKeyDown, rovingTabIndex } from "@/lib/radio-group"
 import { cn } from "@/lib/utils"
 import { MobileSheet } from "./mobile-sheet"
 import { Segmented } from "./segmented"
@@ -117,8 +118,13 @@ function PeersPanel({ peers, facility, onPicked }: { peers: PeersControl; facili
         )}
         {peers.note && <p className="text-xs leading-relaxed text-muted-foreground">{peers.note}</p>}
       </div>
-      <div role="radiogroup" aria-label="Peer group preset" className="space-y-0.5 border-t border-border pt-2">
-        {COHORTS.map((c) => {
+      <div
+        role="radiogroup"
+        aria-label="Peer group preset"
+        onKeyDown={(e) => onRadioGroupKeyDown(e, { select: false })}
+        className="space-y-0.5 border-t border-border pt-2"
+      >
+        {COHORTS.map((c, i) => {
           const on = current === c.id
           return (
             <button
@@ -126,6 +132,7 @@ function PeersPanel({ peers, facility, onPicked }: { peers: PeersControl; facili
               type="button"
               role="radio"
               aria-checked={on}
+              tabIndex={rovingTabIndex(on, i, current != null)}
               onClick={() => pick(c.id)}
               className={cn(
                 "flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left outline-none hover:bg-black/4 focus-visible:ring-2 focus-visible:ring-ring dark:hover:bg-white/6",
@@ -300,7 +307,7 @@ export function ContextBar(props: ContextBarProps) {
             <SlidersHorizontal className="size-3.5" aria-hidden />
             {hasFilters ? "Filters" : "Change"}
             {activeCount > 0 && (
-              <span className="num rounded-full bg-primary px-1.5 text-xs leading-5 text-primary-foreground" aria-hidden>
+              <span className="num rounded-full bg-primary-fill px-1.5 text-xs leading-5 text-primary-foreground" aria-hidden>
                 {activeCount}
               </span>
             )}

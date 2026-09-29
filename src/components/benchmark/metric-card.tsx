@@ -4,6 +4,7 @@ import { ArrowRight } from "lucide-react"
 import { useState } from "react"
 
 import { StandingBadge, TrendText } from "@/components/shell/standing"
+import { ScrollRegion } from "@/components/shell/scroll-region"
 import { StatusLine } from "@/components/shell/status-line"
 import type { SeriesPoint } from "@/lib/benchmark/compute"
 import { DATASETS, type MetricDef } from "@/lib/data/datasets"
@@ -13,6 +14,7 @@ import { CONTEXT_REASONS } from "@/lib/favorability/directions"
 import { directionOf, metricRankText, metricStanding, trend } from "@/lib/favorability"
 import { formatMetric } from "@/lib/format"
 import { auditLabel, type QualityFlag } from "@/lib/status"
+import { onRadioGroupKeyDown, rovingTabIndex } from "@/lib/radio-group"
 import { cn } from "@/lib/utils"
 import { MetricInfo } from "./metric-info"
 import { TrendChart } from "./trend-chart"
@@ -86,7 +88,8 @@ export function MetricCard({
   source?: SourceStatus
   /** The key finding that covers this metric: "Priority 2 · Readmissions", opening its methodology. */
   related?: { label: string; onOpen: (opener: HTMLElement) => void }
-  /** Guided mode: the chart only (no table toggle) and no confidence interval; the same values and status line. */
+  /** Guided mode: no confidence interval; the same values, status line and chart/table toggle (a chart always has a
+   * table view, V7.4). */
   guided?: boolean
 }) {
   const [view, setView] = useState<"chart" | "table">("chart")
@@ -137,7 +140,7 @@ export function MetricCard({
           </h2>
           <MetricInfo metric={meta} />
         </div>
-        {latest && !guided && <ViewToggle value={view} onChange={setView} label={meta.label} />}
+        {latest && <ViewToggle value={view} onChange={setView} label={meta.label} />}
       </header>
       {tags.length > 0 && (
         <ul className="mt-1.5 flex flex-wrap gap-1" aria-label="About this measure">
@@ -182,7 +185,7 @@ export function MetricCard({
           {latest.detail?.note && <p className="mt-0.5 text-xs leading-relaxed text-tertiary-foreground">{latest.detail.note}</p>}
 
           <div className="mt-4">
-            {view === "chart" || guided ? (
+            {view === "chart" ? (
               <TrendChart metric={meta} points={points} />
             ) : (
               <MetricTable metric={meta} points={points} companion={companion} />
@@ -190,7 +193,7 @@ export function MetricCard({
             {/* Screen readers always get the table, whichever view is showing. */}
             {view === "chart" && (
               <div className="sr-only">
-                <MetricTable metric={meta} points={points} companion={companion} />
+                <MetricTable metric={meta} points={points} companion={companion} scroll={false} />
               </div>
             )}
           </div>
@@ -248,13 +251,14 @@ function ViewToggle({
   label: string
 }) {
   return (
-    <div role="radiogroup" aria-label={`${label} view`} className="flex rounded-md bg-black/5 p-0.5 dark:bg-white/8">
-      {(["chart", "table"] as const).map((v) => (
+    <div role="radiogroup" aria-label={`${label} view`} onKeyDown={onRadioGroupKeyDown} className="flex rounded-md bg-black/5 p-0.5 dark:bg-white/8">
+      {(["chart", "table"] as const).map((v, i) => (
         <button
           key={v}
           type="button"
           role="radio"
           aria-checked={value === v}
+          tabIndex={rovingTabIndex(value === v, i, true)}
           onClick={() => onChange(v)}
           className={cn(
             "rounded px-2 py-0.5 text-xs font-medium capitalize transition-colors duration-150",
@@ -273,32 +277,35 @@ function MetricTable({
   metric,
   points,
   companion,
+  scroll = true,
 }: {
   metric: DictionaryMetric
   points: SeriesPoint[]
   companion?: { meta: MetricDef; points: SeriesPoint[] }
+  /** False for the screen-reader copy under the chart. */
+  scroll?: boolean
 }) {
   const hasPeriods = points.some((p) => p.detail?.period)
   return (
-    <div className="h-48 overflow-auto">
+    <ScrollRegion label={`${metric.label} by year`} scroll={scroll} className="h-48 overflow-auto">
       <table className="num w-full text-left text-xs">
         <thead className="sticky top-0 bg-card text-muted-foreground">
           <tr className="border-b border-border">
-            <th className="py-1.5 font-medium">{hasPeriods ? "Measurement period" : "Year"}</th>
-            <th className="py-1.5 text-right font-medium">Hospital</th>
-            {companion && <th className="py-1.5 text-right font-medium">Rate</th>}
-            <th className="py-1.5 text-right font-medium">Peer median</th>
-            <th className="py-1.5 text-right font-medium">Middle 50%</th>
-            <th className="py-1.5 text-right font-medium">Peers</th>
+            <th scope="col" className="py-1.5 font-medium">{hasPeriods ? "Measurement period" : "Year"}</th>
+            <th scope="col" className="py-1.5 text-right font-medium">Hospital</th>
+            {companion && <th scope="col" className="py-1.5 text-right font-medium">Rate</th>}
+            <th scope="col" className="py-1.5 text-right font-medium">Peer median</th>
+            <th scope="col" className="py-1.5 text-right font-medium">Middle 50%</th>
+            <th scope="col" className="py-1.5 text-right font-medium">Peers</th>
           </tr>
         </thead>
         <tbody>
           {points.map((p) => (
             <tr key={p.year} className="border-b border-border last:border-0">
-              <td className="py-1.5">
+              <th scope="row" className="py-1.5 font-normal">
                 {p.detail?.period ?? p.year}
                 {p.annualized && <span title="Annualized from a partial-year report"> *</span>}
-              </td>
+              </th>
               {p.published ? (
                 <>
                   <td className="py-1.5 text-right font-medium">{formatMetric(metric, p.value)}</td>
@@ -322,6 +329,6 @@ function MetricTable({
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollRegion>
   )
 }

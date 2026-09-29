@@ -1,6 +1,7 @@
 "use client"
 
 import { Check, ChevronDown, Link2, Loader2, Printer, TriangleAlert } from "lucide-react"
+import { ScrollRegion } from "@/components/shell/scroll-region"
 import { useEffect, useMemo, useState, type CSSProperties } from "react"
 
 import type { FacilityOption } from "@/components/benchmark/facility-picker"
@@ -32,7 +33,7 @@ import { parseProposalSpec, proposalSpecToParams, type ProposalSpec } from "@/li
 import { rememberSelection, useSelection } from "@/lib/selection"
 import { cn } from "@/lib/utils"
 import { AdvancedPanel } from "./advanced-panel"
-import { CumulativeChart, SCENARIO_COLOR } from "./cumulative-chart"
+import { CumulativeChart, SCENARIO_COLOR, ScenarioSwatch } from "./cumulative-chart"
 import { ModuleIntake } from "./module-intake"
 import { MODULE_IDS, MODULES } from "./modules"
 import { NumberField } from "./number-field"
@@ -397,7 +398,7 @@ export function ProposeView({ facilities, latestYear, search }: { facilities: Fa
               <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1 text-xs text-muted-foreground">
                 {projections.map((p) => (
                   <span key={p.scenario} className="inline-flex items-center gap-1.5">
-                    <span className="h-0.5 w-4 rounded-full" style={{ background: SCENARIO_COLOR[p.scenario] }} aria-hidden />
+                    <ScenarioSwatch scenario={p.scenario} />
                     {p.label}
                   </span>
                 ))}
@@ -669,14 +670,15 @@ function ScenarioCard({
         <span className="block text-xs text-muted-foreground">Payback</span>
         <span className="num block text-[26px] leading-tight font-semibold tracking-tight">{blank ? "—" : formatPayback(p.paybackYears, life)}</span>
       </span>
-      <dl className="num grid grid-cols-2 gap-x-3 gap-y-1.5 text-[13px]">
+      {/* Inside a button, so plain text pairs rather than a <dl> (a button may hold only phrasing content). */}
+      <span className="num grid grid-cols-2 gap-x-3 gap-y-1.5 text-[13px]">
         <Stat label="ROI" value={p.roi == null ? "—" : formatPercent(p.roi, 0)} tone={p.roi} />
         <Stat label="NPV" value={formatUsd(p.npv, { compact: true })} tone={p.npv} />
         <Stat label={averaged ? "Avg benefit a year" : "Benefit a year"} value={formatUsd(p.annualBenefit, { compact: true })} />
         <Stat label={averaged ? "Avg net a year" : "Net a year"} value={formatUsd(p.annualNet, { compact: true })} tone={p.annualNet} />
         <Stat label="Amortized net" value={formatUsd(p.annualNetAfterAmortization, { compact: true })} tone={p.annualNetAfterAmortization} />
         <Stat label={`Net over ${life} yr`} value={formatUsd(p.cumulativeNet, { compact: true })} tone={p.cumulativeNet} />
-      </dl>
+      </span>
     </button>
   )
 }
@@ -684,8 +686,9 @@ function ScenarioCard({
 function Stat({ label, value, tone }: { label: string; value: string; tone?: number | null }) {
   return (
     <span className="min-w-0">
-      <dt className="truncate text-xs text-muted-foreground">{label}</dt>
-      <dd className={cn("font-medium", tone != null && tone < 0 && "text-unfavorable")}>{value}</dd>
+      <span className="block truncate text-xs text-muted-foreground">{label}</span>
+      <span className="sr-only">: </span>
+      <span className={cn("block font-medium", tone != null && tone < 0 && "text-unfavorable")}>{value}</span>
     </span>
   )
 }
@@ -693,7 +696,7 @@ function Stat({ label, value, tone }: { label: string; value: string; tone?: num
 function YearTable({ p }: { p: Projection }) {
   const cell = "px-2 py-1.5 text-right"
   return (
-    <div className="-mx-2 overflow-x-auto">
+    <ScrollRegion label="Year-by-year cash flow" className="-mx-2 overflow-x-auto">
       <table className="num w-full min-w-[30rem] text-[13px]">
         <thead>
           <tr className="border-b border-border text-xs text-muted-foreground">
@@ -730,7 +733,7 @@ function YearTable({ p }: { p: Projection }) {
           </tr>
         </tfoot>
       </table>
-    </div>
+    </ScrollRegion>
   )
 }
 
@@ -748,7 +751,7 @@ function Inputs({
   advanced: [string, string][]
 }) {
   const row = (label: string, value: string, detail?: string) => (
-    <div className="flex items-baseline justify-between gap-3 py-1">
+    <div key={label} className="flex items-baseline justify-between gap-3 py-1">
       <dt className="min-w-0">
         <span className="block text-[13px] leading-snug">{label}</span>
         {detail && <span className="num block text-xs text-muted-foreground">{detail}</span>}
@@ -761,7 +764,7 @@ function Inputs({
       <div>
         <p className="text-xs font-medium tracking-wide text-tertiary-foreground uppercase">Benefit a year (estimate, before scenario rates)</p>
         <dl className="divide-y divide-border/60">
-          {lines.length ? lines.map((l) => <div key={l.label}>{row(l.label, formatUsd(l.amount), l.detail)}</div>) : row("None entered yet", "—")}
+          {lines.length ? lines.map((l) => row(l.label, formatUsd(l.amount), l.detail)) : row("None entered yet", "—")}
           {lines.length > 1 && row("Total", formatUsd(annual))}
         </dl>
       </div>
@@ -779,7 +782,7 @@ function Inputs({
       {advanced.length > 0 && (
         <div>
           <p className="text-xs font-medium tracking-wide text-tertiary-foreground uppercase">Advanced settings</p>
-          <dl className="divide-y divide-border/60">{advanced.map(([label, value]) => <div key={label}>{row(label, value)}</div>)}</dl>
+          <dl className="divide-y divide-border/60">{advanced.map(([label, value]) => row(label, value))}</dl>
         </div>
       )}
     </div>

@@ -1,5 +1,8 @@
 "use client";
 
+import { useState } from "react";
+
+import { Segmented } from "@/components/shell/segmented";
 import { formatUsd } from "@/lib/format";
 import type { Sensitivity, SensitivityBar } from "@/lib/propose/analysis";
 import { cn } from "@/lib/utils";
@@ -10,6 +13,12 @@ import { cn } from "@/lib/utils";
 
 export const LOWERED = "var(--series-2)";
 export const RAISED = "var(--series-1)";
+
+// "Lowered" bars are also striped, so the two ends differ by pattern as well as color (WCAG 1.4.1).
+const fillOf = (color: string, striped: boolean) =>
+  striped
+    ? `repeating-linear-gradient(135deg, ${color} 0 3px, color-mix(in oklab, ${color} 45%, transparent) 3px 6px)`
+    : color;
 
 const signed = (n: number, outcome: Sensitivity["outcome"]) =>
   outcome === "roi"
@@ -27,8 +36,50 @@ export function SensitivityChart({ result }: { result: Sensitivity }) {
     ...bars.flatMap((b) => [Math.abs(b.low - base), Math.abs(b.high - base)]),
     1e-9,
   );
+  const [view, setView] = useState<"chart" | "table">("chart");
+  const table = (
+    <table className="num w-full text-left text-[13px]">
+      <caption className="sr-only">
+        {outcome === "roi" ? "ROI" : "NPV"} with each input lowered and
+        raised {swing}%, largest effect first. As entered:{" "}
+        {formatOutcome(base, outcome)}.
+      </caption>
+      <thead>
+        <tr className="border-b border-border text-xs text-muted-foreground">
+          <th scope="col" className="py-1.5 pr-3 font-medium">Input</th>
+          <th scope="col" className="py-1.5 pl-3 text-right font-medium">Lowered {swing}%</th>
+          <th scope="col" className="py-1.5 pl-3 text-right font-medium">Raised {swing}%</th>
+        </tr>
+      </thead>
+      <tbody>
+        {bars.map((b) => (
+          <tr key={b.id} className="border-b border-border last:border-0">
+            <th scope="row" className="py-1.5 pr-3 font-normal">{b.label}</th>
+            <td className="py-1.5 pl-3 text-right">{formatOutcome(b.low, outcome)}</td>
+            <td className="py-1.5 pl-3 text-right">{formatOutcome(b.high, outcome)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
   return (
     <div>
+      <div className="flex justify-end pb-2 print:hidden">
+        <Segmented
+          label="Sensitivity view"
+          size="sm"
+          value={view}
+          onChange={setView}
+          options={[
+            { value: "chart", label: "Chart" },
+            { value: "table", label: "Table" },
+          ]}
+        />
+      </div>
+      {view === "table" ? (
+        table
+      ) : (
+      <>
       <div
         className="flex flex-wrap gap-x-4 gap-y-1 pb-3 text-xs text-muted-foreground"
         aria-hidden
@@ -36,9 +87,9 @@ export function SensitivityChart({ result }: { result: Sensitivity }) {
         <span className="inline-flex items-center gap-1.5">
           <span
             className="size-2.5 rounded-sm"
-            style={{ background: LOWERED }}
+            style={{ background: fillOf(LOWERED, true) }}
           />{" "}
-          Input lowered {swing}%
+          Input lowered {swing}% (striped)
         </span>
         <span className="inline-flex items-center gap-1.5">
           <span
@@ -71,31 +122,9 @@ export function SensitivityChart({ result }: { result: Sensitivity }) {
         </p>
       </div>
       {/* The same numbers as a table, for screen readers. */}
-      <div className="sr-only">
-        <table>
-          <caption>
-            {outcome === "roi" ? "ROI" : "NPV"} with each input lowered and
-            raised {swing}%, largest effect first. As entered:{" "}
-            {formatOutcome(base, outcome)}.
-          </caption>
-          <thead>
-            <tr>
-              <th scope="col">Input</th>
-              <th scope="col">Lowered {swing}%</th>
-              <th scope="col">Raised {swing}%</th>
-            </tr>
-          </thead>
-          <tbody>
-            {bars.map((b) => (
-              <tr key={b.id}>
-                <th scope="row">{b.label}</th>
-                <td>{formatOutcome(b.low, outcome)}</td>
-                <td>{formatOutcome(b.high, outcome)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <div className="sr-only">{table}</div>
+      </>
+      )}
     </div>
   );
 }
@@ -149,20 +178,19 @@ function Row({
           return (
             <span
               key={e.key}
-              tabIndex={0}
               className={cn(
-                "group absolute top-1/2 h-4 -translate-y-1/2 ring-2 ring-background outline-none focus-visible:ring-ring print:ring-0",
+                "group absolute top-1/2 h-4 -translate-y-1/2 ring-2 ring-background outline-none print:ring-0",
                 left ? "rounded-l" : "rounded-r",
               )}
               style={{
-                background: e.color,
+                background: fillOf(e.color, e.key === "low"),
                 width: `${Math.max(width, 0.4)}%`,
                 ...(left ? { right: "50%" } : { left: "50%" }),
               }}
             >
               <span
                 role="tooltip"
-                className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1.5 hidden -translate-x-1/2 rounded-lg bg-popover px-2.5 py-1.5 text-[12px] whitespace-nowrap text-popover-foreground shadow-lg ring-1 ring-border group-hover:block group-focus-visible:block"
+                className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1.5 hidden -translate-x-1/2 rounded-lg bg-popover px-2.5 py-1.5 text-[12px] whitespace-nowrap text-popover-foreground shadow-lg ring-1 ring-border group-hover:block"
               >
                 {bar.label} {e.text}:{" "}
                 <span className="num font-medium">
@@ -197,7 +225,8 @@ function Row({
               key={e.key}
               className={cn(
                 "num absolute top-1/2 -translate-y-1/2 text-xs whitespace-nowrap",
-                inside ? "font-medium text-white" : "text-muted-foreground",
+                // Inside a long bar: on a chip, since white on the orange or striped fill falls short of 4.5:1.
+                inside ? "rounded bg-background/90 px-1 font-medium text-foreground" : "text-muted-foreground",
                 left !== inside ? "-translate-x-full" : "",
               )}
               style={{ left: `${pos}%` }}

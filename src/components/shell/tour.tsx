@@ -165,6 +165,22 @@ function visibleTarget(name: string) {
   return [...document.querySelectorAll<HTMLElement>(`[data-tour="${name}"]`)].find((el) => el.getClientRects().length > 0) ?? null
 }
 
+/**
+ * When a tour ends, focus goes back to where it was before (WCAG 2.4.3), or, when that's gone (the first-visit hospital
+ * search the Overview replaced), to the page's heading, so the next Tab continues from the page, not the top.
+ */
+function restoreFocus(returnTo: { current: HTMLElement | null }) {
+  const el = returnTo.current
+  returnTo.current = null
+  requestAnimationFrame(() => {
+    if (el?.isConnected && el !== document.body) return el.focus({ preventScroll: true })
+    const heading = document.querySelector<HTMLElement>("main h1") ?? document.querySelector<HTMLElement>("h1")
+    if (!heading) return
+    heading.tabIndex = -1
+    heading.focus({ preventScroll: true })
+  })
+}
+
 /** Skipping, closing, and finishing the welcome tour all count: it doesn't play again on its own. */
 function markDone(id: TourId) {
   if (id === "welcome") write(() => localStorage, DONE_KEY, "done")
@@ -177,6 +193,7 @@ export function Tour() {
   const STEPS = TOURS[tourId].steps
   const [rect, setRect] = useState<DOMRect | null>(null)
   const card = useRef<HTMLDivElement>(null)
+  const returnTo = useRef<HTMLElement | null>(null)
   const active = useRef<TourId | null>(null)
   const wide = useMediaQuery("(min-width: 768px)")
   const hasHospital = !!useSelection()?.facilityId
@@ -242,6 +259,10 @@ export function Tour() {
     const frame = requestAnimationFrame(measure)
     window.addEventListener("scroll", measure, true)
     window.addEventListener("resize", measure)
+    // Remember where focus was when the tour started, to hand it back when it ends.
+    if (!returnTo.current && document.activeElement instanceof HTMLElement && !card.current?.contains(document.activeElement)) {
+      returnTo.current = document.activeElement
+    }
     card.current?.focus({ preventScroll: true })
     return () => {
       cancelAnimationFrame(frame)
@@ -257,6 +278,7 @@ export function Tour() {
       markDone(tourId)
       setStep(null)
       setRect(null)
+      restoreFocus(returnTo)
     }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
@@ -267,6 +289,7 @@ export function Tour() {
     markDone(tourId)
     setStep(null)
     setRect(null)
+    restoreFocus(returnTo)
   }
   const current = STEPS[step]
   const last = step === STEPS.length - 1

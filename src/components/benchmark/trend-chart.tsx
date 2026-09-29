@@ -45,7 +45,7 @@ export function TrendChart({ metric, points }: { metric: DictionaryMetric; point
   return (
     <div className="h-48 w-full" aria-hidden>
       <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
+        <ComposedChart accessibilityLayer={false} data={data} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
           <CartesianGrid vertical={false} stroke="var(--border)" />
           <XAxis
             dataKey="year"
@@ -85,7 +85,7 @@ export function TrendChart({ metric, points }: { metric: DictionaryMetric; point
             stroke="none"
             fill={BAND}
             fillOpacity={0.14}
-            isAnimationActive
+            isAnimationActive="auto"
             animationDuration={250}
             activeDot={false}
             connectNulls

@@ -1,6 +1,7 @@
 "use client"
 
 import { ChevronRight, Info } from "lucide-react"
+import { ScrollRegion } from "@/components/shell/scroll-region"
 import { useState } from "react"
 
 import { PickerPill } from "@/components/shell/grouped-picker"
@@ -241,7 +242,7 @@ function Overview({ result, measure, onSpecialty }: { result: SpecialtyResult; m
   const measureLabel = MEASURES.find((m) => m.value === measure)!.label
   return (
     <section aria-label="Medicare cases by specialty" className="glass overflow-hidden rounded-2xl">
-      <div className="overflow-x-auto">
+      <ScrollRegion label="Medicare cases by specialty, table" className="overflow-x-auto">
         <table className="w-full min-w-[34rem] text-[13px]">
           <caption className="sr-only">
             {measureLabel} by Medicare specialty (MDC) for {cols.map((c) => c.name).join(", ")}, with the peer median.
@@ -308,7 +309,7 @@ function Overview({ result, measure, onSpecialty }: { result: SpecialtyResult; m
             </tr>
           </tfoot>
         </table>
-      </div>
+      </ScrollRegion>
       <p className="border-t border-border px-4 py-3 text-xs leading-relaxed text-tertiary-foreground">
         Choose a specialty to compare every peer on it. &ldquo;{SUPPRESSED_SHORT}&rdquo;: no DRG in the specialty had 11 or
         more cases, so CMS published no count. Peer median: among the {result.peerGroup.withData} peers with Medicare
@@ -417,7 +418,7 @@ function OneSpecialty({ result, mdc, measure }: { result: SpecialtyResult; mdc: 
       {result.topDrgs.length > 0 && (
         <section aria-label="DRGs" className="glass overflow-hidden rounded-2xl">
           <h3 className="px-5 pt-4 text-sm font-medium">{h?.name ?? result.facility.name}: DRGs with 11 or more cases</h3>
-          <div className="overflow-x-auto">
+          <ScrollRegion label="DRGs table" className="overflow-x-auto">
             <table className="mt-2 w-full min-w-[32rem] text-[13px]">
               <thead>
                 <tr className="border-b border-border text-left text-xs text-tertiary-foreground">
@@ -445,7 +446,7 @@ function OneSpecialty({ result, mdc, measure }: { result: SpecialtyResult; mdc: 
                 ))}
               </tbody>
             </table>
-          </div>
+          </ScrollRegion>
         </section>
       )}
     </div>
