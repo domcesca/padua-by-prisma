@@ -680,6 +680,7 @@ export function BenchmarkView({
                         companion={companion ? { meta: metaById[companion], points: shown.series[companion] } : undefined}
                         source={shown.sources[meta.dataset]}
                         related={shown.unit || shown.line ? undefined : relatedFor(id)}
+                        components={shown.unit || shown.line ? undefined : shown.components?.[id]}
                         guided={guided}
                         tags={[
                           shown.unit ? shown.unit.label : shown.line ? shown.line.label : null,

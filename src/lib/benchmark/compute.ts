@@ -16,6 +16,7 @@ import type { PeerFilters } from "./filters"
 import { milesBetween, resolvePeerGroup } from "./peers"
 import { computeServiceLines, getFacilityLines, lineSource, type FacilityLine, type ServiceLineRollup } from "@/lib/service-lines/compute"
 import { isCombined, SERVICE_LINE_BY_ID } from "@/lib/service-lines/lines"
+import { componentSeries, payerAmounts, type MetricComponents, type PayerAmounts } from "./components"
 import { getUnitInfo, lineMetricDef, unitMetricDef, unitSource, type UnitSource } from "./units"
 
 export type SeriesPoint = {
@@ -42,6 +43,8 @@ export type PayerMixComparison = {
   status: string | null
   revenue: { facility: PayerMix | null; peers: PayerMix | null; n: number }
   days: { facility: PayerMix | null; peers: PayerMix | null; n: number }
+  /** V7.4.5: the same mix as amounts (gross charges, inpatient days), hospital and peer medians, for the Actual view. */
+  amounts: { revenue: PayerAmounts; days: PayerAmounts }
 }
 
 /** The hospital's latest value of a headline metric, for the summary card. */
@@ -61,6 +64,8 @@ export type BenchmarkResult = {
   peers: PeerSummary[]
   /** metric id -> one point per year of that metric's dataset (companions included). */
   series: Record<string, SeriesPoint[]>
+  /** V7.4.5: for ratio metrics shown (whole-hospital views), the numerator and denominator behind each year's value. */
+  components: Record<string, MetricComponents>
   /** Bed classifications this hospital has had licensed beds in (the unit picker's options). */
   units: FacilityUnit[]
   /** The unit shown, when narrowed to one: its unit-specific metric definitions and how many peers have it. */
@@ -222,6 +227,17 @@ export async function computeBenchmark({
     })
   )
 
+  // The Actual view's numbers: whole-hospital ratio metrics only (a unit's or line's occupancy has other fields).
+  const components: Record<string, MetricComponents> = {}
+  if (!unit && !line) {
+    await Promise.all(
+      metrics.map(async (m) => {
+        const c = await componentSeries(m, facility.id, peerIds, since)
+        if (c) components[m.id] = c
+      })
+    )
+  }
+
   return {
     facility,
     category,
@@ -256,6 +272,7 @@ export async function computeBenchmark({
       })
       .sort((a, b) => a.name.localeCompare(b.name)),
     series,
+    components,
     payerMix: category === "financial" ? await payerMix(facility.id, peerIds) : null,
     sources: Object.fromEntries(
       await Promise.all(
@@ -302,5 +319,11 @@ async function payerMix(facilityId: string, peerIds: string[]): Promise<PayerMix
     const peerMixes = peerIds.map((id) => file[id]?.[year]?.[key] as PayerMix | null | undefined).filter((m): m is PayerMix => !!m)
     return { facility: (own[year]?.[key] as PayerMix | null) ?? null, peers: averageMix(peerMixes), n: peerMixes.length }
   }
-  return { year, status: own[year]?.status ?? null, revenue: pick("payerMixRevenue"), days: pick("payerMixDays") }
+  return {
+    year,
+    status: own[year]?.status ?? null,
+    revenue: pick("payerMixRevenue"),
+    days: pick("payerMixDays"),
+    amounts: await payerAmounts(facilityId, peerIds, year),
+  }
 }

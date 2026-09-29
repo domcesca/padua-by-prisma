@@ -182,6 +182,25 @@ used (they cover traditional Medicare only, by calendar year, and need a CCN cro
   fiscal-year and include long-term care units. Cards say so.
 - Medicare Advantage share (MA discharges ÷ all Medicare discharges) is available under the Medicare view and in Build.
 
+## Percent / Actual on Compare (V7.4.5)
+
+Ratio cards on Compare switch between the ratio (Percent, as before) and the two amounts behind it (Actual): operating
+margin, Medicare margin, Medicare Advantage share, occupancy, ED admit rate, ED left-without-being-seen rate, ED
+high-acuity share, and the payer-mix card. Per-case and per-day measures (cost and revenue per adjusted discharge, days
+cash on hand, length of stay) and counts or dollars (ED visits, discharges, net patient revenue) are already actual
+values and have no switch.
+
+- **The numbers** (`src/lib/benchmark/component-defs.ts`, `components.ts`): each ratio's numerator and denominator
+  from the hospital's raw HCAI fields, as the ETL computes the ratio; `npm run check:components` confirms numerator ÷
+  denominator gives back every published value (15,163 hospital-years). Occupancy is patient days ÷ licensed
+  *bed-days* (beds × days in the period), the ratio's real denominator.
+- **The peers**: the median numerator and the median denominator, each on its own, over the peers the ratio's median
+  uses that year. They needn't divide to the peer median ratio, and the card says so. Payer mix: each group's median
+  amount (gross charges or inpatient days) over the peers the share comparison uses.
+- **The API**: `/api/benchmark` gains `components` (whole-hospital views only; a unit's or service line's occupancy
+  comes from other fields and has no switch) and `payerMix.amounts`. Nothing existing changed.
+- **The switch**: next to Chart / Table, in Guided mode too; remembered per measure for the browser session.
+
 ## Accessibility baseline (V7.4)
 
 WCAG 2.2 AA as a baseline, checked three ways: axe-core (wcag2a/aa, 2.1, 2.2 and best-practice rules) on 27 page
