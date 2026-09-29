@@ -292,6 +292,30 @@ downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and
   Outdated = newest report more than 2 years behind the newest data (13 hospitals, some of them campuses now reported
   under a parent).
 
+### V7.5 (Reports, Correlate and Data definitions refinements)
+- Reports: purpose templates, settings grouped as Content / Comparison / Time period / Output, per-measure "latest N
+  years", picker search that clears after a pick, Compare-by sketches, a one-line summary per chart in the printout
+  (new Print or save as PDF) and CSV, and intro copy covering every source. Correlate: question starters, the
+  outlier recheck, peer-group-grounded confounders, an Advanced analysis label. Data definitions: Focused / Browse all
+  fields, notable-first, a uniform detail panel, a browser-local watchlist and recent searches, plain names first.
+  Details in the README.
+- Checked: API regression against main (V7.4.6), 15,334 responses. Benchmark 4,510, findings 902, correlate 1,804 and
+  facility fields 902 are identical apart from the new fields (`robustness` and `confounders` in every Correlate
+  response, `metrics` in every fields response). Report 4,510 (five report shapes, including peer-group lines and
+  tables) are identical apart from the echoed `spec.last: null`. `check:directions`, `check:components`, lint and
+  typecheck pass. axe-core on 18 new states, light and dark, desktop and phone: 0 violations.
+- Choices to confirm: (1) "latest N years" counts from each measure's own newest year, not one shared year; (2) the
+  period control moved from the context bar into Time period (the bar now only states it); (3) export is print/PDF
+  plus a CSV Summary column, not slides; (4) on-screen, charts keep their styled summary line and the printout uses
+  the sentence; (5) the outlier recheck removes the most influential hospital (largest change in r), not the one
+  farthest from the center, and flags it only when the reading changes and r moves ≥ 0.1; (6) confounder candidates
+  are a fixed structural list tested on the peer group's data, |r| ≥ 0.3 with both; a suggested factor may be a
+  mediator (length of stay between case mix and cost), not a confounder, and the wording says "could be behind";
+  (7) notable = ≥ 20% and material (1% of operating expenses, or ≥ 20 units); even so the median hospital has ~36
+  notable financial fields and ~9 utilization ones, so the focused view shows the top 5 of each kind; (8) Browse's
+  "Biggest changes first" flat order is replaced by "Notable first, within each section"; (9) Compare by is now three
+  cards with sketches that apply on click, rather than a hover preview or confirm step.
+
 ### V7.4.6 (Chart / Table remembered like Percent / Actual)
 - Decisions from V7.4.5 review: occupancy's denominator stays licensed bed-days (licensed beds stay a separate metric);
   unit-level Percent / Actual goes to the backlog (section 4); the 24px card toggles stay.

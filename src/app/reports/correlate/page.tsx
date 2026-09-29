@@ -21,8 +21,9 @@ export default async function CorrelatePage({ searchParams }: PageProps<"/report
     <div className="space-y-8">
       <PageHeader
         title="Correlate"
+        eyebrow="Advanced analysis"
         actions={<AboutTool id="correlate" />}
-        description="Plot any two measures against each other across a hospital’s peer group, to see whether they move together."
+        description="Plot two measures against each other across a hospital’s peer group, to see whether they move together — and whether one hospital, or a third factor, explains it. Start from a question or pick any two."
       />
       <CorrelateView
         facilities={facilities}

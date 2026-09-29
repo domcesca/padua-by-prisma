@@ -22,16 +22,24 @@ function FocusDot({ cx = 0, cy = 0 }: DotProps) {
   return <circle cx={cx} cy={cy} r={6.5} fill="var(--series-1)" stroke="var(--card)" strokeWidth={2} />
 }
 
+/** The hospital the outlier recheck found driving r: a dashed ring, so it's marked by shape as well as position. */
+function InfluentialRing({ cx = 0, cy = 0 }: DotProps) {
+  return <circle cx={cx} cy={cy} r={11} fill="none" stroke="var(--foreground)" strokeWidth={1.5} strokeDasharray="3 2.5" />
+}
+
 export function ScatterPlot({
   points,
   x,
   y,
   stats,
+  influential,
 }: {
   points: CorrelatePoint[]
   x: MetricDef
   y: MetricDef
   stats: CorrelateResult["stats"]
+  /** Hospital id to ring: the one whose removal changes the reading (V7.5 outlier recheck). */
+  influential?: string | null
 }) {
   const xTicks = niceTicks(points.map((p) => p.x), false)
   const yTicks = niceTicks(points.map((p) => p.y), false)
@@ -110,6 +118,7 @@ export function ScatterPlot({
             />
             <Scatter data={peers} shape={PeerDot} isAnimationActive={false} />
             <Scatter data={focus} shape={FocusDot} isAnimationActive={false} />
+            {influential && <Scatter data={points.filter((p) => p.id === influential)} shape={InfluentialRing} isAnimationActive={false} />}
           </ScatterChart>
         </ResponsiveContainer>
       </div>
@@ -118,7 +127,19 @@ export function ScatterPlot({
   )
 }
 
-export function ScatterTable({ points, x, y, scroll = true }: { points: CorrelatePoint[]; x: MetricDef; y: MetricDef; scroll?: boolean }) {
+export function ScatterTable({
+  points,
+  x,
+  y,
+  scroll = true,
+  influential,
+}: {
+  points: CorrelatePoint[]
+  x: MetricDef
+  y: MetricDef
+  scroll?: boolean
+  influential?: string | null
+}) {
   const rows = [...points].sort((a, b) => a.x - b.x)
   return (
     <ScrollRegion label={`${y.label} and ${x.label} by hospital`} scroll={scroll} className="max-h-96 overflow-auto">
@@ -139,6 +160,7 @@ export function ScatterTable({ points, x, y, scroll = true }: { points: Correlat
             <tr key={p.id} className={cn("border-b border-border last:border-0", p.focus && "font-semibold")}>
               <th scope="row" className="font-normal max-w-56 truncate py-1.5 pr-3" title={p.name}>
                 {p.name}
+                {p.id === influential && <span className="text-muted-foreground"> (changes the reading)</span>}
               </th>
               <td className="py-1.5 pl-3 text-right">{formatMetric(x, p.x)}</td>
               <td className="py-1.5 pl-3 text-right">{formatMetric(y, p.y)}</td>

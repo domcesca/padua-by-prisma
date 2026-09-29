@@ -79,7 +79,41 @@ export type CorrelateResult = {
   sources: { x: SourceStatus; y: SourceStatus }
   /** Newest year each axis's source has for any hospital. */
   latestYears: { x: number; y: number }
+  /**
+   * The outlier recheck (V7.5): r with the single most influential hospital left out (the one whose removal moves r
+   * the most); `changes` when that alters the plain-language reading. Null below MIN_POINTS + 1 hospitals.
+   */
+  robustness: {
+    without: { id: string; name: string; x: number; y: number; focus: boolean }
+    r: number
+    rho: number
+    changes: boolean
+  } | null
+  /**
+   * Other measures that move with both X and Y in this same peer group and year (V7.5), strongest first, with r
+   * between X and Y once each is accounted for (partial correlation). Computed over the hospitals that report all three.
+   */
+  confounders: Confounder[]
 }
+
+export type Confounder = {
+  id: string
+  label: string
+  /** Hospitals reporting X, Y and this measure in the year shown. */
+  n: number
+  rx: number
+  ry: number
+  /** r between X and Y over the same hospitals, before and after accounting for this measure. */
+  rxy: number
+  partial: number
+}
+
+/** The outlier recheck calls a change meaningful when the reading (describeR) changes and r moves at least this much. */
+export const ROBUST_DELTA = 0.1
+/** A suggested confounder moves with both measures at least this strongly (|r|), over at least SMALL_SAMPLE hospitals. */
+export const CONFOUNDER_MIN_R = 0.3
+/** Above this |r| a measure is nearly the same thing as X or Y (occupancy and daily census), not a third factor. */
+export const CONFOUNDER_MAX_R = 0.95
 
 /**
  * A metric label for mid-sentence use: "Case mix index" -> "case mix index", but acronyms

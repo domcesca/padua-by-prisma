@@ -25,21 +25,21 @@ export const ABOUT: Record<AboutId, { title: string; body: string[]; walkthrough
   build: {
     title: "Reports",
     body: [
-      "Two ways to make your own view of the data: a report (a chart or table of the measures you pick) or a correlation (whether two measures move together across hospitals).",
+      "Two ways to make your own view of the data: a report (a chart or table of the measures you pick) or, as advanced analysis, a correlation (whether two measures move together across hospitals).",
     ],
   },
   report: {
     title: "Build a report",
     body: [
-      "Pick a hospital, a few measures, and how to group them, and it draws a chart or table you can copy or download.",
-      "Every number comes from the hospitals' public HCAI reports.",
+      "Pick a hospital, start from a template or choose a few measures, then what to compare them with and over what years. It draws a chart or table, with a one-line summary each, that you can print, save as PDF, or download.",
+      "Every number comes from public data: HCAI's financial and utilization reports and case mix index, CMS Care Compare, and CDPH's infection reports.",
     ],
   },
   correlate: {
-    title: "Correlate",
+    title: "Correlate (advanced analysis)",
     body: [
       "Plots two measures for a group of hospitals, one dot per hospital, to show whether they rise and fall together.",
-      "A pattern is not proof that one causes the other, and with few hospitals it can be chance.",
+      "A pattern is not proof that one causes the other, and with few hospitals it can be chance. It checks whether one extreme hospital is driving the pattern and suggests other measures, from the same peer group, that may explain both.",
     ],
     walkthrough: "correlate",
   },

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation"
 
 import { AboutTool } from "@/components/shell/about-tool"
 import { PageHeader } from "@/components/shell/page-header"
+import { REPORT_TEMPLATES } from "@/lib/report/templates"
 
 export const metadata: Metadata = { title: "Reports" }
 
@@ -16,12 +17,15 @@ export const metadata: Metadata = { title: "Reports" }
 const PEER_KEYS = ["peers", "county", "within", "ownership", "bedsMin", "bedsMax", "teaching", "all"]
 const PASS_THROUGH = new Set(["facility", "category", ...PEER_KEYS])
 
+// Correlate is advanced analysis (V7.5): a sibling of the report builder, labeled as the more technical of the two.
+
 const TOOLS = [
   {
     href: "/reports/build",
     icon: ChartColumnBig,
     title: "Build a report",
-    body: "Pick measures and years for one hospital, or several side by side, and get a chart or table you can copy or download.",
+    eyebrow: null,
+    body: "Start from a template or pick measures — financial, utilization, quality, infections — and get charts with a one-line summary each, ready to print or download.",
     example: "e.g. operating margin and occupancy, 2019–2024",
     keep: ["facility", "category", ...PEER_KEYS],
     cta: "Open the report builder",
@@ -30,6 +34,7 @@ const TOOLS = [
     href: "/reports/correlate",
     icon: ChartScatter,
     title: "Correlate",
+    eyebrow: "Advanced analysis",
     body: "See whether two measures move together across a hospital's peers, one dot per hospital. It shows a pattern, not a cause.",
     example: "e.g. are costs high, or are patients just sicker?",
     keep: ["facility", ...PEER_KEYS],
@@ -43,15 +48,16 @@ export default async function BuildHubPage({ searchParams }: PageProps<"/reports
   if ([...params.keys()].some((k) => !PASS_THROUGH.has(k))) redirect(`/reports/build?${params}`)
 
   const hrefFor = (href: string, keep: string[]) => {
-    const q = new URLSearchParams([...params].filter(([k]) => keep.includes(k)))
-    return q.size ? `${href}?${q}` : href
+    const [path, query] = href.split("?")
+    const q = new URLSearchParams([...new URLSearchParams(query), ...[...params].filter(([k]) => keep.includes(k))])
+    return q.size ? `${path}?${q}` : path
   }
 
   return (
     <div className="space-y-8">
       <PageHeader title="Reports" description="Make your own view of the data. Two tools:" actions={<AboutTool id="build" />} />
       <div className="grid gap-4 md:grid-cols-2">
-        {TOOLS.map(({ href, icon: Icon, title, body, example, keep, cta }) => (
+        {TOOLS.map(({ href, icon: Icon, title, eyebrow, body, example, keep, cta }) => (
           <Link
             key={href}
             href={hrefFor(href, keep)}
@@ -61,6 +67,7 @@ export default async function BuildHubPage({ searchParams }: PageProps<"/reports
               <Icon className="size-5" strokeWidth={1.75} />
             </span>
             <span className="space-y-1.5">
+              {eyebrow && <span className="block text-xs font-semibold tracking-wide text-tertiary-foreground uppercase">{eyebrow}</span>}
               <span className="block text-[19px] font-semibold tracking-tight">{title}</span>
               <span className="block text-[14px] leading-relaxed text-muted-foreground">{body}</span>
               <span className="block text-[13px] text-tertiary-foreground">{example}</span>
@@ -71,6 +78,24 @@ export default async function BuildHubPage({ searchParams }: PageProps<"/reports
           </Link>
         ))}
       </div>
+      <section aria-labelledby="report-templates" className="space-y-3">
+        <h2 id="report-templates" className="text-[15px] font-semibold tracking-tight">
+          Or start a report from a template
+        </h2>
+        <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          {REPORT_TEMPLATES.filter((t) => t.id !== "custom").map((t) => (
+            <li key={t.id}>
+              <Link
+                href={hrefFor(`/reports/build?template=${t.id}`, TOOLS[0].keep)}
+                className="glass-subtle flex h-full flex-col gap-1 rounded-xl p-3.5 transition-shadow hover:glow-soft focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+              >
+                <span className="text-[14px] font-medium">{t.label}</span>
+                <span className="text-[13px] leading-snug text-muted-foreground">{t.purpose}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
     </div>
   )
 }

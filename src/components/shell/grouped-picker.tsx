@@ -94,6 +94,12 @@ export function GroupedPicker({ noun, options, selected, onChange, multiple = fa
   function toggle(value: string) {
     if (!multiple) return onChange([value])
     onChange(selected.includes(value) ? selected.filter((v) => v !== value) : [...selected, value])
+    // Inline (Reports), a search is a jump straight to one measure: once it's picked, the search clears and the list
+    // folds back into its closed groups with the pick shown as a chip. In a popover the search stays, to pick several.
+    if (!autoFocus && searching) {
+      setQuery("")
+      setActive("")
+    }
   }
 
   function toggleGroup(group: string) {
