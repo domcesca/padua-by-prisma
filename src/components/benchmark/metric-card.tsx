@@ -1,7 +1,6 @@
 "use client"
 
 import { ArrowRight } from "lucide-react"
-import { useState } from "react"
 
 import { StandingBadge, TrendText } from "@/components/shell/standing"
 import { CardToggle } from "@/components/shell/card-toggle"
@@ -16,7 +15,7 @@ import { CONTEXT_REASONS } from "@/lib/favorability/directions"
 import { directionOf, metricRankText, metricStanding, trend } from "@/lib/favorability"
 import { formatMetric } from "@/lib/format"
 import { auditLabel, type QualityFlag } from "@/lib/status"
-import { setValueBasis, useValueBasis } from "@/lib/value-basis"
+import { setCardView, setValueBasis, useCardView, useValueBasis } from "@/lib/card-prefs"
 import { MetricInfo } from "./metric-info"
 import { TrendChart } from "./trend-chart"
 
@@ -96,7 +95,8 @@ export function MetricCard({
   /** A ratio metric's numerator and denominator by year (V7.4.5): adds the Percent / Actual switch. */
   components?: MetricComponents
 }) {
-  const [view, setView] = useState<"chart" | "table">("chart")
+  const view = useCardView(meta.id)
+  const setView = (v: "chart" | "table") => setCardView(meta.id, v)
   const chosenBasis = useValueBasis(meta.id)
   const basis = components ? chosenBasis : "percent"
 

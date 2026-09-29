@@ -292,6 +292,13 @@ downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and
   Outdated = newest report more than 2 years behind the newest data (13 hospitals, some of them campuses now reported
   under a parent).
 
+### V7.4.6 (Chart / Table remembered like Percent / Actual)
+- Decisions from V7.4.5 review: occupancy's denominator stays licensed bed-days (licensed beds stay a separate metric);
+  unit-level Percent / Actual goes to the backlog (section 4); the 24px card toggles stay.
+- Compare's Chart / Table switch is now remembered per measure for the browser session, like Percent / Actual; both
+  share one store (`src/lib/card-prefs.ts`). Before, it reset whenever a card re-mounted (a topic or hospital change).
+  Business cases' sensitivity chart and Correlate keep their own view switch (one chart each, on their own page).
+
 ### V7.4.5 (Percent / Actual on Compare's ratio cards)
 - Numerator and denominator for 7 ratio metrics plus payer-mix amounts, hospital and peer medians of each part; details
   in the README. Checked: every published ratio reproduced from its parts (15,163 hospital-years, `npm run
@@ -509,6 +516,11 @@ The utilities are all in `src/app/globals.css`. **Reuse them; don't invent new o
 - **Other**: no accounts, saved reports, server-side uploads or database (the V7.0 briefing is browser-local).
 - **Opportunity Finder follow-ups**: workforce metrics (HCAI staffing fields, pending definitions and directions), a strengths companion, tool-level findings (V7.2), more Propose handoffs (V7.3).
 - **More HCAI datasets:** Quarterly Financial & Utilization and the complete Annual Disclosure set are planned but not started.
+- **Percent / Actual in unit and service-line views** (backlog, from V7.4.5): a unit's or line's occupancy comes from
+  its own bed-classification fields, so its numerator and denominator need their own formulas and check. Pick up
+  when someone asks for unit-level amounts.
+- **Accessibility follow-ups** (from V7.4): a real screen-reader pass (NVDA, JAWS, VoiceOver); keyboard access to chart
+  tooltips (the table view has the numbers today); patterns, not just color and order, for grouped bars.
 
 ## 5. Deployment state (checked 2026-09-24)
 - **GitHub:** https://github.com/domcesca/padua-by-prisma (public; renamed from `usc-hcai-insights` in V6.2, old URLs redirect). `main` is pushed and in sync with `origin/main` at `b09ba3a`.

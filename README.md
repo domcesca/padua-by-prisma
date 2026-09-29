@@ -199,7 +199,8 @@ values and have no switch.
   amount (gross charges or inpatient days) over the peers the share comparison uses.
 - **The API**: `/api/benchmark` gains `components` (whole-hospital views only; a unit's or service line's occupancy
   comes from other fields and has no switch) and `payerMix.amounts`. Nothing existing changed.
-- **The switch**: next to Chart / Table, in Guided mode too; remembered per measure for the browser session.
+- **The switch**: next to Chart / Table, in Guided mode too. Both switches are remembered per measure for the browser
+  session (`src/lib/card-prefs.ts`); a new session starts on Percent and Chart.
 
 ## Accessibility baseline (V7.4)
 
