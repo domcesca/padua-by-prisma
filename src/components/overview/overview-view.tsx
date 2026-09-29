@@ -11,28 +11,24 @@ import type { BenchmarkResult } from "@/lib/benchmark/compute"
 import { filtersToParams, parseFilters, type PeerFilters } from "@/lib/benchmark/filters"
 import { APP_FULL_NAME, APP_SUMMARY } from "@/lib/brand"
 import type { MetricDef } from "@/lib/data/datasets"
-import type { MetricCategory } from "@/lib/data/types"
 import { HOME_COUNT } from "@/lib/findings/families"
-import { scanChanges } from "@/lib/overview/changes"
 import { rememberSelection, useSelection } from "@/lib/selection"
 import { useMounted } from "@/lib/use-mounted"
+import { AnnualReportBody, ReportContents, useAnnualReport } from "./annual-report"
 import { CommonActions } from "./common-actions"
 import { NeedsAttention } from "./needs-attention"
 import { SavedWork } from "./saved-work"
-import { UpcomingFilings } from "./upcoming-filings"
-import { WhatChanged, type TopicScan } from "./what-changed"
+import { FilingBanner } from "./upcoming-filings"
 
-// The Overview (the front door): for the remembered hospital, what needs attention, what changed, what's due, what's
-// saved, and shortcuts to the main jobs. Every part reads data the other tools already serve (/api/findings,
-// /api/benchmark, the Filing calendar's rules and the pins in this browser); nothing here is calculated anew.
+// The Overview (the front door, V7.5.5): the remembered hospital's annual report from its own HCAI filings
+// (annual-report.tsx, /api/report/[id]), under a top strip with its next filing and what needs attention against its
+// peers (the page's one peer comparison, labeled), beside a sidebar of saved work and shortcuts (the footer on phones).
 //
 // First visit (no hospital remembered): one focused step to pick a hospital, with the same search the context bar
 // uses. After that the hospital is remembered (lib/selection.ts, as every tool does) and the Overview opens on it; the
 // shared context bar changes the hospital or the peer group.
 
 export type OverviewFacility = FacilityOption & { fiscalYearEnd: string | null; onCalendar: boolean }
-
-const TOPICS: MetricCategory[] = ["financial", "utilization", "quality"]
 
 export function OverviewView({
   facilities,
@@ -97,35 +93,25 @@ function FirstRun({ facilities, latestYear }: { facilities: FacilityOption[]; la
   )
 }
 
-type Loaded = Partial<Record<MetricCategory, { data: BenchmarkResult | null; error: string | null }>>
-
-/** Compare's standard measures in each topic, for What changed and the context bar's peer group. */
-function useTopics(facilityId: string, peerQuery: string) {
+/** Compare's financial result for the context bar's peer group (who the peers are and how well they fit). */
+function usePeerGroup(facilityId: string, peerQuery: string) {
   const key = `${facilityId}?${peerQuery}`
-  const [state, setState] = useState<{ key: string; loaded: Loaded }>({ key: "", loaded: {} })
-  const [attempt, setAttempt] = useState(0)
+  const [state, setState] = useState<{ key: string; data: BenchmarkResult | null } | null>(null)
   useEffect(() => {
     const controller = new AbortController()
-    for (const category of TOPICS) {
-      const params = new URLSearchParams(peerQuery)
-      params.set("facility", facilityId)
-      if (category !== "financial") params.set("view", category)
-      fetch(`/api/benchmark?${params}`, { signal: controller.signal })
-        .then(async (res) => {
-          if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? res.statusText)
-          return (await res.json()) as BenchmarkResult
-        })
-        .then(
-          (data) => setState((s) => ({ key, loaded: { ...(s.key === key ? s.loaded : {}), [category]: { data, error: null } } })),
-          (e: Error) => {
-            if (e.name !== "AbortError") setState((s) => ({ key, loaded: { ...(s.key === key ? s.loaded : {}), [category]: { data: null, error: e.message || "failed" } } }))
-          }
-        )
-    }
+    const params = new URLSearchParams(peerQuery)
+    params.set("facility", facilityId)
+    fetch(`/api/benchmark?${params}`, { signal: controller.signal })
+      .then((res) => (res.ok ? (res.json() as Promise<BenchmarkResult>) : null))
+      .then(
+        (data) => setState({ key, data }),
+        (e: Error) => {
+          if (e.name !== "AbortError") setState({ key, data: null })
+        }
+      )
     return () => controller.abort()
-  }, [key, facilityId, peerQuery, attempt])
-  const loaded = state.key === key ? state.loaded : {}
-  return { loaded, loading: TOPICS.some((c) => !loaded[c]), retry: () => setAttempt((a) => a + 1) }
+  }, [key, facilityId, peerQuery])
+  return state?.key === key ? state.data : null
 }
 
 function Dashboard({
@@ -143,25 +129,16 @@ function Dashboard({
 }) {
   const metaById = useMemo(() => Object.fromEntries(catalog.map((m) => [m.id, m])), [catalog])
   const findings = useFindings(facility.id, peerQuery)
-  const topics = useTopics(facility.id, peerQuery)
+  const report = useAnnualReport(facility.id)
   const filters = useMemo(() => parseFilters(new URLSearchParams(peerQuery)), [peerQuery])
-  const group = TOPICS.map((c) => topics.loaded[c]?.data).find(Boolean) ?? null
+  const group = usePeerGroup(facility.id, peerQuery)
+  const priorities = findings.data ? Math.min(findings.data.primary.length, HOME_COUNT) : null
 
-  const scans: TopicScan[] = TOPICS.map((category) => {
-    const t = topics.loaded[category]
-    if (!t) return { category, scan: null, error: null }
-    if (!t.data) return { category, scan: null, error: t.error }
-    const metrics = t.data.metrics.map((id) => metaById[id]).filter((m): m is MetricDef => !!m)
-    return { category, scan: scanChanges(metrics, t.data.series), error: null }
-  })
-
-  const worse = scans.reduce((n, t) => n + (t.scan?.changes.filter((c) => c.worse).length ?? 0), 0)
-  const status =
-    findings.loading || topics.loading
-      ? `Loading the overview for ${facility.name}…`
-      : findings.data
-        ? `Overview for ${facility.name} loaded: ${Math.min(findings.data.primary.length, HOME_COUNT)} priorit${Math.min(findings.data.primary.length, HOME_COUNT) === 1 ? "y" : "ies"} needing attention, ${worse} measure${worse === 1 ? "" : "s"} that changed for the worse.`
-        : ""
+  const status = report.loading
+    ? `Loading the annual report for ${facility.name}…`
+    : report.data
+      ? `Annual report for ${facility.name} loaded.${priorities != null ? ` ${priorities} priorit${priorities === 1 ? "y needs" : "ies need"} attention against peers.` : ""}`
+      : ""
 
   return (
     <div className="space-y-6">
@@ -184,21 +161,34 @@ function Dashboard({
       />
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-1">
+          <p className="text-[13px] font-medium text-muted-foreground">Annual report</p>
           <h1 className="text-[28px] leading-tight font-semibold tracking-tight sm:text-[32px]">{facility.name}</h1>
-          <p className="text-[15px] text-muted-foreground">
-            What needs attention against its peers, what changed, what&apos;s due, and what you&apos;ve saved.
-          </p>
+          <p className="text-[15px] text-muted-foreground">Its year, from its own filings with HCAI. The peer group applies only to the strip below.</p>
         </div>
         <AboutTool id="home" />
       </header>
 
-      <NeedsAttention facilityId={facility.id} facilityName={facility.name} peerQuery={peerQuery} findings={findings} metaById={metaById} />
-      <WhatChanged facilityId={facility.id} peerQuery={peerQuery} topics={scans} loading={topics.loading} retry={topics.retry} />
-      <div className="grid gap-6 lg:grid-cols-2">
-        <UpcomingFilings facilityId={facility.id} fiscalYearEnd={facility.fiscalYearEnd} onCalendar={facility.onCalendar} />
-        <SavedWork facilityId={facility.id} facilityName={facility.name} peerQuery={peerQuery} findings={findings} />
+      {/* The top strip: the next filing, and the page's one peer comparison, labeled as such. */}
+      <div className="widget divide-y divide-border">
+        <div className="px-4 py-3 sm:px-5">
+          <FilingBanner facilityId={facility.id} fiscalYearEnd={facility.fiscalYearEnd} onCalendar={facility.onCalendar} />
+        </div>
+        <div className="px-4 py-3 sm:px-5">
+          <NeedsAttention facilityId={facility.id} facilityName={facility.name} peerQuery={peerQuery} findings={findings} metaById={metaById} />
+        </div>
       </div>
-      <CommonActions facilityId={facility.id} peerQuery={peerQuery} />
+
+      {/* The report, with the sidebar beside it; on a phone the sidebar follows the report as its footer. */}
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_18rem] xl:gap-10">
+        <article aria-label={`Annual report: ${facility.name}`} className="min-w-0">
+          <AnnualReportBody facilityName={facility.name} report={report} />
+        </article>
+        <aside aria-label="Saved work and shortcuts" className="flex min-w-0 flex-col gap-4">
+          <SavedWork facilityId={facility.id} facilityName={facility.name} peerQuery={peerQuery} findings={findings} />
+          <CommonActions facilityId={facility.id} peerQuery={peerQuery} />
+          <ReportContents facilityName={facility.name} report={report} className="hidden lg:sticky lg:top-24 lg:block" />
+        </aside>
+      </div>
     </div>
   )
 }
