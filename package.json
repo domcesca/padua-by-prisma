@@ -11,7 +11,9 @@
     "check:components": "node --no-warnings scripts/check-components.mts",
     "check:annual-report": "node --no-warnings scripts/check-annual-report.mts",
     "db:migrate": "node --no-warnings --env-file-if-exists=.env.local scripts/db-migrate.mts",
-    "check:isolation": "node --no-warnings --env-file-if-exists=.env.local scripts/check-isolation.mts"
+    "check:isolation": "node --no-warnings --env-file-if-exists=.env.local scripts/check-isolation.mts",
+    "check:permissions": "node --no-warnings --env-file-if-exists=.env.local scripts/check-permissions.mts",
+    "check:hierarchy": "node --no-warnings --env-file-if-exists=.env.local scripts/check-hierarchy.mts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

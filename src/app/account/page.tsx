@@ -1,4 +1,4 @@
-import { Building2, LogOut, ShieldCheck, UserRound } from "lucide-react"
+import { Building2, ChevronRight, LogOut, Network, ShieldCheck, UserRound } from "lucide-react"
 import type { Metadata } from "next"
 import Link from "next/link"
 import { redirect } from "next/navigation"
@@ -11,12 +11,12 @@ import { signOut } from "./actions"
 export const metadata: Metadata = { title: "Account" }
 
 // The signed-in admin's account (V7.6.5a): their organization, its facilities, and their access, which has two
-// independent parts: role (what they can manage) and facility scope (which hospitals they see). Read-only for now;
-// managing people, roles and scopes comes with invites.
+// independent parts: role (what they can manage) and facility scope (which hospitals they see). Changes are made on
+// /organization by an owner or admin (V7.6.5b).
 
 const ROLES: Record<Role, { label: string; body: string }> = {
-  owner: { label: "Owner", body: "Manages the organization and its people. Every organization has at least one owner." },
-  admin: { label: "Admin", body: "Manages the organization and its people." },
+  owner: { label: "Owner", body: "Manages the organization and its people, including other owners. Every organization has at least one owner." },
+  admin: { label: "Admin", body: "Manages the organization and its people, up to admin." },
   member: { label: "Member", body: "Views and contributes within their facility scope." },
 }
 
@@ -36,7 +36,8 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   )
 }
 
-export default async function AccountPage() {
+export default async function AccountPage({ searchParams }: PageProps<"/account">) {
+  const { joined } = await searchParams
   const session = await getSession()
   if (!session) redirect("/login?next=/account")
   const account = await getAccount(session)
@@ -64,6 +65,24 @@ export default async function AccountPage() {
         }
       />
 
+      {joined && (
+        <p role="status" className="rounded-xl bg-favorable/10 px-4 py-3 text-[15px] text-favorable">
+          Welcome to {organization.name}. You&apos;re signed in.
+        </p>
+      )}
+      {admin.role !== "member" && (
+        <Link
+          href="/organization"
+          className="widget flex items-center gap-3 p-4 text-[15px] font-medium hover:bg-white/80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none dark:hover:bg-white/10"
+        >
+          <Network className="size-4 text-primary" aria-hidden />
+          <span className="flex-1">
+            Manage your organization
+            <span className="block text-[13px] font-normal text-muted-foreground">Invite people, set roles and access, reporting lines, and facilities.</span>
+          </span>
+          <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
+        </Link>
+      )}
       <div className="grid gap-4 lg:grid-cols-2">
         <section aria-labelledby="you-title" className="widget p-5">
           <h2 id="you-title" className="flex items-center gap-2 text-[17px] font-semibold tracking-tight">
@@ -90,6 +109,14 @@ export default async function AccountPage() {
             <Row label="Facility scope">
               {scopeLabel(admin.facilityScope, inScope.length, facilities.length)}
               <span className="block text-[13px] text-muted-foreground">Which hospitals&apos; organization data you see. Set separately from your role.</span>
+            </Row>
+            <Row label="Reports to">
+              {account.manager?.name ?? "No one"}
+              {account.directReports > 0 && (
+                <span className="block text-[13px] text-muted-foreground">
+                  {account.directReports} {account.directReports === 1 ? "person reports" : "people report"} to you. You see their work down the chain.
+                </span>
+              )}
             </Row>
           </dl>
         </section>
@@ -119,10 +146,9 @@ export default async function AccountPage() {
       </section>
 
       <section aria-labelledby="next-title" className="rounded-2xl bg-black/4 p-5 dark:bg-white/6">
-        <h2 id="next-title" className="text-[15px] font-semibold">Coming next</h2>
+        <h2 id="next-title" className="text-[15px] font-semibold">Saved work</h2>
         <p className="mt-1 max-w-2xl text-[14px] leading-relaxed text-muted-foreground">
-          Inviting colleagues, adding your organization&apos;s other hospitals, and setting each person&apos;s role and scope. Saved work (business case
-          drafts, pinned briefings) still lives in this browser for now.
+          Business case drafts and pinned briefings still live in this browser for now; saving them to your organization comes next.
         </p>
       </section>
     </div>

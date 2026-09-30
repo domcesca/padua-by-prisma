@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useActionState, useEffect, useRef, useState } from "react"
 
-import { signIn, signUp, type FormState } from "@/app/account/actions"
+import { acceptInviteAction, signIn, signUp, type FormState } from "@/app/account/actions"
 import { FacilityPicker, type FacilityOption } from "@/components/benchmark/facility-picker"
 import { cn } from "@/lib/utils"
 
@@ -160,6 +160,37 @@ export function SignInForm({ next, notice }: { next: string; notice: string | nu
         <Link href="/signup" className="font-medium text-primary hover:underline">
           Create an account
         </Link>
+      </p>
+    </form>
+  )
+}
+
+export function AcceptInviteForm({ token, email, expiresAt }: { token: string; email: string; expiresAt: string }) {
+  const [state, action, pending] = useActionState(acceptInviteAction, null)
+  const formRef = useFocusFirstError(state)
+  const e = state?.errors ?? {}
+  return (
+    <form ref={formRef} action={action} noValidate className="space-y-5">
+      <input type="hidden" name="token" value={token} />
+      <div className="space-y-1.5">
+        <p className="text-[14px] font-medium">Email</p>
+        <p className="text-[15px]">{email}</p>
+        <p className="text-xs text-muted-foreground">The invite is for this address. You&apos;ll sign in with it.</p>
+      </div>
+      <Field id="name" label="Your name" error={e.name}>
+        {(d) => <input id="name" name="name" autoComplete="name" required defaultValue={state?.values?.name} aria-invalid={!!e.name} aria-describedby={d} className={inputClass} />}
+      </Field>
+      <Field id="password" label="Choose a password" hint="At least 12 characters. A short phrase is easier to remember than symbols." error={e.password}>
+        {(d) => (
+          <input id="password" name="password" type="password" autoComplete="new-password" required minLength={12} aria-invalid={!!e.password} aria-describedby={d} className={inputClass} />
+        )}
+      </Field>
+      <FormMessage state={state} />
+      <button type="submit" disabled={pending} className={submitClass}>
+        {pending ? "Joining…" : "Join organization"}
+      </button>
+      <p className="text-center text-xs text-muted-foreground">
+        This invite expires {new Date(expiresAt).toLocaleDateString("en-US", { month: "long", day: "numeric" })} and works once.
       </p>
     </form>
   )

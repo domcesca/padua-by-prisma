@@ -7,6 +7,8 @@ import { AccountsUnavailableError } from "@/lib/server/db"
 import { createAccount, deleteSession, normalizeEmail, verifyLogin } from "@/lib/server/auth/accounts"
 import { PASSWORD_MAX, PASSWORD_MIN } from "@/lib/server/auth/password"
 import { clearSessionCookie, getSession, sessionToken, startSession } from "@/lib/server/auth/session"
+import { refusalText } from "@/lib/org/permissions"
+import { acceptInvite } from "@/lib/server/org"
 
 // Sign-up, sign-in and sign-out (V7.6.5a). Server actions: Next checks each POST's Origin against the host, and every
 // field is validated here, whatever the form did.
@@ -93,4 +95,31 @@ export async function signOut() {
   if (session && token) await deleteSession(session, token)
   await clearSessionCookie()
   redirect("/login?signedOut=1")
+}
+
+/** Accepting an invite (V7.6.5b): name and password; the email, organization, role and access come from the invite. */
+export async function acceptInviteAction(_: FormState, fd: FormData): Promise<FormState> {
+  const token = str(fd, "token")
+  const name = str(fd, "name").trim()
+  const password = str(fd, "password")
+  const values = { name }
+  const errors: NonNullable<FormState>["errors"] = {}
+  if (!name) errors.name = "Enter your name."
+  else if (name.length > 200) errors.name = "Keep your name under 200 characters."
+  if (password.length < PASSWORD_MIN) errors.password = `Use at least ${PASSWORD_MIN} characters.`
+  else if (password.length > PASSWORD_MAX) errors.password = `Use at most ${PASSWORD_MAX} characters.`
+  if (Object.keys(errors).length) return { errors, values }
+
+  try {
+    const result = await acceptInvite(token, name, password)
+    if (!result.ok) return { message: refusalText(result.refusal), values }
+    // Whoever was signed in on this browser before is signed out: the session now belongs to the new account.
+    const [previous, previousToken] = await Promise.all([getSession(), sessionToken()])
+    if (previous && previousToken) await deleteSession(previous, previousToken)
+    await startSession(result.value)
+  } catch (e) {
+    if (e instanceof AccountsUnavailableError) return { message: UNAVAILABLE, values }
+    throw e
+  }
+  redirect("/account?joined=1")
 }

@@ -59,6 +59,19 @@ async function rejects(q: Q, sql: string, params?: unknown[]) {
   }
 }
 
+/** Refused outright, or allowed but touching no rows: either way, nothing changed. */
+async function noEffect(q: Q, sql: string, params?: unknown[]) {
+  await q("savepoint attempt")
+  try {
+    const r = await q(sql, params)
+    await q("release savepoint attempt")
+    return r.rowCount === 0
+  } catch {
+    await q("rollback to savepoint attempt")
+    return true
+  }
+}
+
 const owner = new pg.Pool({ connectionString: ownerUrl, max: 3 })
 const tag = randomUUID().slice(0, 8)
 // Two organizations: A with two facilities, an owner and a member scoped to one facility; B with one facility and owner.
@@ -66,45 +79,48 @@ const A = { org: randomUUID(), f1: randomUUID(), f2: randomUUID(), owner: random
 const B = { org: randomUUID(), f1: randomUUID(), owner: randomUUID() }
 const future = new Date(Date.now() + 86_400_000)
 
-async function seed(pool: pg.Pool) {
-  await as(
-    pool,
-    A.org,
-    A.owner,
-    async (q) => {
-      await q("insert into organizations (id, name) values ($1, $2)", [A.org, `check-A-${tag}`])
-      await q("insert into facilities (id, organization_id, name, hcai_facility_id) values ($1, $3, 'A one', null), ($2, $3, 'A two', null)", [A.f1, A.f2, A.org])
-      await q(
-        `insert into admins (id, organization_id, email, name, password_hash, role, facility_scope, manager_id) values
-         ($1, $3, $4, 'A owner', 'scrypt$x', 'owner', 'organization', null),
-         ($2, $3, $5, 'A member', 'scrypt$x', 'member', 'facilities', $1)`,
-        [A.owner, A.member, A.org, `a-owner-${tag}@check.test`, `a-member-${tag}@check.test`]
+// Seeded as the owner: since V7.6.5b the app role can't insert people, facilities or invites directly (only through the
+// guarded functions, which scripts/check-permissions.mts covers).
+async function seed() {
+  const c = await owner.connect()
+  const q = (sql: string, params?: unknown[]) => c.query(sql, params)
+  try {
+    await q("begin")
+    await q("insert into organizations (id, name) values ($1, $2), ($3, $4)", [A.org, `check-A-${tag}`, B.org, `check-B-${tag}`])
+    await q("insert into facilities (id, organization_id, name) values ($1, $3, 'A one'), ($2, $3, 'A two'), ($4, $5, 'B one')", [A.f1, A.f2, A.org, B.f1, B.org])
+    await q(
+      `insert into admins (id, organization_id, email, name, password_hash, role, facility_scope) values
+       ($1, $2, $3, 'A owner', 'scrypt$x', 'owner', 'organization'),
+       ($4, $2, $5, 'A member', 'scrypt$x', 'member', 'facilities'),
+       ($6, $7, $8, 'B owner', 'scrypt$x', 'owner', 'organization')`,
+      [A.owner, A.org, `a-owner-${tag}@check.test`, A.member, `a-member-${tag}@check.test`, B.owner, B.org, `b-owner-${tag}@check.test`]
+    )
+    await q("update admins set manager_id = $1 where id = $2", [A.owner, A.member])
+    await q("insert into admin_facilities (organization_id, admin_id, facility_id) values ($1, $2, $3)", [A.org, A.member, A.f1])
+    await q(
+      `insert into sessions (token_hash, organization_id, admin_id, expires_at) values
+       ($1, $2, $3, $4), ($5, $6, $7, $4), ($8, $6, $7, now() - interval '1 minute')`,
+      [`a-${tag}`, A.org, A.owner, future, `b-${tag}`, B.org, B.owner, `b-old-${tag}`]
+    )
+    for (const [org, by, fac, key] of [[A.org, A.owner, A.f1, "a"], [B.org, B.owner, B.f1, "b"]]) {
+      const inv = await q(
+        `insert into invites (organization_id, email, role, facility_scope, token_hash, invited_by, expires_at)
+         values ($1, $2, 'member', 'facilities', $3, $4, now() + interval '7 days') returning id`,
+        [org, `${key}-invitee-${tag}@check.test`, `inv-${key}-${tag}`, by]
       )
-      await q("insert into admin_facilities (organization_id, admin_id, facility_id) values ($1, $2, $3)", [A.org, A.member, A.f1])
-      await q("insert into sessions (token_hash, organization_id, admin_id, expires_at) values ($1, $2, $3, $4)", [`a-${tag}`, A.org, A.owner, future])
-    },
-    true
-  )
-  await as(
-    pool,
-    B.org,
-    B.owner,
-    async (q) => {
-      await q("insert into organizations (id, name) values ($1, $2)", [B.org, `check-B-${tag}`])
-      await q("insert into facilities (id, organization_id, name) values ($1, $2, 'B one')", [B.f1, B.org])
-      await q(`insert into admins (id, organization_id, email, name, password_hash, role, facility_scope) values ($1, $2, $3, 'B owner', 'scrypt$x', 'owner', 'organization')`, [
-        B.owner,
-        B.org,
-        `b-owner-${tag}@check.test`,
-      ])
-      await q("insert into sessions (token_hash, organization_id, admin_id, expires_at) values ($1, $2, $3, $4)", [`b-${tag}`, B.org, B.owner, future])
-      await q("insert into sessions (token_hash, organization_id, admin_id, expires_at) values ($1, $2, $3, now() - interval '1 minute')", [`b-old-${tag}`, B.org, B.owner])
-    },
-    true
-  )
+      await q("insert into invite_facilities (organization_id, invite_id, facility_id) values ($1, $2, $3)", [org, inv.rows[0].id, fac])
+      await q("insert into ownership_transfers (organization_id, table_name, from_admin, to_admin, by_admin) values ($1, 'seed', $2, $2, $2)", [org, by])
+    }
+    await q("commit")
+  } catch (e) {
+    await q("rollback")
+    throw e
+  } finally {
+    c.release()
+  }
 }
 
-const TABLES = ["organizations", "facilities", "admins", "admin_facilities", "sessions"]
+const TABLES = ["organizations", "facilities", "admins", "admin_facilities", "sessions", "invites", "invite_facilities", "ownership_transfers"]
 const orgCol = (t: string) => (t === "organizations" ? "id" : "organization_id")
 
 async function run(pool: pg.Pool, label: string) {
@@ -136,12 +152,40 @@ async function run(pool: pg.Pool, label: string) {
     check("as A: make B's owner an A admin's manager is refused", !!(await rejects(q, "update admins set manager_id = $1 where id = $2", [B.owner, A.member])))
     check("as A: create an organization other than A is refused", !!(await rejects(q, "insert into organizations (id, name) values ($1, 'x')", [randomUUID()])))
     check("as A: move an A facility into B is refused", !!(await rejects(q, "update facilities set organization_id = $1 where id = $2", [B.org, A.f1])))
-    const upd = await q("update facilities set name = 'changed' where id = $1", [B.f1])
-    check("as A: update B's facility changes nothing", upd.rowCount === 0)
-    const renamed = await q("update organizations set name = 'changed' where id = $1", [B.org])
-    check("as A: rename B changes nothing", renamed.rowCount === 0)
-    const del = await q("delete from sessions where organization_id = $1", [B.org])
-    check("as A: delete B's sessions removes nothing", del.rowCount === 0)
+    check("as A: update B's facility changes nothing", await noEffect(q, "update facilities set name = 'changed' where id = $1", [B.f1]))
+    check("as A: rename B changes nothing", await noEffect(q, "update organizations set name = 'changed' where id = $1", [B.org]))
+    check("as A: delete B's sessions removes nothing", await noEffect(q, "delete from sessions where organization_id = $1", [B.org]))
+    check("as A: revoke B's invite directly changes nothing", await noEffect(q, "update invites set revoked_at = now() where organization_id = $1", [B.org]))
+    check("as A: log a transfer into B is refused", !!(await rejects(q, "insert into ownership_transfers (organization_id, table_name) values ($1, 'x')", [B.org])))
+  })
+
+  // The guarded functions (V7.6.5b), aimed at B's people and facilities: each must fail as if they didn't exist
+  await as(pool, A.org, A.owner, async (q) => {
+    const bInvite = (await owner.query("select id from invites where organization_id = $1", [B.org])).rows[0].id
+    const attempts: [string, string, unknown[]][] = [
+      ["change B's owner's role", "select padua_set_access($1, 'member', 'organization', null)", [B.owner]],
+      ["remove B's owner", "select padua_remove_admin($1)", [B.owner]],
+      ["make B's owner the manager of A's member", "select padua_set_manager($1, $2)", [A.member, B.owner]],
+      ["put B's owner under A's owner", "select padua_set_manager($1, $2)", [B.owner, A.owner]],
+      ["revoke B's invite", "select padua_revoke_invite($1)", [bInvite]],
+      ["invite someone to B's facility", "select padua_create_invite('x@check.test', 'member', 'facilities', array[$1]::uuid[], 'tok-x', 7)", [B.f1]],
+      ["scope A's member to B's facility", "select padua_set_access($1, 'member', 'facilities', array[$2]::uuid[])", [A.member, B.f1]],
+    ]
+    for (const [name, sql, params] of attempts) {
+      const err = await rejects(q, sql, params)
+      check(`as A: ${name} through the guarded functions is refused (not found)`, /padua:not-found/.test(err ?? ""), err ?? "allowed")
+    }
+  })
+  await as(pool, A.org, B.owner, async (q) => {
+    const err = await rejects(q, "select padua_set_access($1, 'owner', 'organization', null)", [A.member])
+    check("B's admin id set against A's organization can't act at all", /padua:not-signed-in/.test(err ?? ""), err ?? "allowed")
+  })
+  {
+    const b = (await owner.query("select role, manager_id from admins where id = $1", [B.owner])).rows[0]
+    const inv = (await owner.query("select revoked_at from invites where organization_id = $1", [B.org])).rows[0]
+    check("B's owner and invite are untouched after all of the above", b.role === "owner" && b.manager_id === null && inv.revoked_at === null)
+  }
+  await as(pool, A.org, A.owner, async (q) => {
     check("as A: deleting an organization isn't permitted at all", !!(await rejects(q, "delete from organizations")))
   })
 
@@ -193,7 +237,7 @@ async function run(pool: pg.Pool, label: string) {
 }
 
 try {
-  await seed(owner)
+  await seed()
   // Stand-in for later organization data (saved briefings, uploads …): a facility-level table with the documented policy.
   await owner.query(`
     create table check_org_notes (

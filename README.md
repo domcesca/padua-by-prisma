@@ -185,6 +185,41 @@ used (they cover traditional Medicare only, by calendar year, and need a CCN cro
   fiscal-year and include long-term care units. Cards say so.
 - Medicare Advantage share (MA discharges ÷ all Medicare discharges) is available under the Medicare view and in Build.
 
+## Organization console, invites and reporting lines (V7.6.5b)
+
+Accounts now work for more than one person per organization. The console is at `/organization`, for owners and admins,
+linked from Account. It's written for a hospital administrator:
+
+- **Views:** the organization as a tree, **By facility** (who can see which hospital) or **Reporting lines** (who
+  reports to whom).
+- **Actions:**
+  - **Invite someone:** email, role and facility access. It makes a one-time link, valid 7 days, that the inviter
+    sends themselves; Padua doesn't email yet. Pending invites are listed with who sent them and when, and can be
+    withdrawn or re-sent with a new link.
+  - **Edit a person:** role, facility access, who they report to, or removal (their direct reports move up to the
+    removed person's manager).
+  - **Add a facility:** from the HCAI list.
+
+  Options someone can't use stay visible but disabled, with the reason.
+- **Rules (the privilege-escalation guard):**
+  - You can't give a role or access beyond your own, yourself included.
+  - You can't manage someone who outranks you or sees more than you.
+  - You can't take over a reporting line that reaches outside your access.
+  - The last owner can't step down.
+  - Reporting lines can't loop.
+
+  These rules are enforced by the database: the app role can no longer write roles, scopes, managers, membership,
+  facilities or invites directly, only through guarded functions (`db/migrations/0002_people.sql`). The same rules in
+  TypeScript (`src/lib/org/permissions.ts`) drive the console. `npm run check:permissions` requires the two to agree on
+  every combination.
+- **Hierarchy:** a manager sees their reports' data down the chain, on top of their facility access. They can hand it
+  on within their own chain (logged), and can't edit it. The functions, the policy pattern and the row guard are built
+  and checked on synthetic data (`npm run check:hierarchy`). No real organization data uses them yet.
+- **Invite acceptance:** `/invite/<token>`. It shows the organization, inviter, role and access. The person sets a
+  name and password and is signed in.
+- **Details:** [docs/accounts-security.md](docs/accounts-security.md). The Prisma-side operations console is the next
+  follow-up.
+
 ## Accounts and organizations (V7.6.5a)
 
 Real accounts, organization first. This is the foundation later work builds on; it adds no new analysis, and every
@@ -197,7 +232,8 @@ existing page and API route is unchanged and open with or without an account.
   can cross facilities and grants nothing yet. Schema: `db/migrations/0001_accounts.sql`.
 - **Pages.** `/signup` creates an organization with its first facility (picked from the HCAI list) and you as Owner;
   `/login`; `/account` shows your organization, its facilities, your role and your scope, and signs you out. The
-  sidebar footer and the phone header link to Account. No invites yet: every sign-up is a new organization.
+  sidebar footer and the phone header link to Account. Sign-up always creates a new organization; joining an existing
+  one is by invite (V7.6.5b).
 - **Isolation** is enforced in Postgres, not the UI: row-level security on every organization-owned table, every app
   query run as the restricted `padua_app` role with the signed-in organization set per transaction, and composite
   foreign keys so no row can point into another organization. `npm run check:isolation` proves it against a real
@@ -205,7 +241,9 @@ existing page and API route is unchanged and open with or without an account.
   [docs/accounts-security.md](docs/accounts-security.md).
 - **Code.** `src/lib/server/db.ts` (the only module that talks to the database: `withTenant`, `anonymous`),
   `src/lib/server/auth/` (passwords, accounts and sessions), `src/app/account/actions.ts` (the sign-up, sign-in and
-  sign-out server actions), `scripts/db-migrate.mts`, `scripts/check-isolation.mts`.
+  sign-out server actions), `scripts/db-migrate.mts`, `scripts/check-isolation.mts`. V7.6.5b adds
+  `src/lib/server/org.ts`, `src/lib/org/permissions.ts`, `src/app/organization/`, `src/app/invite/[token]/`,
+  `scripts/check-permissions.mts` and `scripts/check-hierarchy.mts`.
 - **Setup.** Optional: without `DATABASE_URL` the app runs as before and sign-in says accounts aren't set up. With it:
   `npm run db:migrate` once, as the database owner. Browser-local work (business-case drafts, pinned briefings) stays in
   the browser for now.

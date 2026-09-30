@@ -1,14 +1,15 @@
-# Accounts and organization isolation: security review note (V7.6.5a)
+# Accounts and organization isolation: security review note (V7.6.5a, V7.6.5b)
 
-This note covers how accounts, sessions and the organization boundary work, what was checked, and what a real audit
-should check before Padua holds client data. Today, nothing organization-owned exists beyond the account records
-themselves. This pass builds the boundary that later data (BYOD uploads, saved briefings, filing-calendar entries,
-Initiatives) will sit behind.
+This note covers how accounts, sessions, the organization boundary, people management and the management hierarchy
+work, what was checked, and what a real audit should check before Padua holds client data. Today, nothing
+organization-owned exists beyond the account records themselves. V7.6.5a built the boundary that later data (BYOD
+uploads, saved briefings, filing-calendar entries, Initiatives) will sit behind. V7.6.5b added invites, managing
+people, the reporting hierarchy and the console on top of it.
 
 ## What is and isn't behind the boundary
 
-- **Behind it (organization-owned):** organizations, facilities, admins, facility scopes, sessions. Later, every table of
-  client data.
+- **Behind it (organization-owned):** organizations, facilities, admins, facility scopes, sessions, invites, and the
+  ownership-transfer log. Later, every table of client data.
 - **Not behind it:** Padua's public benchmarking data (HCAI, CMS, CDPH). It isn't in the database at all. It's read from
   `data/processed` on disk, and no existing page or API route reads the session. Those pages and routes behave exactly
   as before, signed in or not (see "Regression" below).
@@ -32,6 +33,7 @@ cross it. The UI only reflects what the database returns. Four layers:
    builds one in only two places:
    - `resolveSession`: a cookie token is hashed and looked up, and must be unexpired.
    - `createAccount`: the organization id is generated server-side for the organization being created.
+   - `acceptInvite` (V7.6.5b): the invite token is hashed and matched, and the database returns the new admin's ids.
 
    No route, action or form accepts an organization id, admin id or facility id from the client as an authority.
    (Sign-up takes an HCAI hospital id, checks it against the public data, and takes the facility's name from there.)
@@ -48,8 +50,115 @@ functions with a pinned `search_path`, executable only by `padua_app`:
 for the signed-in admin, and only for a facility of the current organization. Future facility-level tables should
 use this policy:
 `using (organization_id = padua_current_org() and padua_in_scope(facility_id))`.
-The isolation check exercises exactly that pattern on a stand-in table. Nothing uses scope to hide anything yet:
-every account today is an Owner with whole-organization scope.
+The isolation check exercises exactly that pattern on a stand-in table. Since V7.6.5b, owners and admins set each
+person's scope from the console. Scope limits what an admin can manage (below); no organization data is gated by it
+yet, because none exists.
+
+## People, roles and invites (V7.6.5b)
+
+### The privilege-escalation guard lives in the database
+
+From migration `0002_people.sql` on, the app role can't write any of these directly: roles, scopes, managers,
+membership, facilities or invites. `UPDATE`, `INSERT` and `DELETE` on those tables and columns are revoked from
+`padua_app`. The check confirms each is "permission denied", even when acting as an owner. The only way to change them
+is through nine `SECURITY DEFINER` functions:
+
+- `padua_sign_up`
+- `padua_create_invite`
+- `padua_revoke_invite`
+- `padua_accept_invite`
+- `padua_set_access`
+- `padua_set_manager`
+- `padua_remove_admin`
+- `padua_add_facility`
+- `padua_invite_lookup` (read-only)
+
+Each function works the same way:
+
+- It takes the actor from `padua.admin_id`, which is set from the verified session, never from the request.
+- It re-reads the actor and target rows itself.
+- It applies the rules below and raises `padua:<rule>` on a refusal.
+
+The same rules exist in `src/lib/org/permissions.ts`, which the console uses to explain what's off and why. The
+database is the authority.
+
+The rules:
+
+- **Roles rank owner > admin > member. Members manage nothing.**
+- **You can't grant beyond yourself.** You can't give any role above your own, or any access beyond your own. Access
+  goes to the whole organization only if you have it; otherwise only to facilities in your own list. This applies to
+  invites, and to changes to anyone, yourself included, so you can narrow your own access but never widen it.
+- **You can only manage people within your reach.** You can't change, remove or revoke an invite for someone who
+  outranks you or who sees anything you don't.
+- **Setting a reporting line requires reach over the whole line.** You can set who someone reports to only if you can
+  manage everyone who would come under the new manager: the person and their whole chain below. Otherwise an admin
+  could make themselves (or anyone) the manager of people outside their reach, and gain view of their work.
+- **Adding a facility needs whole-organization access.** A new facility is outside every facility list.
+- **No self-removal.** Another owner or admin has to remove you. **The last owner can't step down or be removed.**
+
+### Backstops
+
+Two triggers hold these rules whatever writes the row, even the database owner:
+
+- no reporting-line loop;
+- never an organization with no owner.
+
+Every people-changing function also takes a per-organization advisory lock. So two concurrent edits that are each fine
+alone can't together break a rule, for example by closing a loop or demoting the last two owners at once. Both
+functions and triggers read the latest committed state.
+
+### Invite links
+
+- **The token:** 32 random bytes (base64url) in the link path. Only its SHA-256 is stored, and `token_hash` isn't
+  readable by the app role. The link is shown once, to the inviter. If it's lost, "New link" issues a fresh one and
+  revokes the old.
+- **Expiry and single use:**
+  - Links expire after 7 days; the database refuses anything outside 1–30 days.
+  - Accepting locks the invite row (`FOR UPDATE`), so a link works exactly once, even with two tabs racing.
+  - Revoked, expired and used links are refused, and say which.
+  - Inviting the same email again revokes the older pending link, but only if the actor could have revoked it
+    themselves (an admin can't replace an owner's invite).
+- **Checked again at acceptance:** the inviter's authority. If the inviter has since been removed, demoted or narrowed
+  so they could no longer send this invite, it can't be accepted. So a stronger invite can't outlive the person who
+  sent it.
+- **Bound to one email:** the account is created with the invited email. There's no way to change it on the accept
+  page.
+- **One person, one organization:** an email that already has an account anywhere can't accept.
+- **It's a bearer link:** whoever holds it can accept as that email. Padua doesn't send email yet: the inviter copies
+  the link and sends it themselves, and nothing verifies that the person accepting controls the address. That's
+  acceptable while inviters hand links to colleagues they know. It should change before self-serve use: send the link
+  by email, from a configured base URL rather than the request's host, and verify the address.
+- **The accept page:** it sends no `Referer` (`referrer: no-referrer`), so the token doesn't leak to linked sites, and
+  it isn't indexed. To the holder of the link it shows the organization's name, the inviter's name, the email, the role
+  and the facility names.
+- **Invite rows are kept after use or revocation** (who, what, when, by whom), as a record.
+- **Changes take effect at once.** Sessions store only ids, and role and scope are read fresh on every request, so a
+  change applies on the person's next page load. Removal deletes their sessions (cascade), which signs them out
+  immediately (checked).
+
+### The management hierarchy
+
+`admins.manager_id` is live. A manager's access comes on top of facility scope, never replacing it:
+
+- They see their reports' data, transitively (a CSO sees their directors' reports too).
+- They can hand it to someone in their own part of the chain.
+- They can't edit it.
+
+The pieces, for future tables of owned data:
+
+- **`padua_subtree(admin)`, `padua_managers_of(admin)`, `padua_manages(manager, report)`:** recursive walks with
+  `UNION`, which drops rows already seen. So they end even if a loop were ever stored behind the trigger's back
+  (checked, by storing one with the trigger off).
+- **`padua_visible_owners()`, `padua_scope_facilities()`:** arrays for policies, written so they run once per statement:
+  `owner_admin_id = any ((select padua_visible_owners())::uuid[])`.
+- **`padua_owned_row_guard()`:** attach it `BEFORE UPDATE`. The owner edits. A manager above them may change only
+  `owner_admin_id`, only to someone in the manager's own chain, and every hand-off is written to `ownership_transfers`
+  (from, to, by). Anything else raises: `manager-cannot-edit`, `reassign-outside-reports`, `not-owner`. The
+  recommended pattern is a `SELECT` policy of scope or chain, and an `UPDATE` policy of chain only. That way facility
+  scope alone is view-only.
+- **Removing someone:** their direct reports move up to the removed person's manager, so the chain above keeps its view.
+  Future owned tables should reference the owner without `ON DELETE CASCADE`. Then removal is refused until the
+  person's items are handed on. The check shows this, rather than silently deleting their work.
 
 ## Authentication and sessions
 
@@ -72,35 +181,97 @@ every account today is an Owner with whole-organization scope.
 
 ## What was checked
 
-- **`npm run check:isolation`** runs against real PostgreSQL 16. It sets up two organizations, one of them with a member
-  scoped to one of its two facilities, and makes 45 checks per connection setup (plus one more for the non-owner login's `RESET ROLE`). They cover:
-  - unfiltered reads of every table;
-  - reads by the other organization's ids;
-  - inserts, updates and moves into the other organization;
-  - cross-organization scopes, managers and sessions;
-  - the column privilege on password hashes;
-  - attempts to alter the role or turn RLS off;
-  - both lookups, including expired sessions;
-  - `padua_in_scope` for member, owner, an unknown facility id and a mismatched admin id;
-  - the future-table policy pattern.
+All against real PostgreSQL 16, on a scratch database.
 
-  All pass in three setups:
-  - connected as a non-superuser owner, like a hosted provider's default role;
-  - connected as an owner with `BYPASSRLS`, which some providers grant;
-  - connected as a separate non-owner login that's a member of `padua_app`, including after `RESET ROLE`.
+- **`npm run check:isolation`:** 131 checks, all passing in three connection setups (details below).
+  - It sets up two organizations and tries every table, read and write, from each against the other:
+    - unfiltered reads, and reads by the other organization's ids;
+    - inserts, updates and moves into the other organization;
+    - cross-organization scopes, managers and sessions;
+    - the column privilege on password hashes;
+    - attempts to alter the role or turn RLS off;
+    - both lookups, including expired sessions;
+    - `padua_in_scope`;
+    - the future-table policy pattern.
+  - V7.6.5b added the new tables (invites, invite facilities, the transfer log), and every guarded function aimed at
+    the other organization's people, facilities and invites. Each is refused as "not found", and the other
+    organization is checked untouched afterwards.
+  - The three setups:
+    - a non-superuser owner, like a hosted provider's default role;
+    - an owner with `BYPASSRLS`, which some providers grant;
+    - a separate non-owner login that's a member of `padua_app`, including after `RESET ROLE`.
+  - It caught a real bug in V7.6.5a before commit: `padua_in_scope` accepted any facility id for whole-organization
+    scope.
+- **`npm run check:permissions`** (V7.6.5b): the privilege-escalation guard, exhaustively. It uses 12 people (each role
+  with each of four scopes) over three facilities. Every guarded function is tried with every actor, target and grant,
+  and the database's answer (allowed, or the exact refusal) must equal the TypeScript rules. That's 10,128
+  combinations, all matching:
+  - set role and access: 2,160;
+  - invite: 180;
+  - revoke: 144;
+  - remove: 144;
+  - add facility: 12;
+  - set manager: 1,872 for each of three reporting structures, one of them random.
 
-  Writing the check caught a real bug before commit. `padua_in_scope` returned true for any facility id when the
-  admin's scope was the whole organization. It now requires the facility to belong to the current organization.
-- **End to end (Chromium, 33 checks):**
-  - sign-up validation, with values kept, the password never echoed and focus on the first error;
-  - two organizations, each seeing only its own account page;
-  - duplicate email; sign-out; replay of a signed-out cookie; a forged cookie;
-  - wrong password and unknown email, with the same message;
-  - a case-insensitive email; the `next=` redirect and an attempted open redirect;
-  - throttling, including with the right password;
-  - public pages and APIs while signed out and signed in.
-- **With no `DATABASE_URL`:** the app runs as before. Sign-in and sign-up say accounts aren't set up, `/account`
-  redirects to sign-in, and every public page and API responds normally.
+  Then 14 named escalation cases (an admin making themselves owner, widening their own scope, inviting above
+  themselves, taking over a reporting line that reaches outside their access, and so on). Then 9 direct writes the
+  app role must be denied. Then the invite lifecycle and the last-owner rule. 57 checks in all.
+
+  To confirm the check can fail, I removed the role-rank rule from the database function in a throwaway database. The
+  check then reported 5 failures, including "adminorg sets adminorg (self) to ownerorg: expected role-too-high, got
+  ok".
+- **`npm run check:hierarchy`** (V7.6.5b): 35 checks.
+  - **Loops:**
+    - loops of 1, 2 and 50 are refused, through the functions and through direct writes as the owner;
+    - 25 races of two concurrent edits that would together close a loop: the second is refused every time, and no
+      loop is stored.
+  - **Traversal:**
+    - 3,000 random moves over 300 people are refused exactly when they would loop;
+    - `padua_manages` agrees with an independent TypeScript walk on 5,000 random pairs, and `padua_subtree` for all 300
+      people;
+    - with a loop stored anyway, the traversal functions still end.
+  - **Owned-data rules** on a stand-in table:
+    - transitive view;
+    - reports don't see up;
+    - scope alone is view-only;
+    - managers can't edit, or edit while reassigning;
+    - hand-offs go only within the manager's own chain, and are logged;
+    - removal is refused while the person owns items, and reparents their reports.
+  - **Performance:**
+    - a 5,000-deep chain: `padua_manages` top to bottom 17 ms, the top's subtree 14 ms, refusing a 5,000-long loop
+      18 ms, a legitimate move 17 ms;
+    - a 10,000-person tree: the root's subtree 24 ms;
+    - 100,000 owned rows read by a manager of 1,111 people through the policy: under 0.5 s.
+
+    These timings assume the planner has current statistics. Straight after bulk-loading 5,000 people, before
+    `ANALYZE`, the deep walk took about 6 s. Autovacuum fixes that, and people normally arrive one invite at a time. A
+    future bulk-import feature should run `ANALYZE admins` after loading.
+- **End to end (Chromium):**
+  - V7.6.5a's 33 checks still pass (sign-up now goes through `padua_sign_up`).
+  - V7.6.5b adds 29 more:
+    - owner adds a facility, invites an admin scoped to one facility and a member;
+    - the invite page shows who and what, and sends no referrer;
+    - accepting signs them in with exactly that access;
+    - the link can't be reused;
+    - the admin sees what they can't do, and why.
+  - **Forcing past the UI:** re-enabling disabled options in the page to invite an owner, to widen their own scope, or
+    to make a loop is refused by the server with the rule's message.
+  - **Other flows:**
+    - withdrawing an invite kills its link;
+    - demoting the admin removes their console on their next page load;
+    - removing the member signs them out at once;
+    - the only owner can't step down.
+- **Regression against main:**
+  - 13,079 API responses identical;
+  - 66 page renders (11 pages × 3 hospital states × desktop and phone) identical in status, title, main text and
+    shell;
+  - every existing route keeps its rendering.
+- **Accessibility (axe):** 0 violations on the new pages (13 console, dialog and invite states × light and dark ×
+  desktop and phone). One contrast failure (the solid red Remove button in dark mode) was found and fixed.
+- **With no `DATABASE_URL`:** the app runs as before. Sign-in and sign-up say accounts aren't set up, `/account` and
+  `/organization` redirect to sign-in, and every public page and API responds normally. The account pages now always
+  read the session cookie, so a build without a database can't prerender them as static pages. On main,
+  `/account` and `/signup` were prerendered that way when built without `DATABASE_URL`.
 
 ## What a real audit should check before this holds client data
 
@@ -134,7 +305,18 @@ every account today is an Owner with whole-organization scope.
    - Decide whether any upload can contain PHI. If so, you need a BAA with the database and hosting providers,
      encryption at rest, retention and deletion policies, and access logging (who read what).
    - There is no audit log yet.
-7. **Housekeeping.**
+7. **The guarded functions themselves (V7.6.5b).** They run as the owner, outside row-level security, so each filters on
+   `padua_current_org()` explicitly. A reviewer should read each of the nine against the rules; the permission and
+   isolation checks test them from outside. Two things to watch:
+   - The helper functions (`padua_refuse_*`, `padua_lock_org`, `padua_subtree`, …) are callable by the app role.
+     They grant nothing, but `padua_lock_org` could be used to briefly serialize one's own organization's edits.
+   - Changes to people aren't logged beyond invites and ownership transfers. An audit log of role, scope, manager and
+     membership changes (who changed whom, when) should come before real client use.
+8. **Invites before self-serve use.**
+   - Deliver the link by email from a configured base URL, and verify the address on acceptance.
+   - Consider a shorter default expiry.
+   - Purge long-expired invite rows on a schedule.
+9. **Housekeeping.**
    - Expired sessions and old `login_failures` rows aren't purged yet. A scheduled delete is needed.
    - Add security headers and a CSP.
    - Review dependencies (`pg` is the only new runtime one).
@@ -143,30 +325,51 @@ every account today is an Owner with whole-organization scope.
 ## Setting it up on a deployment
 
 1. Create a Postgres database (PostgreSQL 15 or later). Vercel's Marketplace Neon integration works.
-2. Run the migration once with the owner connection string:
+2. Run the migrations with the owner connection string, and again whenever a new one ships:
    `DATABASE_URL=… npm run db:migrate`.
+
+   Deploy code and migrations together:
+   - `0002_people.sql` takes away the direct inserts V7.6.5a's sign-up used, so V7.6.5a code against a 0002 database
+     can't sign anyone up.
+   - This code against a database without 0002 fails on the missing functions.
 3. Recommended: create the app's own login role, then give Vercel that role's connection string as `DATABASE_URL`:
 
    ```sql
    create role padua_web login password '…' noinherit;
    grant padua_app to padua_web;
    ```
-4. Optional: run `CHECK_DATABASE_URL=<owner url of a scratch or staging DB> npm run check:isolation`.
+4. Optional: run `npm run check:isolation`, `check:permissions` and `check:hierarchy`, with
+   `CHECK_DATABASE_URL=<owner url of a scratch or staging DB>`. They add test organizations and remove them after.
+   `check:hierarchy` briefly disables the loop trigger to prove the reads are loop-safe, so never point it at
+   production.
 
 Without `DATABASE_URL`, the deployment works exactly as before, and sign-in reports that accounts aren't set up.
 
 ## Deliberately deferred (next passes)
 
-- **Organization invites:** there is no way to join an existing organization. Every sign-up creates a new organization
-  with the signer as Owner.
-- **Managing people:** changing roles and facility scopes, and removing people. The schema supports this;
-  there's no UI or action yet.
-- **Adding facilities:** a health system can't yet add its other hospitals after sign-up.
-- **Management-hierarchy access:** `admins.manager_id` exists, is kept inside the organization by a composite key, and
-  is covered by the isolation check. Nothing sets or reads it, and it grants no access.
-- **Org-chart console:** nothing built.
+Done in V7.6.5b: invites, managing people (role, scope, reporting line, removal), adding facilities, management-hierarchy
+access (functions, policy pattern and guard, proven on synthetic data), and the client-facing console at `/organization`.
+
+Still to come:
+
+- **Prisma's internal operations console:** the "we manage it for you" servicing tier, where Prisma staff act across
+  client organizations. That needs its own role and audited cross-tenant access path, deliberately absent today. It's
+  the next follow-up.
+- **Invite delivery:** Padua emailing the link, email verification on acceptance, and resending.
+- **Organization data under the hierarchy:** no real table uses `padua_owned_row_guard` or the chain policy yet.
+  They arrive with BYOD, saved briefings, sharing and Initiatives.
 - **Sharing:** of briefings, business cases or reports within or across organizations.
 - **BYOD uploads, and moving browser-local work to the server:** business-case drafts and pinned briefings still live in
   the browser.
+- **Smaller gaps:**
+  - renaming the organization;
+  - facilities outside the HCAI list;
+  - removing a facility;
+  - leaving an organization yourself;
+  - handing work to a peer rather than down the chain;
+  - bulk import of people;
+  - SSO;
+  - an audit log of people changes.
+- **Account lifecycle:** password reset, email verification, MFA.
 - **Requiring sign-in for the public data:** not done. The request was to leave existing pages ungated. Putting the
   whole app behind sign-in later is a single decision, and nothing here depends on it.

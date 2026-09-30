@@ -292,6 +292,49 @@ downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and
   Outdated = newest report more than 2 years behind the newest data (13 hospitals, some of them campuses now reported
   under a parent).
 
+### V7.6.5b (Organization console, invites, roles, reporting lines)
+- **What changed.** Accounts now work for more than one person per organization:
+  - **Invites:** role and facility access set at invite time. One-time 7-day links, which the inviter copies and sends;
+    Padua doesn't email yet. Pending invites can be listed, withdrawn or re-sent.
+  - **Managing people:** role, access, reporting line, removal; adding facilities.
+  - **Management hierarchy, now active:** transitive view plus hand-off, never edit, on top of facility scope. Built and
+    proven on synthetic data.
+  - **The `/organization` console:** By facility and Reporting lines trees, with dialogs for every change.
+
+  Details in the README and `docs/accounts-security.md`.
+- **Privilege guard.** It's in the database. Migration `0002_people.sql` revokes the app role's direct writes to roles,
+  scopes, managers, membership, facilities and invites. Nine SECURITY DEFINER functions apply the rules in
+  `lib/org/permissions.ts`, and triggers backstop no loops and no ownerless organization. Every people change takes a
+  per-organization lock.
+- **Checked.**
+  - `check:permissions`: 10,128 combinations match the rules exactly, including the refusal reason, plus 49 named
+    checks: escalation cases, 9 denied direct writes, the invite lifecycle (expiry, reuse, revoke, replace, a demoted
+    inviter, an email with an account elsewhere) and the last owner. A deliberately broken rule was caught (5
+    failures).
+  - `check:hierarchy`: 35 checks. Loops of 1, 2 and 50, and 25 concurrent races, all refused. 3,000 random moves and
+    5,000 pairs agree with an independent walk. Reads end even with a stored loop. Owned-data rules on a stand-in
+    table. A 5,000-deep chain in 14–18 ms, a 10,000-person tree in 24 ms, and 100,000 owned rows in under 0.5 s
+    (timings with normal statistics; about 6 s right after an unanalyzed bulk load).
+  - `check:isolation`: 131, still passing, now covering the new tables and every guarded function aimed across
+    organizations.
+  - End to end: 29 new checks, including forcing disabled options through the page (refused by the server), plus
+    V7.6.5a's 33.
+  - Regression against main: 13,079 API responses and 66 page renders identical.
+  - axe: 0 violations on the new pages, after fixing the dark-mode Remove button's contrast.
+  - Lint, typecheck, build pass.
+- **Also fixed.** The account pages always read the session cookie now. Built without `DATABASE_URL`, main had
+  prerendered `/account` and `/signup` as static pages.
+- **Deploy note.** Deploy code and migration 0002 together: each fails against the other's older half.
+- **Deferred.**
+  - Prisma's internal operations console (next).
+  - Emailing invites, and email verification.
+  - Real organization data under the hierarchy.
+  - Sharing, BYOD.
+  - Password reset, MFA.
+  - An audit log of people changes.
+  - Smaller gaps: renaming the organization, non-HCAI facilities, facility removal, leaving an organization, bulk
+    import, SSO.
+
 ### V7.6.5a (Accounts and data foundation)
 - Real accounts, organization first: Organization → Facilities → Admins, with role (Owner / Admin / Member) and
   facility scope (whole organization or listed facilities) as independent axes, and a nullable, same-organization
@@ -645,8 +688,9 @@ The utilities are all in `src/app/globals.css`. **Reuse them; don't invent new o
 - **Watch** (anomaly detection on uploaded data): placeholder only.
 - **Case mix** topic (conditions/procedures treated): shown as "coming later" on the home page (`FUTURE_CATEGORIES` in `datasets.ts`). The CMI itself is built (Utilization).
 - **Other**: no saved reports or server-side uploads; the V7.0 briefing and business-case drafts are browser-local.
-  Accounts exist (V7.6.5a); their deferred items (invites, people management, facilities, hierarchy access, org chart,
-  sharing, BYOD, password reset, email verification, MFA) are listed in `docs/accounts-security.md`.
+  Accounts and the organization console exist (V7.6.5a, V7.6.5b). What's deferred is listed in
+  `docs/accounts-security.md`: the Prisma operations console, emailing invites, sharing, BYOD, password reset, email
+  verification and MFA.
 - **Hospital picker popover name** (from V7.6.5a's axe pass): the open popover has no dialog name (axe best-practice,
   on main too). One `aria-label` on its `PopoverContent`; left alone because this pass changes no existing page.
 - **Opportunity Finder follow-ups**: workforce metrics (HCAI staffing fields, pending definitions and directions), a strengths companion, tool-level findings (V7.2), more Propose handoffs (V7.3).

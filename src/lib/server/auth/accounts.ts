@@ -16,13 +16,13 @@ export const SESSION_DAYS = 14
 const MAX_FAILURES = 10
 const FAILURE_WINDOW_MINUTES = 15
 
-const sha256 = (s: string) => createHash("sha256").update(s).digest("hex")
+export const sha256 = (s: string) => createHash("sha256").update(s).digest("hex")
 export const normalizeEmail = (email: string) => email.trim().toLowerCase()
 
 /**
  * Creates an organization with one facility and its first admin, the Owner, whose scope is the whole organization.
- * The organization id is made here, before the insert, so the whole sign-up runs inside that one organization's
- * tenant context: the policies let it create that organization's rows and nothing else.
+ * The organization and admin ids are made here and set as the transaction's tenant context; padua_sign_up (the only way
+ * the app can create people, V7.6.5b) creates exactly that organization and admin.
  */
 export async function createAccount(input: {
   name: string
@@ -31,28 +31,30 @@ export async function createAccount(input: {
   organizationName: string
   facility: { name: string; hcaiFacilityId: string | null }
 }): Promise<{ ok: true; ctx: TenantContext } | { ok: false; reason: "email-taken" }> {
-  const organizationId = randomUUID()
-  const adminId = randomUUID()
+  const ctx = { organizationId: randomUUID(), adminId: randomUUID() }
   const passwordHash = await hashPassword(input.password)
   try {
-    await withTenant({ organizationId, adminId }, async (tx) => {
-      await tx.query("insert into organizations (id, name) values ($1, $2)", [organizationId, input.organizationName.trim()])
-      await tx.query("insert into facilities (organization_id, name, hcai_facility_id) values ($1, $2, $3)", [
-        organizationId,
+    await withTenant(ctx, (tx) =>
+      tx.query("select padua_sign_up($1, $2, $3, $4, $5, $6)", [
+        input.organizationName.trim(),
         input.facility.name,
         input.facility.hcaiFacilityId,
+        normalizeEmail(input.email),
+        input.name.trim(),
+        passwordHash,
       ])
-      await tx.query(
-        `insert into admins (id, organization_id, email, name, password_hash, role, facility_scope)
-         values ($1, $2, $3, $4, $5, 'owner', 'organization')`,
-        [adminId, organizationId, normalizeEmail(input.email), input.name.trim(), passwordHash]
-      )
-    })
+    )
   } catch (e) {
-    if ((e as { code?: string }).code === "23505" && (e as { constraint?: string }).constraint === "admins_email_key") return { ok: false, reason: "email-taken" }
+    if (refusalOf(e) === "email-taken") return { ok: false, reason: "email-taken" }
     throw e
   }
-  return { ok: true, ctx: { organizationId, adminId } }
+  return { ok: true, ctx }
+}
+
+/** The rule a guarded database function refused on ("padua:<code>", db/migrations/0002_people.sql), or null. */
+export function refusalOf(e: unknown): string | null {
+  const m = /^padua:([a-z-]+)$/.exec((e as { message?: string })?.message ?? "")
+  return m ? m[1] : null
 }
 
 /** Checks an email and password. Unknown email and wrong password are indistinguishable, in result and in time. */
@@ -107,6 +109,9 @@ export type Account = {
   facilities: { id: string; name: string; hcaiFacilityId: string | null }[]
   /** The facilities this admin's scope covers, by padua_in_scope: the rule future facility-level policies will use. */
   inScope: string[]
+  /** Who they report to (V7.6.5b), and how many report to them directly. */
+  manager: { id: string; name: string } | null
+  directReports: number
 }
 
 /** The signed-in admin's own account: their organization, its facilities, their role and scope. */
@@ -121,7 +126,11 @@ export function getAccount(ctx: TenantContext): Promise<Account | null> {
     const facilities = await tx.query<{ id: string; name: string; hcai_facility_id: string | null }>(
       "select id, name, hcai_facility_id from facilities order by name"
     )
+    const [manager] = await tx.query<{ id: string; name: string }>("select m.id, m.name from admins a join admins m on m.id = a.manager_id where a.id = $1", [ctx.adminId])
+    const [{ n }] = await tx.query<{ n: number }>("select count(*)::int as n from admins where manager_id = $1", [ctx.adminId])
     return {
+      manager: manager ?? null,
+      directReports: n,
       admin: { id: admin.id, name: admin.name, email: admin.email, role: admin.role, facilityScope: admin.facility_scope, createdAt: admin.created_at.toISOString() },
       organization: { id: org.id, name: org.name, createdAt: org.created_at.toISOString() },
       facilities: facilities.map((f) => ({ id: f.id, name: f.name, hcaiFacilityId: f.hcai_facility_id })),
