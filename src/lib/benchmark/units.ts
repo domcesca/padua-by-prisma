@@ -1,7 +1,6 @@
 import "server-only"
 
 import { UNIT_METRIC_LABELS, type MetricDef } from "@/lib/data/datasets"
-import { sandboxKey } from "@/lib/data/sandbox"
 import { getManifest, getUnits } from "@/lib/data/store"
 import type { MetricsFile, UnitInfo } from "@/lib/data/types"
 
@@ -13,13 +12,9 @@ export type UnitSource = { file: MetricsFile; years: number[]; published: Set<nu
 
 const sources = new Map<string, Promise<UnitSource>>()
 
-/**
- * One unit's values shaped like a metrics file: facility -> year -> metric -> value. Cached per set of test hospitals
- * (lib/data/sandbox.ts): a request without any never sees one's rows.
- */
+/** One unit's values shaped like a metrics file: facility -> year -> metric -> value. */
 export function unitSource(unitId: string): Promise<UnitSource> {
-  const key = `${unitId}|${sandboxKey()}`
-  let entry = sources.get(key)
+  let entry = sources.get(unitId)
   if (!entry) {
     entry = (async () => {
       const [units, manifest] = await Promise.all([getUnits(), getManifest("hau")])
@@ -35,8 +30,8 @@ export function unitSource(unitId: string): Promise<UnitSource> {
       }
       return { file, years: manifest.years, published }
     })()
-    entry.catch(() => sources.delete(key))
-    sources.set(key, entry)
+    entry.catch(() => sources.delete(unitId))
+    sources.set(unitId, entry)
   }
   return entry
 }

@@ -10,8 +10,7 @@ import { metricsFor, parseView } from "@/lib/benchmark/view"
 import { computeFindings } from "@/lib/findings/compute"
 import { computeSpecialties } from "@/lib/specialty/compute"
 import { DATASETS } from "@/lib/data/datasets"
-import { DATASET_IDS, getDictionary, getFacilityDirectory, getLatestYear, getManifest, getMetricCatalog, toFacilityOption } from "@/lib/data/store"
-import { withViewerSandbox } from "@/lib/server/sandbox"
+import { DATASET_IDS, getDictionary, getFacilities, getLatestYear, getManifest, getMetricCatalog, toFacilityOption } from "@/lib/data/store"
 
 export const metadata: Metadata = { title: "Compare" }
 
@@ -19,12 +18,7 @@ export const metadata: Metadata = { title: "Compare" }
 // academic (UCSF), district (Kaweah), county (SF General), investor (Mad River).
 const SUGGESTED_IDS = ["106190555", "106381154", "106540734", "106380939", "106121002"]
 
-// With the viewer's test hospitals, if they have any (lib/server/sandbox.ts).
-export default function BenchmarkPage(props: PageProps<"/compare">) {
-  return withViewerSandbox(() => render(props))
-}
-
-async function render({ searchParams }: PageProps<"/compare">) {
+export default async function BenchmarkPage({ searchParams }: PageProps<"/compare">) {
   const sp = await searchParams
   const params = new URLSearchParams(
     Object.entries(sp).flatMap(([k, v]) => (typeof v === "string" ? [[k, v]] : []))
@@ -34,7 +28,7 @@ async function render({ searchParams }: PageProps<"/compare">) {
   const view = parseView(params)
 
   const [facilities, dictionary, catalog, latestYear, manifests, initialResult, initialSpecialty, initialFindings] = await Promise.all([
-    getFacilityDirectory(),
+    getFacilities(),
     getDictionary("hafd-selected"),
     getMetricCatalog(),
     getLatestYear(),

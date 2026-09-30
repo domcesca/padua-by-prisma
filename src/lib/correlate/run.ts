@@ -4,7 +4,7 @@ import { metricValue } from "@/lib/benchmark/compute"
 import { resolvePeerGroup } from "@/lib/benchmark/peers"
 import { isTrendMetric, type MetricDef } from "@/lib/data/datasets"
 import { getSourceStatus } from "@/lib/data/freshness"
-import { getFacilities, getFacility, getManifest, getMetricCatalog, getMetrics } from "@/lib/data/store"
+import { getFacilities, getManifest, getMetricCatalog, getMetrics } from "@/lib/data/store"
 import type { DatasetId } from "@/lib/data/types"
 import {
   CONFOUNDER_MAX_R,
@@ -162,7 +162,7 @@ async function suggestConfounders(
 
 export async function runCorrelate(spec: CorrelateSpec): Promise<CorrelateResult | RunError> {
   const [facilities, catalog] = await Promise.all([getFacilities(), getMetricCatalog()])
-  const focus = spec.facilityId ? await getFacility(spec.facilityId) : null
+  const focus = facilities.find((f) => f.id === spec.facilityId)
   if (!focus) return { error: "Choose a hospital.", status: 400 }
   const find = (id: string) => catalog.find((m): m is MetricDef => m.id === id && isTrendMetric(m))
   const mx = find(spec.x)

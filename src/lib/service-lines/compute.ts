@@ -4,8 +4,7 @@ import { quantile } from "@/lib/benchmark/compute"
 import type { PeerFilters } from "@/lib/benchmark/filters"
 import { resolvePeerGroup } from "@/lib/benchmark/peers"
 import type { UnitSource } from "@/lib/benchmark/units"
-import { sandboxKey } from "@/lib/data/sandbox"
-import { getFacilities, getFacility, getFields, getManifest, getUnits } from "@/lib/data/store"
+import { getFacilities, getFields, getManifest, getUnits } from "@/lib/data/store"
 import { getSourceStatus, type SourceStatus } from "@/lib/data/freshness"
 import type { FieldsFile, MetricsFile, UnitInfo } from "@/lib/data/types"
 import { checkServiceLines, SERVICE_LINES, type ServiceLine } from "./lines"
@@ -134,18 +133,12 @@ type Model = {
   years: number[]
 }
 
-/** Cached per set of test hospitals (lib/data/sandbox.ts): a request without any never sees one's rows. */
-const models = new Map<string, Promise<Model>>()
+let model: Promise<Model> | null = null
 function getModel() {
-  const key = sandboxKey()
-  let model = models.get(key)
-  if (!model) {
-    model = Promise.all([getFields("hau"), getUnits(), getManifest("hau")]).then(([fields, units, manifest]) =>
-      buildModel(fields, units.units, manifest.years)
-    )
-    model.catch(() => models.delete(key))
-    models.set(key, model)
-  }
+  model ??= Promise.all([getFields("hau"), getUnits(), getManifest("hau")]).then(([fields, units, manifest]) =>
+    buildModel(fields, units.units, manifest.years)
+  )
+  model.catch(() => (model = null))
   return model
 }
 
@@ -233,8 +226,7 @@ const sources = new Map<string, Promise<UnitSource>>()
 
 /** One line's combined values shaped like a metrics file (for Benchmark's metric cards), every hospital. */
 export function lineSource(lineId: string): Promise<UnitSource> {
-  const key = `${lineId}|${sandboxKey()}`
-  let entry = sources.get(key)
+  let entry = sources.get(lineId)
   if (!entry) {
     entry = (async () => {
       const m = await getModel()
@@ -253,8 +245,8 @@ export function lineSource(lineId: string): Promise<UnitSource> {
       }
       return { file, years: m.years, published }
     })()
-    entry.catch(() => sources.delete(key))
-    sources.set(key, entry)
+    entry.catch(() => sources.delete(lineId))
+    sources.set(lineId, entry)
   }
   return entry
 }
@@ -287,7 +279,7 @@ const median = (values: (number | null | undefined)[]) =>
 /** Every line for one hospital, each year it reported, with the peer group's medians. */
 export async function computeServiceLines({ facilityId, filters }: { facilityId: string; filters: PeerFilters }): Promise<ServiceLineRollup | null> {
   const [m, facilities, manifest] = await Promise.all([getModel(), getFacilities(), getManifest("hau")])
-  const facility = await getFacility(facilityId)
+  const facility = facilities.find((f) => f.id === facilityId)
   if (!facility) return null
   const group = resolvePeerGroup(facility, facilities, filters)
   const unitById = new Map(m.units.map((u) => [u.id, u]))

@@ -3,14 +3,10 @@ import { NextResponse, type NextRequest } from "next/server"
 import { runCorrelate } from "@/lib/correlate/run"
 import { parseCorrelateSpec } from "@/lib/correlate/spec"
 import { getTrendMetrics } from "@/lib/data/store"
-import { withViewerSandboxRoute } from "@/lib/server/sandbox"
 
 // GET /api/correlate?facility=106010739&x=caseMixIndex&y=expensePerAdjDischarge&peers=statewide&year=2023
 // Pairs two metrics across the hospital's peer group and returns the points, Pearson r, and trend line.
-// With the viewer's test hospitals, if any, and never publicly cached when one could be involved (lib/server/sandbox.ts).
-export const GET = (request: NextRequest) => withViewerSandboxRoute(request, () => handle(request))
-
-async function handle(request: NextRequest) {
+export async function GET(request: NextRequest) {
   const metrics = await getTrendMetrics()
   const spec = parseCorrelateSpec(request.nextUrl.searchParams, new Set(metrics.map((m) => m.id)))
   const result = await runCorrelate(spec)

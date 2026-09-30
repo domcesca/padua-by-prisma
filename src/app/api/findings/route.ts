@@ -2,14 +2,10 @@ import { NextResponse, type NextRequest } from "next/server"
 
 import { parseFilters } from "@/lib/benchmark/filters"
 import { computeFindings } from "@/lib/findings/compute"
-import { withViewerSandboxRoute } from "@/lib/server/sandbox"
 
 // GET /api/findings?facility=106010967 (+ Benchmark's peer filters: &mode=statewide, &county=…, …)
 //   The hospital's key findings: up to 5 primary and 5 secondary, each with its evidence and the math behind its score.
-// With the viewer's test hospitals, if any, and never publicly cached when one could be involved (lib/server/sandbox.ts).
-export const GET = (request: NextRequest) => withViewerSandboxRoute(request, () => handle(request))
-
-async function handle(request: NextRequest) {
+export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams
   const facilityId = params.get("facility")
   if (!facilityId) {

@@ -7,8 +7,7 @@ import { getFacility } from "@/lib/data/store"
 import { refusalText, type Role, type ScopeKind } from "@/lib/org/permissions"
 import { normalizeEmail } from "@/lib/server/auth/accounts"
 import { getSession } from "@/lib/server/auth/session"
-import { addFacility, addTestHospital, createInvite, removeAdmin, revokeInvite, updatePerson, type Result } from "@/lib/server/org"
-import { testHospitalsEnabled } from "@/lib/server/sandbox"
+import { addFacility, createInvite, removeAdmin, revokeInvite, updatePerson, type Result } from "@/lib/server/org"
 
 // The organization console's changes (V7.6.5b). Each reads the session, passes the request to a guarded database
 // function, and reports back in plain words. The console only offers what the rules allow, but nothing here relies on
@@ -90,12 +89,4 @@ export async function addFacilityAction(_: ActionState, fd: FormData): Promise<A
   const facility = hcaiId ? await getFacility(hcaiId) : null
   if (!facility) return { ok: false, field: "hcai", message: "Choose the hospital to add." }
   return done(await addFacility(await session(), facility.name, facility.id), `${facility.name} added.`)
-}
-
-/** A test hospital (V7.6.5c): made-up data, private to the organization. Only where the deployment allows them. */
-export async function addTestHospitalAction(_: ActionState, fd: FormData): Promise<ActionState> {
-  if (!testHospitalsEnabled()) return { ok: false, message: "Test hospitals aren't turned on for this deployment." }
-  const name = str(fd, "name").trim()
-  if (!name || name.length > 200) return { ok: false, field: "name", message: "Name the test hospital (up to 200 characters)." }
-  return done(await addTestHospital(await session(), name), `${name} added as a test hospital. Find it in any hospital picker.`)
 }

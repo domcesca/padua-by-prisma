@@ -3,20 +3,14 @@ import type { Metadata } from "next"
 import { DeadlinesView, type DeadlineFacility } from "@/components/deadlines/deadlines-view"
 import { AboutTool } from "@/components/shell/about-tool"
 import { PageHeader } from "@/components/shell/page-header"
-import { getFacilityDirectory, getLatestYear, lastReportedYear, toFacilityOption } from "@/lib/data/store"
+import { getFacilities, getLatestYear, lastReportedYear, toFacilityOption } from "@/lib/data/store"
 import { SOURCES } from "@/lib/deadlines/rules"
-import { withViewerSandbox } from "@/lib/server/sandbox"
 
 export const metadata: Metadata = { title: "Filing calendar" }
 
-// With the viewer's test hospitals, if they have any (lib/server/sandbox.ts).
-export default function DeadlinesPage(props: PageProps<"/filing-calendar">) {
-  return withViewerSandbox(() => render(props))
-}
-
-async function render({ searchParams }: PageProps<"/filing-calendar">) {
+export default async function DeadlinesPage({ searchParams }: PageProps<"/filing-calendar">) {
   const sp = await searchParams
-  const [facilities, latestYear] = await Promise.all([getFacilityDirectory(), getLatestYear()])
+  const [facilities, latestYear] = await Promise.all([getFacilities(), getLatestYear()])
   // Only hospitals still reporting need a calendar.
   const options: DeadlineFacility[] = facilities
     .filter((f) => lastReportedYear(f) >= latestYear - 1)

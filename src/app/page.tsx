@@ -1,15 +1,9 @@
 import { OverviewView, type OverviewFacility } from "@/components/overview/overview-view"
-import { getFacilityDirectory, getLatestYear, getMetricCatalog, lastReportedYear, toFacilityOption } from "@/lib/data/store"
-import { withViewerSandbox } from "@/lib/server/sandbox"
+import { getFacilities, getLatestYear, getMetricCatalog, lastReportedYear, toFacilityOption } from "@/lib/data/store"
 
-// With the viewer's test hospitals in the picker, if they have any (lib/server/sandbox.ts).
-export default function OverviewPage(props: PageProps<"/">) {
-  return withViewerSandbox(() => render(props))
-}
-
-async function render({ searchParams }: PageProps<"/">) {
+export default async function OverviewPage({ searchParams }: PageProps<"/">) {
   const sp = await searchParams
-  const [facilities, catalog, latestYear] = await Promise.all([getFacilityDirectory(), getMetricCatalog(), getLatestYear()])
+  const [facilities, catalog, latestYear] = await Promise.all([getFacilities(), getMetricCatalog(), getLatestYear()])
   const options: OverviewFacility[] = facilities.map((f) => ({
     ...toFacilityOption(f),
     fiscalYearEnd: f.fiscalYearEnd,

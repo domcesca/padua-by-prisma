@@ -292,7 +292,22 @@ downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and
   Outdated = newest report more than 2 years behind the newest data (13 hospitals, some of them campuses now reported
   under a parent).
 
-### V7.6.5c (Test hospitals)
+### V7.6.5c reverted (test hospitals removed)
+- **Why.** A real hospital will serve as Prisma's internal test account instead, which needs no code, schema or
+  made-up data.
+- **What changed.**
+  - Sign-up always uses a real HCAI hospital again.
+  - The organization console no longer offers "Add a test hospital".
+  - `PADUA_TEST_HOSPITALS` and the per-request data overlay are gone. Every file V7.6.5c changed is back to its
+    V7.6.5b version.
+  - Migration `0004_drop_test_hospitals.sql` deletes test-hospital facility rows, then drops `sandbox_hospitals` and
+    its three functions. Their organizations and people stay.
+  - `0003` stays in place and stays recorded. Deleting its `schema_migrations` row would make the next migrate
+    re-apply it.
+- **Tradeoff.** Preview and production share one Neon database. A migration can't be tried on a preview first, so
+  code and migrations ship together.
+
+### V7.6.5c (Test hospitals; reverted, see above)
 - **What it is.** A made-up hospital ("XYZ" by default), private to one organization, for trying Padua. It's a real
   hospital's filings, with amounts and volumes changed by 10–20% (rates kept, so totals stay consistent). It's
   created at sign-up or from the organization console, where `PADUA_TEST_HOSPITALS=on`. It works in every tool and is

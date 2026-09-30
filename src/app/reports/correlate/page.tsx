@@ -6,16 +6,10 @@ import { PageHeader } from "@/components/shell/page-header"
 import { runCorrelate } from "@/lib/correlate/run"
 import { parseCorrelateSpec } from "@/lib/correlate/spec"
 import { getFacilityOptions, getLatestYear, getTrendMetrics } from "@/lib/data/store"
-import { withViewerSandbox } from "@/lib/server/sandbox"
 
 export const metadata: Metadata = { title: "Correlate" }
 
-// With the viewer's test hospitals, if they have any (lib/server/sandbox.ts).
-export default function CorrelatePage(props: PageProps<"/reports/correlate">) {
-  return withViewerSandbox(() => render(props))
-}
-
-async function render({ searchParams }: PageProps<"/reports/correlate">) {
+export default async function CorrelatePage({ searchParams }: PageProps<"/reports/correlate">) {
   const sp = await searchParams
   const params = new URLSearchParams(Object.entries(sp).flatMap(([k, v]) => (typeof v === "string" ? [[k, v]] : [])))
   const [facilities, catalog, latestYear] = await Promise.all([getFacilityOptions(), getTrendMetrics(), getLatestYear()])

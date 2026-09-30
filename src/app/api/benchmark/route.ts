@@ -3,14 +3,10 @@ import { NextResponse, type NextRequest } from "next/server"
 import { computeBenchmark } from "@/lib/benchmark/compute"
 import { parseFilters } from "@/lib/benchmark/filters"
 import { metricsFor, parseView } from "@/lib/benchmark/view"
-import { withViewerSandboxRoute } from "@/lib/server/sandbox"
 
 // GET /api/benchmark?facility=106580996&view=utilization&metrics=occupancy,edVisits
 //   &payer=medicare&unit=icu (or &line=criticalCare, &line=all)&county=Yuba,Sutter&ownership=nonprofit&bedsMin=100&bedsMax=299&teaching=any&all=1
-// With the viewer's test hospitals, if any, and never publicly cached when one could be involved (lib/server/sandbox.ts).
-export const GET = (request: NextRequest) => withViewerSandboxRoute(request, () => handle(request))
-
-async function handle(request: NextRequest) {
+export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams
   const facilityId = params.get("facility")
   if (!facilityId) {

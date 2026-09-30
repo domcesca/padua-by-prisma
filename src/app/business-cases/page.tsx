@@ -4,16 +4,10 @@ import { ProposeView } from "@/components/propose/propose-view"
 import { AboutTool } from "@/components/shell/about-tool"
 import { PageHeader } from "@/components/shell/page-header"
 import { getFacilityOptions, getLatestYear } from "@/lib/data/store"
-import { withViewerSandbox } from "@/lib/server/sandbox"
 
 export const metadata: Metadata = { title: "Business cases" }
 
-// With the viewer's test hospitals in the picker, if they have any (lib/server/sandbox.ts).
-export default function ProposePage(props: PageProps<"/business-cases">) {
-  return withViewerSandbox(() => render(props))
-}
-
-async function render({ searchParams }: PageProps<"/business-cases">) {
+export default async function ProposePage({ searchParams }: PageProps<"/business-cases">) {
   const sp = await searchParams
   const search = new URLSearchParams(Object.entries(sp).flatMap(([k, v]) => (typeof v === "string" ? [[k, v]] : []))).toString()
   const [facilities, latestYear] = await Promise.all([getFacilityOptions(), getLatestYear()])
