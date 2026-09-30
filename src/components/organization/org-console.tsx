@@ -1,6 +1,6 @@
 "use client"
 
-import { Building2, FlaskConical, Lock, Mail, Plus, UserPlus, Users } from "lucide-react"
+import { Building2, Lock, Mail, Plus, UserPlus, Users } from "lucide-react"
 import { useActionState, useState } from "react"
 
 import { revokeInviteAction } from "@/app/organization/actions"
@@ -10,8 +10,7 @@ import { canAddFacility, canManage, canRevokeInvite, REFUSAL_TEXT, ROLE_TEXT, ty
 import type { Organization, OrgPerson, PendingInvite } from "@/lib/server/org"
 import { cn } from "@/lib/utils"
 import { accessSummary } from "./access-fields"
-import { AddFacilityDialog, AddTestHospitalDialog, EditPersonDialog, InviteDialog, primaryButton, secondaryButton } from "./dialogs"
-import { TestBadge } from "./test-badge"
+import { AddFacilityDialog, EditPersonDialog, InviteDialog, primaryButton, secondaryButton } from "./dialogs"
 
 // The organization console (V7.6.5b): the organization as a tree, by facility or by reporting line, and every change an
 // owner or admin makes to it: invite, change role and access, set who reports to whom, remove, add a facility. Written
@@ -25,24 +24,12 @@ const roleBadge = (role: OrgPerson["role"]) =>
     role === "owner" ? "bg-primary/10 text-primary" : role === "admin" ? "bg-favorable/10 text-favorable" : "bg-black/5 text-muted-foreground dark:bg-white/8"
   )
 
-export function OrgConsole({
-  org,
-  hospitals,
-  latestYear,
-  testHospitals = false,
-}: {
-  org: Organization
-  hospitals: FacilityOption[]
-  latestYear: number
-  /** Whether this deployment lets people add test hospitals (V7.6.5c). */
-  testHospitals?: boolean
-}) {
+export function OrgConsole({ org, hospitals, latestYear }: { org: Organization; hospitals: FacilityOption[]; latestYear: number }) {
   const actor = org.people.find((p) => p.id === org.actorId)! as Person
   const [view, setView] = useState<"facility" | "reporting">("facility")
   const [editing, setEditing] = useState<string | null>(null)
   const [inviting, setInviting] = useState<{ key: number; preset?: PendingInvite } | null>(null)
   const [addingFacility, setAddingFacility] = useState(false)
-  const [addingTest, setAddingTest] = useState(false)
   const [status, setStatus] = useState("")
   const byId = new Map(org.people.map((p) => [p.id, p]))
   const editingPerson = editing ? byId.get(editing) : undefined
@@ -52,7 +39,6 @@ export function OrgConsole({
   const finished = (message: string) => {
     setEditing(null)
     setAddingFacility(false)
-    setAddingTest(false)
     setStatus(message)
   }
 
@@ -142,19 +128,6 @@ export function OrgConsole({
           <Plus className="size-4" aria-hidden />
           Add a facility
         </button>
-        {testHospitals && !facilityRefusal && (
-          <button
-            type="button"
-            onClick={() => {
-              setStatus("")
-              setAddingTest(true)
-            }}
-            className={secondaryButton}
-          >
-            <FlaskConical className="size-4" aria-hidden />
-            Add a test hospital
-          </button>
-        )}
         {facilityRefusal && (
           <span id="add-facility-why" className="text-[13px] text-muted-foreground">
             {REFUSAL_TEXT[facilityRefusal]}
@@ -205,10 +178,9 @@ export function OrgConsole({
               const here = org.people.filter((p) => p.scope === "facilities" && p.facilities.includes(f.id))
               return (
                 <div key={f.id}>
-                  <h3 className="flex flex-wrap items-center gap-2 text-[14px] font-semibold">
+                  <h3 className="flex items-center gap-2 text-[14px] font-semibold">
                     <Building2 className="size-3.5 text-tertiary-foreground" aria-hidden />
                     {f.name}
-                    {f.testId && <TestBadge />}
                   </h3>
                   <p className="text-[13px] text-muted-foreground">
                     {here.length ? "Also seen by everyone with whole-organization access." : "Only people with whole-organization access see this facility."}
@@ -292,7 +264,6 @@ export function OrgConsole({
           onDone={finished}
         />
       )}
-      {addingTest && <AddTestHospitalDialog open onOpenChange={setAddingTest} onDone={finished} />}
     </div>
   )
 }

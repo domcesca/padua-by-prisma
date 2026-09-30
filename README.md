@@ -185,30 +185,6 @@ used (they cover traditional Medicare only, by calendar year, and need a CCN cro
   fiscal-year and include long-term care units. Cards say so.
 - Medicare Advantage share (MA discharges ÷ all Medicare discharges) is available under the Medicare view and in Build.
 
-## Test hospitals (V7.6.5c)
-
-A made-up hospital to try Padua with, private to the organization that makes it.
-
-- **What it is:** a real hospital's public filings, with every amount and every volume changed by 10–20% (one factor
-  for money, another for volume, a small drift by year), under a name you choose (default "XYZ"). Rates, ratios and
-  quality measures match the source, so every total and derived figure stays consistent.
-- **Where it works:** every tool, like any hospital: Overview, Compare (including units, service lines and
-  specialties), Reports, Correlate, Business cases, Filing calendar and Data definitions. It's marked "Test hospital"
-  wherever it appears, and can be compared alongside real hospitals.
-- **Who sees it:** only the signed-in people of its organization, within their facility access. For anyone else its id
-  is an unknown hospital.
-- **Never in anyone's numbers:** it never counts toward any peer group, median, ranking or correlation, for anyone, its
-  owners included. Responses involving it are never publicly cached.
-- **How to get one:** set `PADUA_TEST_HOSPITALS=on`, then either:
-  - choose **A test hospital** at sign-up; or
-  - as an owner or admin with whole-organization access, click **Add a test hospital** in `/organization`.
-- **Code:**
-  - `src/lib/data/sandbox.ts`: the data;
-  - `src/lib/server/sandbox.ts`: who sees it, and caching;
-  - `db/migrations/0003_test_hospitals.sql`.
-
-  Details and checks are in [docs/accounts-security.md](docs/accounts-security.md).
-
 ## Organization console, invites and reporting lines (V7.6.5b)
 
 Accounts now work for more than one person per organization. The console is at `/organization`, for owners and admins,

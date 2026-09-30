@@ -4,7 +4,7 @@ import { metricValue, quantile } from "@/lib/benchmark/compute"
 import { DEFAULT_FILTERS } from "@/lib/benchmark/filters"
 import { milesBetween, resolvePeerGroup } from "@/lib/benchmark/peers"
 import { isTrendMetric, type MetricDef } from "@/lib/data/datasets"
-import { getFacilities, getFacility, getFacilityDirectory, getManifest, getMetricCatalog, getMetrics } from "@/lib/data/store"
+import { getFacilities, getManifest, getMetricCatalog, getMetrics } from "@/lib/data/store"
 import { getSourceStatus } from "@/lib/data/freshness"
 import type { Facility } from "@/lib/data/types"
 import { isOverTime, MAX_PEER_BARS, type ReportPanel, type ReportResult, type ReportSpec } from "./spec"
@@ -15,15 +15,14 @@ const median = (values: number[]) => quantile([...values].sort((a, b) => a - b),
 
 export async function runReport(spec: ReportSpec): Promise<ReportResult | RunError> {
   const [facilities, catalog] = await Promise.all([getFacilities(), getMetricCatalog()])
-  // The subject and compared hospitals may include the viewer's own test hospital; peers come from `facilities` only.
-  const focus = spec.facilityId ? await getFacility(spec.facilityId) : null
+  const focus = facilities.find((f) => f.id === spec.facilityId)
   if (!focus) return { error: "Choose a hospital.", status: 400 }
   const metrics = spec.metrics
     .map((id) => catalog.find((m) => m.id === id))
     .filter((m): m is MetricDef => !!m && isTrendMetric(m))
   if (!metrics.length) return { error: "Choose at least one metric.", status: 400 }
 
-  const byId = new Map((await getFacilityDirectory()).map((f) => [f.id, f]))
+  const byId = new Map(facilities.map((f) => [f.id, f]))
   const compare = spec.compare.map((id) => byId.get(id)).filter((f): f is Facility => !!f && f.id !== focus.id)
   const group = resolvePeerGroup(focus, facilities, spec.peers)
   const state = resolvePeerGroup(focus, facilities, { ...DEFAULT_FILTERS, mode: "statewide" })

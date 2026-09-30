@@ -7,18 +7,6 @@ import type { FacilityOption } from "@/components/benchmark/facility-picker"
 import type { FacilityClosure } from "@/lib/facility-flag"
 
 import { HCAI_DATASETS, isTrendMetric, type MetricDef } from "./datasets"
-import {
-  currentSandbox,
-  isSandboxId,
-  runWithoutSandbox,
-  sandboxCopy,
-  sandboxCounts,
-  sandboxFacility,
-  sandboxFields,
-  sandboxMetrics,
-  sandboxUnits,
-  type Sandbox,
-} from "./sandbox"
 import type {
   AcsCounty,
   CommunityContext,
@@ -60,9 +48,7 @@ const cache = new Map<string, Promise<unknown>>()
 function memo<T>(key: string, make: () => Promise<T>): Promise<T> {
   let entry = cache.get(key) as Promise<T> | undefined
   if (!entry) {
-    // Shared by every request, so always built from the real data alone, even when the first request to need it has a
-    // test hospital (lib/data/sandbox.ts).
-    entry = runWithoutSandbox(make)
+    entry = make()
     // Don't cache failures; let the next request retry.
     entry.catch(() => cache.delete(key))
     cache.set(key, entry)
@@ -76,32 +62,8 @@ function load<T>(dataset: DatasetId, file: string): Promise<T> {
   )
 }
 
-// A request with test hospitals (lib/data/sandbox.ts) sees each per-hospital file with their rows added. Cached per file
-// and per set of test hospitals, apart from the real data's cache; a few sets at most at a time.
-const overlays = new Map<string, Promise<unknown>>()
-const MAX_OVERLAYS = 64
-
-function withSandbox<T>(file: string, base: Promise<T>, apply: (base: T, sandbox: Sandbox) => T | Promise<T>): Promise<T> {
-  const sandbox = currentSandbox()
-  if (!sandbox) return base
-  const key = `${file}|${sandbox.key}`
-  let entry = overlays.get(key) as Promise<T> | undefined
-  if (!entry) {
-    entry = base.then((b) => runWithoutSandbox(() => apply(b, sandbox)))
-    entry.catch(() => overlays.delete(key))
-    if (overlays.size >= MAX_OVERLAYS) overlays.delete(overlays.keys().next().value!)
-    overlays.set(key, entry)
-  }
-  return entry
-}
-
-export const getMetrics = (dataset: DatasetId) =>
-  withSandbox(`${dataset}/metrics.json`, load<MetricsFile>(dataset, "metrics.json"), (b, sb) => sandboxMetrics(b, sb.hospitals))
-export const getFields = (dataset: HcaiDatasetId) =>
-  withSandbox(`${dataset}/fields.json`, load<FieldsFile>(dataset, "fields.json"), async (b, sb) => {
-    const dictionary = await getDictionary(dataset)
-    return sandboxFields(b, sb.hospitals, new Map(dictionary.fields.map((f) => [f.code, f.unit])))
-  })
+export const getMetrics = (dataset: DatasetId) => load<MetricsFile>(dataset, "metrics.json")
+export const getFields = (dataset: HcaiDatasetId) => load<FieldsFile>(dataset, "fields.json")
 export const getDictionary = (dataset: DatasetId) => load<Dictionary>(dataset, "dictionary.json")
 export const getManifest = (dataset: DatasetId) => load<Manifest>(dataset, "manifest.json")
 
@@ -179,41 +141,12 @@ export function getFacilities(): Promise<Facility[]> {
 /** The utilization report's profile of a hospital (parent organization, principal service), or null. */
 export async function getUtilizationProfile(id: string) {
   const util = await load<UtilizationFacility[]>("hau", "facilities.json")
-  const test = sandboxHospital(id)
-  if (test) {
-    const source = util.find((f) => f.id === test.sourceId)
-    return source ? { ...source, id: test.id, name: test.name, hcaiName: test.name.toUpperCase(), parentOrganization: null, campuses: [] } : null
-  }
   return util.find((f) => f.id === id) ?? null
 }
 
-/** A test hospital of the current request's, by id (lib/data/sandbox.ts), or null. */
-const sandboxHospital = (id: string) => (isSandboxId(id) ? (currentSandbox()?.hospitals.find((h) => h.id === id) ?? null) : null)
-
-/** Any hospital this request may look at: a real one, or one of its own test hospitals. */
 export async function getFacility(id: string) {
   const facilities = await getFacilities()
-  const test = sandboxHospital(id)
-  if (test) {
-    const source = facilities.find((f) => f.id === test.sourceId)
-    return source ? sandboxFacility(source, test) : null
-  }
   return facilities.find((f) => f.id === id) ?? null
-}
-
-/**
- * Every hospital this request may pick: the real ones plus its own test hospitals. For pickers and lookups only; peer
- * groups, medians and rankings come from getFacilities(), which never includes a test hospital.
- */
-export async function getFacilityDirectory(): Promise<Facility[]> {
-  const facilities = await getFacilities()
-  const sandbox = currentSandbox()
-  if (!sandbox) return facilities
-  const tests = sandbox.hospitals.flatMap((h) => {
-    const source = facilities.find((f) => f.id === h.sourceId)
-    return source ? [sandboxFacility(source, h)] : []
-  })
-  return [...tests, ...facilities]
 }
 
 /** Latest year with data in any dataset. */
@@ -235,13 +168,11 @@ export function toFacilityOption(f: Facility): FacilityOption {
     rural: f.rural,
     lastYear: lastReportedYear(f),
     closure: f.closure,
-    ...(f.sandbox ? { sandbox: true } : {}),
   }
 }
 
-/** Picker options: the real hospitals, plus the request's own test hospitals when it has any. */
 export async function getFacilityOptions() {
-  return (await getFacilityDirectory()).map(toFacilityOption)
+  return (await getFacilities()).map(toFacilityOption)
 }
 
 // -- metrics catalog ------------------------------------------------------------
@@ -290,7 +221,7 @@ export function getPublishedYears(metric: MetricDef): Promise<Set<number>> {
 
 // -- bed classifications --------------------------------------------------------
 
-export const getUnits = () => withSandbox("hau/units.json", load<UnitsFile>("hau", "units.json"), (b, sb) => sandboxUnits(b, sb.hospitals))
+export const getUnits = () => load<UnitsFile>("hau", "units.json")
 
 /** The units a hospital has had licensed beds in, in HCAI's line order, with the latest bed count. */
 export async function getFacilityUnits(facilityId: string): Promise<FacilityUnit[]> {
@@ -407,10 +338,7 @@ export const getSourceManifest = (dir: string) => loadReference<Manifest>(dir, "
 export const getIppsDrgs = () => loadReference<IppsDrg[]>("cms-ipps", "drgs.json")
 export const getIppsManifest = () => loadReference<IppsManifest>("cms-ipps", "manifest.json")
 /** Medicare fee-for-service cases per hospital, year, and MS-DRG (11+ cases only). */
-export const getInpatientCases = () =>
-  withSandbox("cms-inpatient/cases.json", loadReference<Record<string, Record<string, Record<string, number>>>>("cms-inpatient", "cases.json"), (b, sb) =>
-    sandboxCounts(b, sb.hospitals)
-  )
+export const getInpatientCases = () => loadReference<Record<string, Record<string, Record<string, number>>>>("cms-inpatient", "cases.json")
 /** Each MS-DRG in the Medicare case data: its MDC (body system) and, for DRGs CMS has since retired, its last weight. */
 export type InpatientDrg = { mdc: string | null; title: string; retiredAfter?: number; lastWeight?: number }
 export const getInpatientDrgs = () => loadReference<Record<string, InpatientDrg>>("cms-inpatient", "drgs.json")
@@ -454,8 +382,7 @@ export type PenaltyManifest = {
   sharedReporting: Record<string, { ccn: string; reportedWith: string; reportedWithName: string }>
 }
 
-export const getPenaltyHospitals = () =>
-  withSandbox("cms-penalties/hospitals.json", loadReference<Record<string, PenaltyHospital>>("cms-penalties", "hospitals.json"), (b, sb) => sandboxCopy(b, sb.hospitals))
+export const getPenaltyHospitals = () => loadReference<Record<string, PenaltyHospital>>("cms-penalties", "hospitals.json")
 export const getPenaltyManifest = () => loadReference<PenaltyManifest>("cms-penalties", "manifest.json")
 
 /** OPPS service APCs with national payment rates (cms-opps; Addendum A only, no CPT content). */
@@ -470,10 +397,7 @@ export type OppsManifest = {
 export const getOppsApcs = () => loadReference<OppsApc[]>("cms-opps", "apcs.json")
 export const getOppsManifest = () => loadReference<OppsManifest>("cms-opps", "manifest.json")
 /** Medicare fee-for-service outpatient services per hospital, year, and comprehensive APC (11+ only). */
-export const getOutpatientServices = () =>
-  withSandbox("cms-opps/services.json", loadReference<Record<string, Record<string, Record<string, number>>>>("cms-opps", "services.json"), (b, sb) =>
-    sandboxCounts(b, sb.hospitals)
-  )
+export const getOutpatientServices = () => loadReference<Record<string, Record<string, Record<string, number>>>>("cms-opps", "services.json")
 
 /** Each hospital's Medicare wage index for IPPS and OPPS payments (cms-wage-index), for Propose's Advanced mode. */
 export type WageIndexHospital = {
@@ -488,6 +412,5 @@ export type WageIndexManifest = {
   opps: { calendarYear: number; sourcePage: string; table: string; laborShare: number }
   sharedReporting: Record<string, { ccn: string; reportedWith: string; reportedWithName: string }>
 }
-export const getWageIndexHospitals = () =>
-  withSandbox("cms-wage-index/hospitals.json", loadReference<Record<string, WageIndexHospital>>("cms-wage-index", "hospitals.json"), (b, sb) => sandboxCopy(b, sb.hospitals))
+export const getWageIndexHospitals = () => loadReference<Record<string, WageIndexHospital>>("cms-wage-index", "hospitals.json")
 export const getWageIndexManifest = () => loadReference<WageIndexManifest>("cms-wage-index", "manifest.json")

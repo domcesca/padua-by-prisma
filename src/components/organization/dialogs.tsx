@@ -3,7 +3,7 @@
 import { Check, Copy, TriangleAlert } from "lucide-react"
 import { useActionState, useEffect, useId, useState } from "react"
 
-import { addFacilityAction, addTestHospitalAction, inviteAction, removePersonAction, updatePersonAction } from "@/app/organization/actions"
+import { addFacilityAction, inviteAction, removePersonAction, updatePersonAction } from "@/app/organization/actions"
 import { FacilityPicker, type FacilityOption } from "@/components/benchmark/facility-picker"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import {
@@ -292,42 +292,6 @@ export function EditPersonDialog({
           {!self && removeRefusal && removeRefusal !== "self-remove" && <p className="text-[13px] text-muted-foreground">Can&apos;t remove: {REFUSAL_TEXT[removeRefusal]}</p>}
         </form>
       )}
-    </Shell>
-  )
-}
-
-// --------------------------------------------------------------------------------------------------- add test hospital
-
-export function AddTestHospitalDialog({ open, onOpenChange, onDone }: { open: boolean; onOpenChange: (o: boolean) => void; onDone: (message: string) => void }) {
-  const [state, action, pending] = useActionState(addTestHospitalAction, null)
-  const id = useId()
-  useEffect(() => {
-    if (state?.ok && state.message) onDone(state.message)
-  }, [state, onDone])
-  return (
-    <Shell
-      open={open}
-      onOpenChange={onOpenChange}
-      title="Add a test hospital"
-      description="A hospital with made-up data, for trying Padua: a real hospital's public filings with every amount and volume changed by 10–20%, under the name you choose. Only your organization sees it, and it never counts toward anyone's peer groups or medians."
-    >
-      <form action={action} className="space-y-5">
-        <div className="space-y-1.5">
-          <label htmlFor={`${id}-name`} className="block text-[14px] font-semibold">
-            Name
-          </label>
-          <input id={`${id}-name`} name="name" defaultValue="XYZ" required maxLength={200} aria-invalid={state?.field === "name"} className={inputClass} />
-        </div>
-        <Problem text={state && !state.ok ? state.message : null} />
-        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <button type="button" onClick={() => onOpenChange(false)} className={secondaryButton}>
-            Cancel
-          </button>
-          <button type="submit" disabled={pending} className={primaryButton}>
-            {pending ? "Adding…" : "Add test hospital"}
-          </button>
-        </div>
-      </form>
     </Shell>
   )
 }

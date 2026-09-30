@@ -6,7 +6,6 @@ import { SignUpForm } from "@/components/account/auth-forms"
 import { getFacilityOptions, getLatestYear } from "@/lib/data/store"
 import { accountsConfigured } from "@/lib/server/db"
 import { getSession } from "@/lib/server/auth/session"
-import { testHospitalsEnabled } from "@/lib/server/sandbox"
 
 export const metadata: Metadata = { title: "Create an account" }
 
@@ -18,7 +17,7 @@ export default async function SignupPage() {
       title="Create an account"
       description="Sets up your organization with you as its owner. Padua's public hospital data stays open without an account."
     >
-      {accountsConfigured() ? <SignUpForm facilities={facilities} latestYear={latestYear} testHospitals={testHospitalsEnabled()} /> : <AccountsUnavailable />}
+      {accountsConfigured() ? <SignUpForm facilities={facilities} latestYear={latestYear} /> : <AccountsUnavailable />}
     </AuthCard>
   )
 }

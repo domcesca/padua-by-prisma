@@ -2,15 +2,11 @@ import { NextResponse, type NextRequest } from "next/server"
 
 import { parseFilters } from "@/lib/benchmark/filters"
 import { parseView } from "@/lib/benchmark/view"
-import { withViewerSandboxRoute } from "@/lib/server/sandbox"
 import { computeSpecialties } from "@/lib/specialty/compute"
 
 // GET /api/specialty?facility=106190555&view=utilization&specialty=05&with=106381154,106380939
 //   &county=...&ownership=...   (the same peer filters as /api/benchmark)
-// With the viewer's test hospitals, if any, and never publicly cached when one could be involved (lib/server/sandbox.ts).
-export const GET = (request: NextRequest) => withViewerSandboxRoute(request, () => handle(request))
-
-async function handle(request: NextRequest) {
+export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams
   const facilityId = params.get("facility")
   if (!facilityId) {
