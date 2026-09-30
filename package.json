@@ -13,7 +13,8 @@
     "db:migrate": "node --no-warnings --env-file-if-exists=.env.local scripts/db-migrate.mts",
     "check:isolation": "node --no-warnings --env-file-if-exists=.env.local scripts/check-isolation.mts",
     "check:permissions": "node --no-warnings --env-file-if-exists=.env.local scripts/check-permissions.mts",
-    "check:hierarchy": "node --no-warnings --env-file-if-exists=.env.local scripts/check-hierarchy.mts"
+    "check:hierarchy": "node --no-warnings --env-file-if-exists=.env.local scripts/check-hierarchy.mts",
+    "check:uploads": "node --no-warnings --env-file-if-exists=.env.local scripts/check-uploads.mts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

@@ -185,6 +185,33 @@ used (they cover traditional Medicare only, by calendar year, and need a CCN cro
   fiscal-year and include long-term care units. Cards say so.
 - Medicare Advantage share (MA discharges ÷ all Medicare discharges) is available under the Medicare view and in Build.
 
+## Private uploads (V7.6.5d)
+
+Any signed-in admin can bring their own data files to Padua at `/uploads` (linked from Account). This pass is private
+only: there's no sharing and nothing is visible to the organization.
+
+- **What you can do:**
+  - upload a file with an optional label;
+  - see a list of your own uploads (name, label, type, size, date);
+  - download one;
+  - delete one.
+
+  No editing or replacing yet.
+- **Types:** CSV, Excel (.xlsx), JSON and plain text (.txt), up to 4 MB. The type is decided from the file's contents,
+  not its name or the browser's MIME type (`src/lib/uploads/sniff.ts`):
+  - an .xlsx must be a ZIP holding an Excel workbook, without macros;
+  - a .json must be UTF-8 that parses;
+  - a .csv must be text with balanced quotes;
+  - a .txt must be text.
+
+  PDFs, images, executables, old .xls files and the like are refused even when renamed.
+- **Storage:** the file's bytes are stored in the `uploads` table itself (`db/migrations/0005_uploads.sql`), in the
+  accounts database. No object storage and nothing new to configure.
+- **Isolation:** the row-level security policy matches the signed-in admin, not just the organization. So a file's
+  content, name and existence are visible only to the person who uploaded it. That excludes the organization's
+  owners, their managers and everyone in other organizations. `npm run check:uploads` proves it.
+- **Details:** [docs/accounts-security.md](docs/accounts-security.md#private-uploads-v765d).
+
 ## Organization console, invites and reporting lines (V7.6.5b)
 
 Accounts now work for more than one person per organization. The console is at `/organization`, for owners and admins,

@@ -292,6 +292,34 @@ downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and
   Outdated = newest report more than 2 years behind the newest data (13 hospitals, some of them campuses now reported
   under a parent).
 
+### V7.6.5d (Private uploads)
+- **What it is.** `/uploads` (linked from Account). Any signed-in admin can upload their own files, see a list of only
+  their own, download them and delete them.
+  - **Metadata:** name, upload date, optional label.
+  - **Types:** CSV, Excel (.xlsx), JSON and plain text, up to 4 MB, checked by content, not name or MIME type.
+  - **Not in this pass:** sharing, organization visibility, editing and replacing.
+- **Storage.** Neon: the bytes are in the `uploads` table (migration `0005_uploads.sql`), so row-level security covers
+  the content, not just the list. Nothing new to configure.
+- **Isolation.** The policy matches the signed-in admin as well as the organization. No one else sees these rows,
+  whatever their role or place in the reporting chain. Grants are select, insert and delete only.
+- **Checked.**
+  - `check:uploads`: 82 checks, covering within and across organizations, managers and reports, writes, schema, and
+    the content check.
+  - `check:isolation` 65, `check:permissions` 57, `check:hierarchy` 35.
+  - API regression vs main: 13,079 responses identical. Pages vs main: 66 identical.
+  - Route table vs main: only `/uploads` and `/uploads/[id]/download` added, and every existing route renders as
+    before.
+  - Browser: 34 checks, covering each type, refusals, downloads and headers, same-organization and other-organization
+    admins (list, download and forged delete), signed out, and phone width. The V7.6.5b suite: 29 checks.
+  - axe: 0 violations across 20 states (light and dark, desktop and phone).
+  - Lint, typecheck and build pass.
+- **Tradeoffs.**
+  - The 4 MB cap comes from Vercel's 4.5 MB request limit.
+  - Server actions now accept bodies up to 4.5 MB (from 1 MB). That applies to every action.
+  - Files count toward Neon storage, and there's no per-person quota yet.
+  - Removing a person deletes their uploads.
+  - CSV and text may be in a legacy encoding. JSON must be UTF-8.
+
 ### V7.6.5c reverted (test hospitals removed)
 - **Why.** A real hospital will serve as Prisma's internal test account instead, which needs no code, schema or
   made-up data.

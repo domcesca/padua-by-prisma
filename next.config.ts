@@ -28,6 +28,11 @@ const nextConfig: NextConfig = {
       { source: "/watch", destination: "/whats-next", permanent: false },
     ]
   },
+  // Private uploads (V7.6.5d) post files of up to 4 MB to a server action; the default limit is 1 MB. 4.5 MB is
+  // Vercel's own request limit, so this is as high as a deployment accepts anyway.
+  experimental: {
+    serverActions: { bodySizeLimit: "4.5mb" },
+  },
   outputFileTracingIncludes: {
     "/**": ["./data/processed/**/*.json"],
   },
