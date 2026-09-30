@@ -5,7 +5,8 @@ import { PageHeader } from "@/components/shell/page-header"
 import { TranslateView } from "@/components/translate/translate-view"
 import { DATASET_SLUG, parseDatasetSlug } from "@/lib/data/datasets"
 import { getSourceStatus } from "@/lib/data/freshness"
-import { getDictionary, getFacilities, getFacilityFieldValues, getFacilityMetricValues, getLatestYear, getManifest, toFacilityOption } from "@/lib/data/store"
+import { getDictionary, getFacilityDirectory, getFacilityFieldValues, getFacilityMetricValues, getLatestYear, getManifest, toFacilityOption } from "@/lib/data/store"
+import { withViewerSandbox } from "@/lib/server/sandbox"
 
 export const metadata: Metadata = { title: "Data definitions" }
 
@@ -20,7 +21,12 @@ const CREDIT = {
   hau: "Definitions adapted from HCAI’s Instructions for Completing the Annual Utilization Report of Hospitals (11/01/2024) and the reporting form; report page and line numbers refer to that form.",
 } as const
 
-export default async function TranslatePage({ searchParams }: PageProps<"/data-definitions">) {
+// With the viewer's test hospitals, if they have any (lib/server/sandbox.ts).
+export default function TranslatePage(props: PageProps<"/data-definitions">) {
+  return withViewerSandbox(() => render(props))
+}
+
+async function render({ searchParams }: PageProps<"/data-definitions">) {
   const sp = await searchParams
   const one = (v: string | string[] | undefined) => (typeof v === "string" ? v : null)
   const dataset = parseDatasetSlug(one(sp.source))
@@ -28,7 +34,7 @@ export default async function TranslatePage({ searchParams }: PageProps<"/data-d
   const [dictionary, otherDictionary, facilities, latestYear, source, manifest] = await Promise.all([
     getDictionary(dataset),
     getDictionary(otherDataset),
-    getFacilities(),
+    getFacilityDirectory(),
     getLatestYear(),
     getSourceStatus(dataset, null),
     getManifest(dataset),

@@ -16,43 +16,62 @@ export const SESSION_DAYS = 14
 const MAX_FAILURES = 10
 const FAILURE_WINDOW_MINUTES = 15
 
-const sha256 = (s: string) => createHash("sha256").update(s).digest("hex")
+export const sha256 = (s: string) => createHash("sha256").update(s).digest("hex")
 export const normalizeEmail = (email: string) => email.trim().toLowerCase()
 
 /**
  * Creates an organization with one facility and its first admin, the Owner, whose scope is the whole organization.
- * The organization id is made here, before the insert, so the whole sign-up runs inside that one organization's
- * tenant context: the policies let it create that organization's rows and nothing else.
+ * The organization and admin ids are made here and set as the transaction's tenant context; padua_sign_up (the only way
+ * the app can create people, V7.6.5b) creates exactly that organization and admin.
  */
 export async function createAccount(input: {
   name: string
   email: string
   password: string
   organizationName: string
-  facility: { name: string; hcaiFacilityId: string | null }
+  /**
+   * A real hospital from the HCAI list, or (V7.6.5c) a test hospital with made-up data: `test` makes its seed, id and
+   * source (lib/server/sandbox.ts), and is asked again if the random id is already taken.
+   */
+  facility: { name: string; hcaiFacilityId: string | null } | { name: string; test: () => Promise<{ publicId: string; sourceId: string; seed: number }> }
 }): Promise<{ ok: true; ctx: TenantContext } | { ok: false; reason: "email-taken" }> {
-  const organizationId = randomUUID()
-  const adminId = randomUUID()
+  const ctx = { organizationId: randomUUID(), adminId: randomUUID() }
   const passwordHash = await hashPassword(input.password)
-  try {
-    await withTenant({ organizationId, adminId }, async (tx) => {
-      await tx.query("insert into organizations (id, name) values ($1, $2)", [organizationId, input.organizationName.trim()])
-      await tx.query("insert into facilities (organization_id, name, hcai_facility_id) values ($1, $2, $3)", [
-        organizationId,
-        input.facility.name,
-        input.facility.hcaiFacilityId,
-      ])
-      await tx.query(
-        `insert into admins (id, organization_id, email, name, password_hash, role, facility_scope)
-         values ($1, $2, $3, $4, $5, 'owner', 'organization')`,
-        [adminId, organizationId, normalizeEmail(input.email), input.name.trim(), passwordHash]
-      )
-    })
-  } catch (e) {
-    if ((e as { code?: string }).code === "23505" && (e as { constraint?: string }).constraint === "admins_email_key") return { ok: false, reason: "email-taken" }
-    throw e
+  const facility = input.facility
+  const person = [normalizeEmail(input.email), input.name.trim(), passwordHash]
+  for (let attempt = 0; ; attempt++) {
+    try {
+      if ("test" in facility) {
+        const t = await facility.test()
+        await withTenant(ctx, (tx) =>
+          tx.query("select padua_sign_up_with_test_hospital($1, $2, $3, $4, $5, $6, $7, $8)", [
+            input.organizationName.trim(),
+            facility.name,
+            t.publicId,
+            t.sourceId,
+            t.seed,
+            ...person,
+          ])
+        )
+      } else {
+        await withTenant(ctx, (tx) =>
+          tx.query("select padua_sign_up($1, $2, $3, $4, $5, $6)", [input.organizationName.trim(), facility.name, facility.hcaiFacilityId, ...person])
+        )
+      }
+      return { ok: true, ctx }
+    } catch (e) {
+      const refusal = refusalOf(e)
+      if (refusal === "email-taken") return { ok: false, reason: "email-taken" }
+      if (refusal === "id-taken" && attempt < 5) continue
+      throw e
+    }
   }
-  return { ok: true, ctx: { organizationId, adminId } }
+}
+
+/** The rule a guarded database function refused on ("padua:<code>", db/migrations/0002_people.sql), or null. */
+export function refusalOf(e: unknown): string | null {
+  const m = /^padua:([a-z-]+)$/.exec((e as { message?: string })?.message ?? "")
+  return m ? m[1] : null
 }
 
 /** Checks an email and password. Unknown email and wrong password are indistinguishable, in result and in time. */
@@ -104,9 +123,12 @@ export type Account = {
   admin: { id: string; name: string; email: string; role: Role; facilityScope: FacilityScope; createdAt: string }
   organization: { id: string; name: string; createdAt: string }
   /** Every facility in the organization. */
-  facilities: { id: string; name: string; hcaiFacilityId: string | null }[]
+  facilities: { id: string; name: string; hcaiFacilityId: string | null; testId: string | null }[]
   /** The facilities this admin's scope covers, by padua_in_scope: the rule future facility-level policies will use. */
   inScope: string[]
+  /** Who they report to (V7.6.5b), and how many report to them directly. */
+  manager: { id: string; name: string } | null
+  directReports: number
 }
 
 /** The signed-in admin's own account: their organization, its facilities, their role and scope. */
@@ -118,13 +140,17 @@ export function getAccount(ctx: TenantContext): Promise<Account | null> {
     )
     const [org] = await tx.query<{ id: string; name: string; created_at: Date }>("select id, name, created_at from organizations")
     if (!admin || !org) return null
-    const facilities = await tx.query<{ id: string; name: string; hcai_facility_id: string | null }>(
-      "select id, name, hcai_facility_id from facilities order by name"
+    const facilities = await tx.query<{ id: string; name: string; hcai_facility_id: string | null; test_id: string | null }>(
+      "select f.id, f.name, f.hcai_facility_id, s.public_id as test_id from facilities f left join sandbox_hospitals s on s.facility_id = f.id order by f.name"
     )
+    const [manager] = await tx.query<{ id: string; name: string }>("select m.id, m.name from admins a join admins m on m.id = a.manager_id where a.id = $1", [ctx.adminId])
+    const [{ n }] = await tx.query<{ n: number }>("select count(*)::int as n from admins where manager_id = $1", [ctx.adminId])
     return {
+      manager: manager ?? null,
+      directReports: n,
       admin: { id: admin.id, name: admin.name, email: admin.email, role: admin.role, facilityScope: admin.facility_scope, createdAt: admin.created_at.toISOString() },
       organization: { id: org.id, name: org.name, createdAt: org.created_at.toISOString() },
-      facilities: facilities.map((f) => ({ id: f.id, name: f.name, hcaiFacilityId: f.hcai_facility_id })),
+      facilities: facilities.map((f) => ({ id: f.id, name: f.name, hcaiFacilityId: f.hcai_facility_id, testId: f.test_id })),
       inScope: (await tx.query<{ id: string }>("select id from facilities where padua_in_scope(id)")).map((r) => r.id),
     }
   })

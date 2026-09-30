@@ -13,9 +13,11 @@ const COOKIE = "padua_session"
 
 /** The signed-in admin for this request, or null. Once per request however many components ask. */
 export const getSession = cache(async (): Promise<TenantContext | null> => {
-  if (!accountsConfigured()) return null
+  // Read the cookie first, whatever the configuration: it marks the page as per-request, so one built without
+  // DATABASE_URL isn't frozen as a static page that ignores a database added later.
   const token = (await cookies()).get(COOKIE)?.value
-  return token ? resolveSession(token) : null
+  if (!accountsConfigured() || !token) return null
+  return resolveSession(token)
 })
 
 /** For server actions and route handlers only: cookies can't be set while a page renders. */

@@ -5,7 +5,7 @@ import type { PeerFilters } from "@/lib/benchmark/filters"
 import { resolvePeerGroup } from "@/lib/benchmark/peers"
 import { DATASETS, type MetricDef } from "@/lib/data/datasets"
 import { getSourceStatus, type SourceStatus } from "@/lib/data/freshness"
-import { getFacilities, getMetricCatalog, getPenaltyHospitals } from "@/lib/data/store"
+import { getFacilities, getFacility, getMetricCatalog, getPenaltyHospitals } from "@/lib/data/store"
 import type { DatasetId } from "@/lib/data/types"
 import { directionOf, metricStanding, trend } from "@/lib/favorability"
 import { formatMetric, formatUsd } from "@/lib/format"
@@ -348,7 +348,7 @@ export async function computeFindings({
   minPrimary?: number
 }): Promise<FindingsResult | null> {
   const [facilities, catalog] = await Promise.all([getFacilities(), getMetricCatalog()])
-  const facility = facilities.find((f) => f.id === facilityId)
+  const facility = await getFacility(facilityId)
   if (!facility) return null
   const group = resolvePeerGroup(facility, facilities, filters)
   const peerIds = group.peers.map((p) => p.id)

@@ -10,7 +10,7 @@ import {
   type PayerView,
 } from "@/lib/data/datasets"
 import { getSourceStatus, type SourceStatus } from "@/lib/data/freshness"
-import { getCommunityContext, getFacilities, getFacilityUnits, getManifest, getMetricCatalog, getMetrics, getPublishedYears } from "@/lib/data/store"
+import { getCommunityContext, getFacilities, getFacility, getFacilityUnits, getManifest, getMetricCatalog, getMetrics, getPublishedYears } from "@/lib/data/store"
 import type { CommunityContext, DatasetId, Facility, FacilityUnit, MetricCategory, MetricsFile, PayerGroup, PayerMix, PointDetail } from "@/lib/data/types"
 import type { PeerFilters } from "./filters"
 import { milesBetween, resolvePeerGroup } from "./peers"
@@ -186,7 +186,7 @@ export async function computeBenchmark({
   line?: string | null
 }): Promise<BenchmarkResult | null> {
   const [facilities, catalog] = await Promise.all([getFacilities(), getMetricCatalog()])
-  const facility = facilities.find((f) => f.id === facilityId)
+  const facility = await getFacility(facilityId)
   if (!facility) return null
 
   const group = resolvePeerGroup(facility, facilities, filters)
