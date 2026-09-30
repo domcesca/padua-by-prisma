@@ -505,5 +505,36 @@ export const outpatientModule = defineModule<State, OutpatientData>({
             : undefined,
     }
   },
+  assumptions: (s, data, { wageIndex }) => {
+    if (!data) return { publicData: [], inputs: [] }
+    const rows = compute(s, data, wageIndex)
+    const { adjusted } = pricing(data, wageIndex)
+    const opps = `CMS CY ${data.calendarYear} OPPS, Addendum A (${data.quarter})`
+    const publicData = includesFacility(s.scope)
+      ? rows.map((r) => ({ label: `APC ${r.code} hospital payment per service`, value: formatUsd(r.rate), source: adjusted ? `${opps}, wage-index-adjusted` : `${opps}, national rate` }))
+      : []
+    if (adjusted && includesFacility(s.scope)) publicData.push({ label: `Wage index, ${adjusted.hospital}`, value: adjusted.value.toFixed(4), source: `CMS ${adjusted.table}` })
+    for (const r of rows.filter((x) => s.apcs.find((a) => a.code === x.code)?.mode === "pct" && x.baseline != null))
+      publicData.push({ label: `APC ${r.code} Medicare services, ${data.baseline!.year}`, value: formatInt(r.baseline!), source: "CMS Medicare fee-for-service" })
+    const inputs = [{ label: "Revenue counted", value: SCOPES.find((x) => x.value === s.scope)?.label ?? s.scope }]
+    for (const a of s.apcs) {
+      const r = rows.find((x) => x.code === a.code)
+      inputs.push({ label: `Added services, APC ${a.code}`, value: a.mode === "pct" ? `+${a.value}% of Medicare services${r ? ` (${servicesText(r.added)})` : ""}` : `${servicesText(a.value)} a year` })
+      if (includesPro(s.scope)) inputs.push({ label: `Physician payment per service, APC ${a.code}`, value: formatUsd(a.pro) })
+    }
+    if (s.careCost) inputs.push({ label: "Cost of providing the added services", value: `${s.careCost}% of payment` })
+    return { publicData, inputs }
+  },
+  warnings: (s, data) => {
+    if (!data?.baseline) return []
+    const out: string[] = []
+    for (const a of s.apcs) {
+      const base = data.baseline.services[a.code]
+      if (a.mode === "pct" && a.value > 100) out.push(`APC ${a.code}: a ${a.value}% increase more than doubles the hospital's Medicare services.`)
+      if (a.mode === "count" && base && a.value > base * 2)
+        out.push(`APC ${a.code}: ${formatInt(a.value)} added services is more than twice the ${formatInt(base)} Medicare services the hospital had in ${data.baseline.year}.`)
+    }
+    return out
+  },
   Editor,
 })

@@ -182,6 +182,44 @@ used (they cover traditional Medicare only, by calendar year, and need a CCN cro
   fiscal-year and include long-term care units. Cards say so.
 - Medicare Advantage share (MA discharges ÷ all Medicare discharges) is available under the Medicare view and in Build.
 
+## Business cases as a guided flow (V7.6)
+
+Business cases (`/business-cases`, `components/propose/`) is now four steps over the same model. No calculation
+changed: the engine, analysis, and every module's benefit are as before, and the page only arranges them.
+
+1. **Define the initiative**: the hospital (from the context bar), the proposal name, and a description of what's
+   proposed. Saved drafts are listed here to resume or delete.
+2. **Estimate benefits**: the description recommends a method (inpatient or outpatient reimbursement, cost savings,
+   avoided penalties, or custom) with why, in plain words (`lib/propose/intake.ts`, `methodReason`). Nothing is
+   applied until the proposer confirms it or picks another; then that method's inputs appear. Next is held until a
+   method is confirmed, and Review says so if reached another way.
+3. **Enter costs and assumptions**: capital, implementation, running costs, useful life, discount rate, scenario
+   rates, and Advanced mode.
+4. **Review scenarios**: the results exactly as before (scenario cards, break-even, cumulative chart, sensitivity,
+   year-by-year table, What went in, notes), with Copy link, Download CSV, the printout presets, and Print.
+
+- **In the link**: `step=1..4`, and `pick=manual` (picked by hand) or `pick=confirmed` (recommendation accepted). A
+  link without `step` predates the flow and opens where its contents say: Review if it has costs, the benefit step if it
+  names a method (treated as confirmed, since the old page applied it), else the start. Links from Compare's hospital
+  priorities carry `pick=manual`, so they land on Step 2, method confirmed, inputs prefilled.
+- **Assumptions panel** (`assumptions-panel.tsx`, `lib/propose/assumptions.ts`): beside every step (sticky on wide
+  screens, a collapsed card above the step on phones), in three kinds: public data (CMS or HCAI, with the source),
+  your inputs, and what Padua calculated. Modules list their own public data and inputs through a new optional
+  `assumptions` hook; it reads the values `benefit` reads and changes nothing.
+- **Checks** (`lib/propose/warnings.ts`): flag, never block, shown on their step, in the panel, and all together on
+  Review: no costs (once there's a benefit), volumes out of scale with the hospital's own figures (a module `warnings`
+  hook: added cases or services over twice the hospital's Medicare count, over 100% growth, 400+ staff hours a week,
+  patient days avoided over 10% of the hospital's, a readmission cut to zero, a 100% infection cut), a negative benefit
+  or running costs above it, a discount rate other than the default 5%, and a useful life that doesn't fit (penalties or
+  a ramp-up reaching full effect after it ends, or equipment over 15 years).
+- **Drafts** (`lib/propose/drafts.ts`): Save draft keeps the case's link in this browser's localStorage
+  (`padua-business-case-drafts-v1`, up to 20), then saves each change as you go; the link carries `draft=` so a reload
+  keeps saving to it. No accounts or server storage.
+- **Exports** (`lib/propose/export.ts`): the printout always ends with the assumption sheet on its own page, whatever
+  the preset; the new CSV has the scenario output, the year-by-year table for all three scenarios, the assumption sheet,
+  the checks and the method notes. Printing from any step switches to Review first.
+- **Tour**: the walkthrough moves the flow to the step each target is on (a tour step's `show` event).
+
 ## Overview as the annual report (V7.5.5)
 
 The Overview (`/`) is now the remembered hospital's annual report, written from its own HCAI filings. Prose leads;

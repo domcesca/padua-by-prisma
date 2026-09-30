@@ -15,9 +15,11 @@ import { cn } from "@/lib/utils"
 //     viewer is about to type into. It plays on the Overview that follows, pointing at the context bar's hospital.
 //   * propose, correlate: step-by-step walkthroughs, started from those tabs' "About this tool" panels, never on their
 //     own; they're the tools where a misread has consequences.
-// Each step points at an element marked data-tour="<target>"; a step whose target isn't on screen is skipped.
+// Each step points at an element marked data-tour="<target>"; a step whose target isn't on screen is skipped. A step
+// can first ask the page to show part of itself (`show`): Business cases' walkthrough moves the guided flow to the step
+// its target is on (V7.6).
 
-type Step = { target: string; title: string; body: string }
+type Step = { target: string; title: string; body: string; show?: { event: string; detail: unknown } }
 export type TourId = "welcome" | "propose" | "correlate"
 
 const TOURS: Record<TourId, { label: string; steps: Step[] }> = {
@@ -45,39 +47,57 @@ const TOURS: Record<TourId, { label: string; steps: Step[] }> = {
     label: "Business case walkthrough",
     steps: [
       {
+        target: "propose-define",
+        show: { event: "padua:propose-step", detail: 1 },
+        title: "1. Define the initiative",
+        body: "Name the proposal and say what it is. Padua reads the description to recommend how the benefit is estimated; it doesn't apply anything yet.",
+      },
+      {
         target: "propose-method",
-        title: "1. Say what you're proposing",
-        body: "Describe it and Padua suggests how to estimate the benefit, or pick a method yourself. Each method counts something different: new revenue, savings, or avoided penalties.",
+        show: { event: "padua:propose-step", detail: 2 },
+        title: "2. Confirm how the benefit is estimated",
+        body: "The recommended method comes with why it fits. Nothing is counted until you confirm it or pick another: new revenue, savings, or avoided penalties each count something different.",
       },
       {
         target: "propose-benefit",
-        title: "2. Enter the benefit",
+        show: { event: "padua:propose-step", detail: 2 },
+        title: "Then enter the benefit",
         body: "Tags mark what comes from public data and what's your assumption. The estimate is only as good as those assumptions, so be ready to defend them.",
       },
       {
         target: "propose-costs",
-        title: "3. Enter the costs",
-        body: "Up-front costs (equipment, implementation) are paid at the start; running costs every year of the useful life.",
+        show: { event: "padua:propose-step", detail: 3 },
+        title: "3. Enter the costs and assumptions",
+        body: "Up-front costs (equipment, implementation) are paid at the start; running costs every year of the useful life. The useful life, discount rate and scenario rates are here too, with Advanced mode.",
+      },
+      {
+        target: "propose-assumptions",
+        title: "Keep an eye on the assumptions",
+        body: "Beside every step: public data, your inputs and what Padua calculated, kept apart, with any checks worth a second look. Save a draft here to finish later in this browser.",
       },
       {
         target: "propose-scenarios",
-        title: "4. Read the three scenarios",
+        show: { event: "padua:propose-step", detail: 4 },
+        title: "4. Review the three scenarios",
         body: "Each scenario scales the benefit (70%, 100%, 130% by default) while costs stay the same. Payback is when cumulative cash turns positive; ROI and NPV cover the whole useful life. If only the optimistic case pays back, that's the real story.",
       },
       {
         target: "propose-chart",
-        title: "5. See when it pays back",
+        show: { event: "padua:propose-step", detail: 4 },
+        title: "See when it pays back",
         body: "Each line is a scenario's cumulative cash. Where a line crosses zero is its payback; a line that never crosses doesn't pay back within the useful life.",
       },
       {
         target: "propose-notes",
-        title: "6. Read the fine print",
+        show: { event: "padua:propose-step", detail: 4 },
+        title: "Read the fine print",
         body: "These notes say what the estimate leaves out: most use national Medicare rates, not your contracts, and count revenue rather than margin unless you set a cost of care. Share them with the numbers.",
       },
       {
         target: "propose-print",
-        title: "7. Share it",
-        body: "Choose Board summary or Finance committee, then print or save a PDF. The whole proposal lives in the link, so Copy link saves it too.",
+        show: { event: "padua:propose-step", detail: 4 },
+        title: "Share it",
+        body: "Print or save a PDF (Board summary or Finance committee), or download the CSV; both end with the full assumption sheet. The whole case lives in the link, so Copy link saves it too.",
       },
     ],
   },
@@ -240,9 +260,26 @@ export function Tour() {
     active.current = step != null ? tourId : null
   }, [step, tourId])
 
-  // Bring the step's target into view and keep the spotlight on it.
+  // Ask the page to show the step's part of itself first, if it needs to (a step of a guided flow).
+  const [shown, setShown] = useState<number | null>(null)
   useEffect(() => {
     if (step == null) return
+    const show = STEPS[step].show
+    let inner = 0
+    const frame = requestAnimationFrame(() => {
+      if (show) window.dispatchEvent(new CustomEvent(show.event, { detail: show.detail }))
+      // The page renders the new part synchronously; give layout a frame before measuring.
+      inner = requestAnimationFrame(() => setShown(step))
+    })
+    return () => {
+      cancelAnimationFrame(frame)
+      cancelAnimationFrame(inner)
+    }
+  }, [step, STEPS])
+
+  // Bring the step's target into view and keep the spotlight on it.
+  useEffect(() => {
+    if (step == null || shown !== step) return
     const el = visibleTarget(STEPS[step].target)
     if (!el) {
       const frame = requestAnimationFrame(() => {
@@ -269,7 +306,7 @@ export function Tour() {
       window.removeEventListener("scroll", measure, true)
       window.removeEventListener("resize", measure)
     }
-  }, [step, STEPS, tourId])
+  }, [step, STEPS, tourId, shown])
 
   useEffect(() => {
     if (step == null) return

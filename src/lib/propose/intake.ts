@@ -58,3 +58,27 @@ export function suggestModule(description: string): IntakeSuggestion | null {
   if (second && best[1].score < second[1].score * MIN_LEAD) return null
   return { module: best[0], matched: [...best[1].matched], score: best[1].score }
 }
+
+/**
+ * Why a method is recommended, in plain words (V7.6's Estimate benefits step): what in the description pointed to it,
+ * and what the method will count. The proposer confirms it before it's applied.
+ */
+export function methodReason(module: string, matched: string[]): string {
+  const words = matched.map((t) => `“${t}”`)
+  const said = words.length ? `Your description mentions ${new Intl.ListFormat("en-US", { type: "conjunction" }).format(words)}` : "Your description"
+  switch (module) {
+    case "reimbursement":
+      return `${said}, which is care given as inpatient stays. New inpatient cases bring in Medicare payment by diagnosis group (MS-DRG), so this method counts the added cases a year times each group's payment.`
+    case "outpatient":
+      return `${said}, which is care given as outpatient visits, scans or procedures. This method counts the added services a year times each service's Medicare outpatient payment (APC).`
+    case "savings":
+      return `${said}, which points to spending less rather than bringing in more. This method counts the staff time, patient days and supplies saved each year.`
+    case "penalty":
+      return `${said}. Fewer readmissions or infections lower the Medicare penalties CMS applies to the hospital's payments, so this method counts the penalty avoided, using the hospital's own published CMS results.`
+    default:
+      return `${said}, which doesn't fit one of the data-backed methods, so this method adds up the benefit lines you enter yourself.`
+  }
+}
+
+/** Set on descriptions that links from Compare's hospital priorities write. */
+export const fromPriorities = (description: string) => description.startsWith("From Padua's hospital priorities")

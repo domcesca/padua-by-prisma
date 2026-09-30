@@ -47,8 +47,8 @@ export const ABOUT: Record<AboutId, { title: string; body: string[]; walkthrough
   propose: {
     title: "Business cases",
     body: [
-      "Estimates whether an initiative pays for itself: enter its costs, pick how its benefit is estimated, and read payback, ROI, and NPV under three scenarios.",
-      "Results are estimates built on public national rates and your own assumptions, and each input says which it is.",
+      "Estimates whether an initiative pays for itself, in four steps: define it, confirm how its benefit is estimated (Padua recommends a method from your description) and enter it, enter costs and assumptions, then review payback, ROI, and NPV under three scenarios.",
+      "Results are estimates built on public national rates and your own assumptions. The assumptions panel beside every step keeps public data, your inputs, and what Padua calculated apart, and flags anything worth a second look. Save a draft to finish later in this browser; the printout and CSV end with the full assumption sheet.",
     ],
     walkthrough: "propose",
   },
