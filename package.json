@@ -9,7 +9,9 @@
     "lint": "eslint",
     "check:directions": "node --no-warnings scripts/check-directions.mts",
     "check:components": "node --no-warnings scripts/check-components.mts",
-    "check:annual-report": "node --no-warnings scripts/check-annual-report.mts"
+    "check:annual-report": "node --no-warnings scripts/check-annual-report.mts",
+    "db:migrate": "node --no-warnings --env-file-if-exists=.env.local scripts/db-migrate.mts",
+    "check:isolation": "node --no-warnings --env-file-if-exists=.env.local scripts/check-isolation.mts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
@@ -19,6 +21,7 @@
     "lucide-react": "^1.48.0",
     "next": "16.3.6",
     "next-themes": "^0.4.6",
+    "pg": "^8.23.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "read-excel-file": "^9.3.10",
@@ -31,6 +34,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",

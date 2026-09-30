@@ -41,6 +41,9 @@ npm run dev
 
 Open http://localhost:3000. The processed data is committed in `data/processed`, so no Python is needed to run the app.
 
+Accounts are optional locally. To try them, point `DATABASE_URL` in `.env.local` at a Postgres 15+ database you own and
+run `npm run db:migrate` (see [Accounts and organizations](#accounts-and-organizations-v765a)).
+
 ## Refreshing the data
 
 HCAI publishes new extracts once or twice a year. The ETL finds files through the CalHHS CKAN API and downloads them
@@ -181,6 +184,31 @@ used (they cover traditional Medicare only, by calendar year, and need a CCN cro
 - Medicare volumes (discharges, days, length of stay, outpatient visits) come from the financial report, so they're
   fiscal-year and include long-term care units. Cards say so.
 - Medicare Advantage share (MA discharges ÷ all Medicare discharges) is available under the Medicare view and in Build.
+
+## Accounts and organizations (V7.6.5a)
+
+Real accounts, organization first. This is the foundation later work builds on; it adds no new analysis, and every
+existing page and API route is unchanged and open with or without an account.
+
+- **Model.** Organization (the tenant) → Facilities (one or more hospitals; a single hospital is an organization with
+  one facility) → Admins (people, each in exactly one organization). An admin's access has two independent parts:
+  **role** (Owner / Admin manage the organization and its people; Member views and contributes) and **facility scope**
+  (the whole organization, or a list of its facilities). `admins.manager_id` holds a management chain for later; it
+  can cross facilities and grants nothing yet. Schema: `db/migrations/0001_accounts.sql`.
+- **Pages.** `/signup` creates an organization with its first facility (picked from the HCAI list) and you as Owner;
+  `/login`; `/account` shows your organization, its facilities, your role and your scope, and signs you out. The
+  sidebar footer and the phone header link to Account. No invites yet: every sign-up is a new organization.
+- **Isolation** is enforced in Postgres, not the UI: row-level security on every organization-owned table, every app
+  query run as the restricted `padua_app` role with the signed-in organization set per transaction, and composite
+  foreign keys so no row can point into another organization. `npm run check:isolation` proves it against a real
+  database. How it works, what was checked, and what an audit should cover before client data:
+  [docs/accounts-security.md](docs/accounts-security.md).
+- **Code.** `src/lib/server/db.ts` (the only module that talks to the database: `withTenant`, `anonymous`),
+  `src/lib/server/auth/` (passwords, accounts and sessions), `src/app/account/actions.ts` (the sign-up, sign-in and
+  sign-out server actions), `scripts/db-migrate.mts`, `scripts/check-isolation.mts`.
+- **Setup.** Optional: without `DATABASE_URL` the app runs as before and sign-in says accounts aren't set up. With it:
+  `npm run db:migrate` once, as the database owner. Browser-local work (business-case drafts, pinned briefings) stays in
+  the browser for now.
 
 ## Business cases as a guided flow (V7.6)
 
@@ -828,6 +856,8 @@ src/lib/deadlines/     HCAI filing rules with citations
 src/lib/selection.ts   the remembered hospital + topic (browser storage, per viewer)
 src/lib/glossary.ts    the help panel's glossary, built from the dataset dictionaries (no second copy)
 src/lib/propose/       Propose: the financial engine, the module contract, URL state, module data loaders
+src/lib/server/        accounts (V7.6.5a): db.ts is the only database access; auth/ holds passwords, accounts, sessions
+db/migrations/         accounts schema, row-level security (npm run db:migrate)
 src/app/api/           /api/benchmark, /api/peers, /api/report, /api/correlate, /api/glossary,
                        /api/propose/[module], /api/facilities/[id]/fields
 src/app/<tab>/         one route per tab; / is the guided home page
@@ -838,9 +868,8 @@ grouping, compared hospitals, peer group, year) that the server validates and ru
 natural-language front end would only have to produce a `ReportSpec`; rendering, validation, and data access stay as
 they are.
 
-**Where a database would go:** `src/lib/data/store.ts` is the only storage boundary. Moving to Postgres (Prisma), or
-SQLite locally, for user uploads, saved reports, or accounts means reimplementing its functions against tables. The
-comment in that file sketches the table layout.
+**Two kinds of storage.** Public data: `src/lib/data/store.ts` is its only boundary (JSON on disk). Accounts and,
+later, organization-owned data: Postgres through `src/lib/server/db.ts` only, under row-level security (V7.6.5a).
 
 ## Design
 
@@ -876,7 +905,9 @@ chosen hospital and replay the tour).
 
 Import the repo in Vercel with the defaults (framework: Next.js). `next.config.ts` uses `outputFileTracingIncludes`
 to bundle `data/processed/**/*.json` into the server functions, and API responses are CDN-cached for a day.
-The app needs no environment variables (`CENSUS_API_KEY` is only for the ETL).
+The app needs no environment variables to run (`CENSUS_API_KEY` is only for the ETL). Accounts need `DATABASE_URL`
+(Postgres 15+) and one `npm run db:migrate`; see [docs/accounts-security.md](docs/accounts-security.md) for the
+recommended app role. Without it, sign-in says accounts aren't set up and everything else works as before.
 
 ## Caveats worth knowing
 
