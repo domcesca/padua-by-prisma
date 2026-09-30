@@ -71,8 +71,9 @@ function FirstRun({ facilities, latestYear }: { facilities: FacilityOption[]; la
         </p>
         <h1 className="text-[34px] leading-[1.1] font-semibold tracking-tight sm:text-[40px]">Which hospital do you run?</h1>
         <p className="text-[17px] leading-relaxed text-muted-foreground">
-          Pick it once. Padua remembers it in this browser and opens on its overview every time: what needs attention against
-          similar California hospitals, what changed, what&apos;s due to HCAI, and what you&apos;ve saved.
+          Pick it once. Padua remembers it in this browser and opens on its annual report every time, written from its own
+          HCAI filings, with what&apos;s due to HCAI, what needs attention against similar California hospitals, and what
+          you&apos;ve saved.
         </p>
       </div>
       <div data-tour="hospital" className="widget space-y-2 p-5">
