@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 
+import { TestBadge } from "@/components/organization/test-badge"
 import { PageHeader } from "@/components/shell/page-header"
 import { getAccount, type FacilityScope, type Role } from "@/lib/server/auth/accounts"
 import { getSession } from "@/lib/server/auth/session"
@@ -134,9 +135,10 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
           {facilities.map((f) => (
             <li key={f.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5">
               <span className="text-[15px] font-medium">{f.name}</span>
+              {f.testId && <TestBadge />}
               <span className="text-[13px] text-muted-foreground">{scoped.has(f.id) ? "In your scope" : "Outside your scope"}</span>
-              {f.hcaiFacilityId && (
-                <Link href={`/?facility=${encodeURIComponent(f.hcaiFacilityId)}`} className="ml-auto text-[14px] font-medium text-primary hover:underline">
+              {(f.hcaiFacilityId ?? f.testId) && (
+                <Link href={`/?facility=${encodeURIComponent((f.hcaiFacilityId ?? f.testId)!)}`} className="ml-auto text-[14px] font-medium text-primary hover:underline">
                   Open in Overview
                 </Link>
               )}

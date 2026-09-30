@@ -75,8 +75,9 @@ async function noEffect(q: Q, sql: string, params?: unknown[]) {
 const owner = new pg.Pool({ connectionString: ownerUrl, max: 3 })
 const tag = randomUUID().slice(0, 8)
 // Two organizations: A with two facilities, an owner and a member scoped to one facility; B with one facility and owner.
-const A = { org: randomUUID(), f1: randomUUID(), f2: randomUUID(), owner: randomUUID(), member: randomUUID() }
-const B = { org: randomUUID(), f1: randomUUID(), owner: randomUUID() }
+const testId = () => `999${String(Math.floor(Math.random() * 1_000_000)).padStart(6, "0")}`
+const A = { org: randomUUID(), f1: randomUUID(), f2: randomUUID(), owner: randomUUID(), member: randomUUID(), testId: testId() }
+const B = { org: randomUUID(), f1: randomUUID(), owner: randomUUID(), testId: testId() }
 const future = new Date(Date.now() + 86_400_000)
 
 // Seeded as the owner: since V7.6.5b the app role can't insert people, facilities or invites directly (only through the
@@ -111,6 +112,11 @@ async function seed() {
       await q("insert into invite_facilities (organization_id, invite_id, facility_id) values ($1, $2, $3)", [org, inv.rows[0].id, fac])
       await q("insert into ownership_transfers (organization_id, table_name, from_admin, to_admin, by_admin) values ($1, 'seed', $2, $2, $2)", [org, by])
     }
+    // V7.6.5c: a test hospital each (A's on its second facility).
+    await q(
+      "insert into sandbox_hospitals (facility_id, organization_id, public_id, source_hcai_id, seed) values ($1, $2, $3, '106410817', 1), ($4, $5, $6, '106410817', 2)",
+      [A.f2, A.org, A.testId, B.f1, B.org, B.testId]
+    )
     await q("commit")
   } catch (e) {
     await q("rollback")
@@ -120,7 +126,7 @@ async function seed() {
   }
 }
 
-const TABLES = ["organizations", "facilities", "admins", "admin_facilities", "sessions", "invites", "invite_facilities", "ownership_transfers"]
+const TABLES = ["organizations", "facilities", "admins", "admin_facilities", "sessions", "invites", "invite_facilities", "ownership_transfers", "sandbox_hospitals"]
 const orgCol = (t: string) => (t === "organizations" ? "id" : "organization_id")
 
 async function run(pool: pg.Pool, label: string) {
@@ -156,6 +162,19 @@ async function run(pool: pg.Pool, label: string) {
     check("as A: rename B changes nothing", await noEffect(q, "update organizations set name = 'changed' where id = $1", [B.org]))
     check("as A: delete B's sessions removes nothing", await noEffect(q, "delete from sessions where organization_id = $1", [B.org]))
     check("as A: revoke B's invite directly changes nothing", await noEffect(q, "update invites set revoked_at = now() where organization_id = $1", [B.org]))
+    check("as A: B's test hospital can't be found by its public id", (await q("select 1 from sandbox_hospitals where public_id = $1", [B.testId])).rowCount === 0)
+    check(
+      "as A: adding a test hospital directly (to B or A) is refused",
+      !!(await rejects(q, "insert into sandbox_hospitals (facility_id, organization_id, public_id, source_hcai_id, seed) values ($1, $2, '999000001', '106410817', 1)", [B.f1, B.org])) &&
+        !!(await rejects(q, "insert into sandbox_hospitals (facility_id, organization_id, public_id, source_hcai_id, seed) values ($1, $2, '999000002', '106410817', 1)", [A.f1, A.org]))
+    )
+    check("as A: the guarded function adds a test hospital to A only", await (async () => {
+      await q("savepoint t")
+      await q("select padua_add_test_hospital('XYZ', $1, '106410817', 5)", [testId()])
+      const orgs = (await q("select distinct organization_id from sandbox_hospitals")).rows.map((r) => r.organization_id)
+      await q("rollback to savepoint t")
+      return orgs.length === 1 && orgs[0] === A.org
+    })())
     check("as A: log a transfer into B is refused", !!(await rejects(q, "insert into ownership_transfers (organization_id, table_name) values ($1, 'x')", [B.org])))
   })
 

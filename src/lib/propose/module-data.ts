@@ -4,6 +4,7 @@ import { DEFAULT_FILTERS } from "@/lib/benchmark/filters"
 import { resolvePeerGroup } from "@/lib/benchmark/peers"
 import {
   getFacilities,
+  getFacility,
   getFields,
   getInpatientCases,
   getInpatientCasesManifest,
@@ -128,14 +129,14 @@ export const drgTerms = (drgs: { code: string; mdc: string | null }[]) => codeTe
 /** The hospital's CMS wage index for IPPS or OPPS payments; a hospital CMS pays under another's number shares its index. */
 async function hospitalWageIndex(facilityId: string | null, system: "ipps" | "opps"): Promise<HospitalWageIndex | null> {
   if (!facilityId) return null
-  const [hospitals, manifest, facilities] = await Promise.all([getWageIndexHospitals(), getWageIndexManifest(), getFacilities()])
+  const [hospitals, manifest] = await Promise.all([getWageIndexHospitals(), getWageIndexManifest()])
   const shared = manifest.sharedReporting[facilityId]
   const h = hospitals[shared?.reportedWith ?? facilityId]
   const own = h?.[system]
   if (!h || !own) return null
   const m = manifest[system]
   return {
-    hospital: facilities.find((f) => f.id === facilityId)?.name ?? h.cmsName ?? `CCN ${h.ccn}`,
+    hospital: (await getFacility(facilityId))?.name ?? h.cmsName ?? `CCN ${h.ccn}`,
     value: own.wageIndex,
     year: system === "ipps" ? `FY ${manifest.ipps.fiscalYear}` : `CY ${manifest.opps.calendarYear}`,
     ccn: h.ccn,
@@ -175,7 +176,7 @@ async function loadReimbursement(facilityId: string | null): Promise<Reimburseme
     getWageIndexManifest(),
   ])
   const year = casesManifest.years.at(-1)!
-  const facility = facilityId ? facilities.find((f) => f.id === facilityId) : undefined
+  const facility = (facilityId ? await getFacility(facilityId) : null) ?? undefined
 
   let baseline: ReimbursementData["baseline"] = null
   let peers: ReimbursementData["peers"] = null
@@ -246,7 +247,7 @@ async function costPerDayByYear() {
 
 async function loadSavings(facilityId: string | null): Promise<SavingsData> {
   const [facilities, byYear, manifest] = await Promise.all([getFacilities(), costPerDayByYear(), getManifest("hafd-selected")])
-  const facility = facilityId ? facilities.find((f) => f.id === facilityId) : undefined
+  const facility = (facilityId ? await getFacility(facilityId) : null) ?? undefined
   const own = facility ? byYear(facility.id) : null
   const year = own?.size ? Math.max(...own.keys()) : null
   let peers: SavingsData["peers"] = null
@@ -333,7 +334,7 @@ async function loadOutpatient(facilityId: string | null): Promise<OutpatientData
     getWageIndexManifest(),
   ])
   const year = manifest.services.year
-  const facility = facilityId ? facilities.find((f) => f.id === facilityId) : undefined
+  const facility = (facilityId ? await getFacility(facilityId) : null) ?? undefined
   let baseline: OutpatientData["baseline"] = null
   let peers: OutpatientData["peers"] = null
   if (facility) {

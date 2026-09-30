@@ -138,6 +138,26 @@ try {
     })
   })
 
+  // V7.6.5c: a test hospital is a facility, under the same rule.
+  await matrix("add test hospital", async (report) => {
+    let i = 0
+    await eachActor(async (actor, q) => {
+      i++
+      const id = `999${String(100000 + ((i * 7919 + Number.parseInt(tag, 16)) % 900000)).padStart(6, "0")}`
+      report(`${describe(actor)} adds a test hospital`, canAddFacility(actor), await attempt(q, "select padua_add_test_hospital('XYZ', $1, '106410817', 1)", [id]))
+    })
+  })
+  {
+    const owner = people.find((p) => p.role === "owner" && p.scope === "organization")!
+    const id = `999${String(Number.parseInt(tag, 16) % 1_000_000).padStart(6, "0")}`
+    await as(pool, ORG, owner.id, (q) => attempt(q, "select padua_add_test_hospital('XYZ', $1, '106410817', 1)", [id], true), true)
+    check(
+      "a test hospital's public id can't be reused (the app picks another)",
+      (await as(pool, ORG, owner.id, (q) => attempt(q, "select padua_add_test_hospital('XYZ 2', $1, '106410817', 2)", [id]))) === "id-taken"
+    )
+    check("a test hospital needs a name", (await as(pool, ORG, owner.id, (q) => attempt(q, "select padua_add_test_hospital(' ', $1, '106410817', 3)", ["999000003"]))) === "bad-request")
+  }
+
   // Set manager, over three reporting structures: none; one where people report across facilities (so a manager's
   // chain reaches outside some actors' scope); and a deterministic random forest.
   const byKey = (role: Role, s: number) => people.find((p) => p.role === role && p.scope === SCOPES[s].scope && p.facilities.join() === SCOPES[s].facilities.join())!

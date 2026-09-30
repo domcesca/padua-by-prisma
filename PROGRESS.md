@@ -292,6 +292,34 @@ downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and
   Outdated = newest report more than 2 years behind the newest data (13 hospitals, some of them campuses now reported
   under a parent).
 
+### V7.6.5c (Test hospitals)
+- **What it is.** A made-up hospital ("XYZ" by default), private to one organization, for trying Padua. It's a real
+  hospital's filings, with amounts and volumes changed by 10–20% (rates kept, so totals stay consistent). It's
+  created at sign-up or from the organization console, where `PADUA_TEST_HOSPITALS=on`. It works in every tool and is
+  marked "Test hospital". It never enters a peer group, median, ranking or correlation.
+- **How it's built.**
+  - The data store's shared caches only ever hold real data.
+  - Test-hospital rows are layered on per request for the viewer's organization.
+  - `getFacilities()` (every population) excludes test hospitals; subject and compared-hospital lookups use
+    `getFacility()` and `getFacilityDirectory()`.
+  - API responses involving one are `private, no-store`.
+  - Migration `0003_test_hospitals.sql`, with RLS and two guarded functions.
+- **Checked.**
+  - Tester vs signed out, for real hospitals: 13,108 API responses identical, plus 287 unit, line, specialty and peer
+    views.
+  - Signed-out responses vs main, after the tester sweep warmed the caches: 13,079 identical. Pages vs main: 66
+    identical.
+  - XYZ's 18 endpoints work for the tester. For others they return "not found" and are never publicly cacheable.
+  - Browser: 35 checks, covering all 7 pages for the tester, another organization and a signed-out visitor, the
+    pickers, and adding a second test hospital.
+  - `check:isolation` 143, `check:permissions` 60, `check:hierarchy` 35.
+  - axe: 0 violations on the new states.
+  - Lint, typecheck, build pass.
+- **Tradeoffs.**
+  - Its margins and rates equal its source hospital's.
+  - Its county and type are the source's, so its owner could probably tell which hospital it's based on (public data
+    either way).
+
 ### V7.6.5b (Organization console, invites, roles, reporting lines)
 - **What changed.** Accounts now work for more than one person per organization:
   - **Invites:** role and facility access set at invite time. One-time 7-day links, which the inviter copies and sends;

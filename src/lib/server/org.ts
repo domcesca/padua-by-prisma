@@ -6,6 +6,7 @@ import type { Person, Role, ScopeKind } from "@/lib/org/permissions"
 import { anonymous, withTenant, type TenantContext } from "./db"
 import { hashPassword } from "./auth/password"
 import { refusalOf, sha256 } from "./auth/accounts"
+import { newTestHospital } from "./sandbox"
 
 // The organization console's data (V7.6.5b): reading an organization's people, facilities and invites, and changing
 // them. Every change is a call to one of the guarded database functions (db/migrations/0002_people.sql), which decide
@@ -15,7 +16,13 @@ import { refusalOf, sha256 } from "./auth/accounts"
 export const INVITE_DAYS = 7
 
 export type OrgPerson = Person & { name: string; email: string; createdAt: string }
-export type OrgFacility = { id: string; name: string; hcaiFacilityId: string | null }
+export type OrgFacility = {
+  id: string
+  name: string
+  hcaiFacilityId: string | null
+  /** A test hospital's id in the app (V7.6.5c: made-up data, private to this organization), or null for a real one. */
+  testId: string | null
+}
 export type PendingInvite = {
   id: string
   email: string
@@ -53,7 +60,9 @@ export function getOrganization(ctx: TenantContext): Promise<Organization | null
   return withTenant(ctx, async (tx) => {
     const [org] = await tx.query<{ id: string; name: string }>("select id, name from organizations")
     if (!org) return null
-    const facilities = await tx.query<{ id: string; name: string; hcai_facility_id: string | null }>("select id, name, hcai_facility_id from facilities order by name")
+    const facilities = await tx.query<{ id: string; name: string; hcai_facility_id: string | null; test_id: string | null }>(
+      "select f.id, f.name, f.hcai_facility_id, s.public_id as test_id from facilities f left join sandbox_hospitals s on s.facility_id = f.id order by f.name"
+    )
     const people = await tx.query<{
       id: string
       name: string
@@ -89,7 +98,7 @@ export function getOrganization(ctx: TenantContext): Promise<Organization | null
       id: org.id,
       name: org.name,
       actorId: ctx.adminId!,
-      facilities: facilities.map((f) => ({ id: f.id, name: f.name, hcaiFacilityId: f.hcai_facility_id })),
+      facilities: facilities.map((f) => ({ id: f.id, name: f.name, hcaiFacilityId: f.hcai_facility_id, testId: f.test_id })),
       people: people.map((p) => ({
         id: p.id,
         name: p.name,
@@ -149,6 +158,21 @@ export const removeAdmin = (ctx: TenantContext, adminId: string) =>
 
 export const addFacility = (ctx: TenantContext, name: string, hcaiFacilityId: string | null) =>
   guarded(async () => void (await withTenant(ctx, (tx) => tx.query("select padua_add_facility($1, $2)", [name, hcaiFacilityId]))))
+
+/** Adds a test hospital (V7.6.5c): made-up data from an altered real hospital, private to this organization. */
+export const addTestHospital = (ctx: TenantContext, name: string) =>
+  guarded(async () => {
+    for (let attempt = 0; ; attempt++) {
+      const t = await newTestHospital()
+      try {
+        await withTenant(ctx, (tx) => tx.query("select padua_add_test_hospital($1, $2, $3, $4)", [name, t.publicId, t.sourceId, t.seed]))
+        return t.publicId
+      } catch (e) {
+        if (refusalOf(e) === "id-taken" && attempt < 5) continue
+        throw e
+      }
+    }
+  })
 
 export type InviteDetails = {
   organizationName: string

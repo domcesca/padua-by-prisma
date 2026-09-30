@@ -76,6 +76,8 @@ export type Facility = FinancialFacility & {
   utilizationYears: number[]
   /** Closure evidence from HCAI's Licensed Healthcare Facility Listing (lib/facility-flag.ts), or null. */
   closure: FacilityClosure | null
+  /** A test hospital with made-up data, private to one organization (lib/data/sandbox.ts). */
+  sandbox?: true
 }
 
 export type PayerGroup = "medicare" | "medical" | "commercial" | "indigent" | "other"

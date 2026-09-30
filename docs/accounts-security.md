@@ -160,6 +160,82 @@ The pieces, for future tables of owned data:
   Future owned tables should reference the owner without `ON DELETE CASCADE`. Then removal is refused until the
   person's items are handed on. The check shows this, rather than silently deleting their work.
 
+## Test hospitals (V7.6.5c)
+
+A test hospital is a made-up hospital an organization can use to try Padua. Every tool works with it: Overview,
+Compare, Reports, Correlate, Business cases, the Filing calendar and Data definitions.
+
+It's the first thing to live under the organization boundary that also reaches Padua's public data. So it's built so
+the public side can't tell it exists.
+
+**What it is.**
+- A facility of the organization, with a row in `sandbox_hospitals`: its public id (`999` + 6 digits, a range HCAI
+  doesn't use), the real hospital it's made from, and a random seed.
+- Its data is never stored. `src/lib/data/sandbox.ts` regenerates it from the source hospital's public filings each
+  time:
+  - amounts are scaled by one factor, 10–20% up or down;
+  - volumes (days, discharges, visits, beds, hours) by another factor;
+  - both get a drift of up to ±3% by year;
+  - rates, ratios and quality measures are kept.
+
+  So every total, subtotal and derived figure stays consistent. Margins and rates match the source hospital; per-unit
+  costs and every amount and volume differ.
+- The source is picked at random from mid-size general acute hospitals that are still reporting, mostly acute care,
+  and have data in every source Padua uses.
+
+**Who can see it.**
+- Only signed-in people of its organization, within their facility scope. `getSandbox()` reads it from the database
+  under the organization's row-level security, per request. Another organization, or a signed-out visitor, asking for
+  its id gets "not found": the same as for any unknown hospital.
+- Creating one follows the add-facility rule: an owner or admin with whole-organization access. At sign-up, it's
+  created by the new owner, through `padua_sign_up_with_test_hospital`.
+- Creating test hospitals is offered only where `PADUA_TEST_HOSPITALS=on`.
+
+**How it stays out of everyone else's numbers.**
+1. **Caches never hold it.**
+   - The data store's shared caches are always built from the real data alone (`runWithoutSandbox`), even when the
+     first request to need them has a test hospital.
+   - A test hospital's rows are layered onto the store's per-hospital files per request, in a separate cache keyed by
+     that organization's set of test hospitals.
+   - The two derived caches (unit and service-line sources) are keyed the same way.
+2. **It's never in a population.** `getFacilities()`, the list every peer group, median, ranking and correlation is
+   drawn from, never includes a test hospital. A test hospital can be the hospital being looked at, or a hospital
+   compared alongside one. Lookups for those go through `getFacility()` and `getFacilityDirectory()`, which do include
+   the viewer's own.
+3. **It's never publicly cached.** The API routes are CDN-cached for a day, and the CDN doesn't key on cookies. So any
+   response for a viewer with a test hospital, or for an address naming a `999` id, is sent `private, no-store`.
+   Otherwise one person's response could be served to another, or a cached "not found" served to the owner.
+
+**Checked.**
+- With a tester signed in, the full API sweep for real hospitals was identical to the signed-out responses: 13,108
+  responses, including the test hospital's source, plus 287 unit, service-line, specialty and peer views.
+  - One of the 287 unit-view responses differed on the first request after a restart. The content was identical; only
+    the order of keys within one object differed, because they're computed in parallel. Main behaves the same way.
+- The tester sweep was run first, to fill the caches. Then the signed-out responses from the same server matched main:
+  13,079 identical.
+- Signed-out page renders are identical to main (66).
+- Every API endpoint for the test hospital returns its data to the tester (18). For a signed-out visitor they return
+  "not found", or Propose's generic data, and all are `private, no-store`.
+- In the browser:
+  - every page opens the test hospital for the tester;
+  - for another organization's owner and a signed-out visitor, no page, picker or API reveals it;
+  - adding a second one from the console works.
+- `check:isolation` covers `sandbox_hospitals`:
+  - another organization's test hospital isn't found by its public id;
+  - direct inserts are refused;
+  - the guarded function writes only to the actor's organization.
+- `check:permissions` covers adding one under the add-facility rule (12 combinations), a reused public id, and a blank
+  name.
+
+**For an audit.**
+- **Anyone who learns a test hospital's id** learns nothing: it isn't secret, and it resolves only inside its own
+  organization.
+- **What the test hospital's owner can learn:** it is derived from one real hospital's public filings. Its margins and
+  rates match that hospital's, and its county and hospital type are the same, so the owner could probably work out
+  which hospital it is. The data is public either way.
+- **When organization data arrives:** once tables of organization data exist, their rows about a test hospital should
+  be treated like any other facility's (facility scope, `padua_in_scope`).
+
 ## Authentication and sessions
 
 - **Passwords:**
@@ -332,6 +408,8 @@ All against real PostgreSQL 16, on a scratch database.
    - `0002_people.sql` takes away the direct inserts V7.6.5a's sign-up used, so V7.6.5a code against a 0002 database
      can't sign anyone up.
    - This code against a database without 0002 fails on the missing functions.
+   - The same goes for `0003_test_hospitals.sql` (V7.6.5c): the account and organization pages read its table.
+   - To offer test hospitals, also set `PADUA_TEST_HOSPITALS=on`.
 3. Recommended: create the app's own login role, then give Vercel that role's connection string as `DATABASE_URL`:
 
    ```sql
@@ -361,6 +439,10 @@ Still to come:
 - **Sharing:** of briefings, business cases or reports within or across organizations.
 - **BYOD uploads, and moving browser-local work to the server:** business-case drafts and pinned briefings still live in
   the browser.
+- **Test hospitals (V7.6.5c) — possible follow-ups:**
+  - renaming or removing a test hospital;
+  - choosing which kind of real hospital it's based on;
+  - varying its rates as well (today its margins and rates match its source's, which keeps every total consistent).
 - **Smaller gaps:**
   - renaming the organization;
   - facilities outside the HCAI list;

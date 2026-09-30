@@ -2,7 +2,7 @@ import "server-only"
 
 import type { PeerFilters } from "@/lib/benchmark/filters"
 import { resolvePeerGroup } from "@/lib/benchmark/peers"
-import { getFacilities, getInpatientCases, getInpatientCasesManifest, getInpatientDrgs, getIppsDrgs, getIppsManifest } from "@/lib/data/store"
+import { getFacilities, getFacility, getFacilityDirectory, getInpatientCases, getInpatientCasesManifest, getInpatientDrgs, getIppsDrgs, getIppsManifest } from "@/lib/data/store"
 import { getSourceStatus, type SourceStatus } from "@/lib/data/freshness"
 import type { Facility } from "@/lib/data/types"
 import { quantile } from "@/lib/benchmark/compute"
@@ -149,10 +149,10 @@ export async function computeSpecialties({
     getInpatientCasesManifest(),
     getPricing(),
   ])
-  const facility = facilities.find((f) => f.id === facilityId)
+  const facility = await getFacility(facilityId)
   if (!facility) return null
   const year = manifest.years.at(-1)!
-  const byId = new Map(facilities.map((f) => [f.id, f]))
+  const byId = new Map((await getFacilityDirectory()).map((f) => [f.id, f]))
 
   /** A hospital's own counts; one CMS reports under another hospital's number gets that hospital's (combined). */
   const hospitalFor = (f: Facility, allowShared: boolean) => {

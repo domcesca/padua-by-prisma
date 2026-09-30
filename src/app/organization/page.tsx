@@ -8,6 +8,7 @@ import { getFacilityOptions, getLatestYear } from "@/lib/data/store"
 import { managesPeople } from "@/lib/org/permissions"
 import { getSession } from "@/lib/server/auth/session"
 import { getOrganization } from "@/lib/server/org"
+import { testHospitalsEnabled } from "@/lib/server/sandbox"
 
 export const metadata: Metadata = { title: "Organization" }
 
@@ -47,7 +48,7 @@ export default async function OrganizationPage() {
         eyebrow="Organization"
         description="Your organization's facilities and people: invite colleagues, set each person's role and facility access, and who reports to whom."
       />
-      <OrgConsole org={org} hospitals={hospitals} latestYear={latestYear} />
+      <OrgConsole org={org} hospitals={hospitals} latestYear={latestYear} testHospitals={testHospitalsEnabled()} />
     </div>
   )
 }

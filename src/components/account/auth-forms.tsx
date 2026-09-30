@@ -68,13 +68,15 @@ function useFocusFirstError(state: FormState) {
   return ref
 }
 
-export function SignUpForm({ facilities, latestYear }: { facilities: FacilityOption[]; latestYear: number }) {
+export function SignUpForm({ facilities, latestYear, testHospitals = false }: { facilities: FacilityOption[]; latestYear: number; testHospitals?: boolean }) {
   const [state, action, pending] = useActionState(signUp, null)
   const formRef = useFocusFirstError(state)
   const [facility, setFacility] = useState<string | null>(null)
   const v = state?.values ?? {}
   const e = state?.errors ?? {}
   const facilityValue = facility ?? v.facility ?? null
+  const [kind, setKind] = useState<"real" | "test" | null>(null)
+  const hospitalKind = testHospitals ? (kind ?? (v.hospitalKind === "test" ? "test" : "real")) : "real"
   return (
     <form ref={formRef} action={action} noValidate className="space-y-5">
       <Field id="name" label="Your name" error={e.name}>
@@ -108,12 +110,57 @@ export function SignUpForm({ facilities, latestYear }: { facilities: FacilityOpt
         <p id="facility-label" className="text-[14px] font-medium">
           Your hospital
         </p>
-        <div role="group" aria-labelledby="facility-label" aria-describedby={e.facility ? "facility-hint facility-error" : "facility-hint"} data-invalid={e.facility ? "" : undefined}>
-          <FacilityPicker facilities={facilities} value={facilityValue} onChange={setFacility} latestYear={latestYear} placeholder="Search California hospitals" />
-        </div>
+        {testHospitals && (
+          <div role="radiogroup" aria-labelledby="facility-label" className="grid gap-2 pb-1 sm:grid-cols-2">
+            {(
+              [
+                ["real", "A California hospital", "From HCAI's list."],
+                ["test", "A test hospital", "Made-up data, only for your organization."],
+              ] as const
+            ).map(([value, label, body]) => (
+              <label
+                key={value}
+                className={cn(
+                  "flex cursor-pointer items-start gap-2.5 rounded-xl border px-3 py-2.5 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
+                  hospitalKind === value ? "border-primary/50 bg-primary/5" : "border-border"
+                )}
+              >
+                <input
+                  type="radio"
+                  name="hospitalKind"
+                  value={value}
+                  checked={hospitalKind === value}
+                  onChange={() => setKind(value)}
+                  className="mt-1 accent-[var(--primary-fill)]"
+                />
+                <span>
+                  <span className="block text-[14px] font-medium">{label}</span>
+                  <span className="block text-xs text-muted-foreground">{body}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+        )}
+        {hospitalKind === "test" ? (
+          <input
+            id="testName"
+            name="testName"
+            aria-label="Test hospital name"
+            defaultValue={v.testName || "XYZ"}
+            aria-invalid={!!e.facility}
+            aria-describedby={e.facility ? "facility-hint facility-error" : "facility-hint"}
+            className={inputClass}
+          />
+        ) : (
+          <div role="group" aria-labelledby="facility-label" aria-describedby={e.facility ? "facility-hint facility-error" : "facility-hint"} data-invalid={e.facility ? "" : undefined}>
+            <FacilityPicker facilities={facilities} value={facilityValue} onChange={setFacility} latestYear={latestYear} placeholder="Search California hospitals" />
+          </div>
+        )}
         <input type="hidden" name="facility" value={facilityValue ?? ""} />
         <p id="facility-hint" className="text-xs text-muted-foreground">
-          The first facility in your organization. Health systems will be able to add their other hospitals later.
+          {hospitalKind === "test"
+            ? "A real hospital's public filings with every amount and volume changed by 10–20%, under this name. Only your organization sees it, and it never counts toward anyone's peer groups or medians."
+            : "The first facility in your organization. Health systems will be able to add their other hospitals later."}
         </p>
         {e.facility && (
           <p id="facility-error" className="text-[13px] font-medium text-destructive">

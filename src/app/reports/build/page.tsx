@@ -8,10 +8,16 @@ import { DATASET_IDS, getFacilityOptions, getLatestYear, getManifest, getMetricC
 import { runReport } from "@/lib/report/run"
 import { parseSpec } from "@/lib/report/spec"
 import { applyTemplate, parseTemplateId, TEMPLATE_BY_ID } from "@/lib/report/templates"
+import { withViewerSandbox } from "@/lib/server/sandbox"
 
 export const metadata: Metadata = { title: "Build a report" }
 
-export default async function BuildPage({ searchParams }: PageProps<"/reports/build">) {
+// With the viewer's test hospitals, if they have any (lib/server/sandbox.ts).
+export default function BuildPage(props: PageProps<"/reports/build">) {
+  return withViewerSandbox(() => render(props))
+}
+
+async function render({ searchParams }: PageProps<"/reports/build">) {
   const sp = await searchParams
   const params = new URLSearchParams(Object.entries(sp).flatMap(([k, v]) => (typeof v === "string" ? [[k, v]] : [])))
   const [facilities, catalog, latestYear, manifests] = await Promise.all([

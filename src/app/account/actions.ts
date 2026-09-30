@@ -9,6 +9,7 @@ import { PASSWORD_MAX, PASSWORD_MIN } from "@/lib/server/auth/password"
 import { clearSessionCookie, getSession, sessionToken, startSession } from "@/lib/server/auth/session"
 import { refusalText } from "@/lib/org/permissions"
 import { acceptInvite } from "@/lib/server/org"
+import { newTestHospital, testHospitalsEnabled } from "@/lib/server/sandbox"
 
 // Sign-up, sign-in and sign-out (V7.6.5a). Server actions: Next checks each POST's Origin against the host, and every
 // field is validated here, whatever the form did.
@@ -39,7 +40,10 @@ export async function signUp(_: FormState, fd: FormData): Promise<FormState> {
   const password = str(fd, "password")
   const organization = str(fd, "organization").trim()
   const facilityId = str(fd, "facility")
-  const values = { name, email, organization, facility: facilityId }
+  // V7.6.5c: a made-up test hospital instead of a real one, where this deployment allows it.
+  const useTest = testHospitalsEnabled() && str(fd, "hospitalKind") === "test"
+  const testName = str(fd, "testName").trim()
+  const values = { name, email, organization, facility: facilityId, hospitalKind: useTest ? "test" : "real", testName }
 
   const errors: NonNullable<FormState>["errors"] = {}
   if (!name) errors.name = "Enter your name."
@@ -49,13 +53,22 @@ export async function signUp(_: FormState, fd: FormData): Promise<FormState> {
   else if (password.length > PASSWORD_MAX) errors.password = `Use at most ${PASSWORD_MAX} characters.`
   if (!organization) errors.organization = "Enter your organization's name."
   else if (organization.length > 200) errors.organization = "Keep the name under 200 characters."
-  // The facility's name comes from the public data, not the form.
-  const facility = facilityId ? await getFacility(facilityId) : null
-  if (!facility) errors.facility = "Choose your hospital."
-  if (Object.keys(errors).length || !facility) return { errors, values }
+  // A real hospital's name comes from the public data, not the form.
+  const facility = !useTest && facilityId ? await getFacility(facilityId) : null
+  if (useTest) {
+    if (!testName) errors.facility = "Name the test hospital."
+    else if (testName.length > 200) errors.facility = "Keep the name under 200 characters."
+  } else if (!facility) errors.facility = "Choose your hospital."
+  if (Object.keys(errors).length) return { errors, values }
 
   try {
-    const result = await createAccount({ name, email, password, organizationName: organization, facility: { name: facility.name, hcaiFacilityId: facility.id } })
+    const result = await createAccount({
+      name,
+      email,
+      password,
+      organizationName: organization,
+      facility: useTest ? { name: testName, test: newTestHospital } : { name: facility!.name, hcaiFacilityId: facility!.id },
+    })
     if (!result.ok) return { errors: { email: "An account with this email already exists. Sign in instead." }, values }
     await startSession(result.ctx)
   } catch (e) {

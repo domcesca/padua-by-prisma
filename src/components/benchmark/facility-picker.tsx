@@ -5,6 +5,7 @@ import { useEffect, useState } from "react"
 
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { TestBadge } from "@/components/organization/test-badge"
 import { FacilityFlagBadge } from "@/components/shell/facility-flag-note"
 import type { Ownership } from "@/lib/data/types"
 import { facilityFlag, type FacilityClosure } from "@/lib/facility-flag"
@@ -27,6 +28,8 @@ export type FacilityOption = {
   lastYear: number
   /** Closure evidence from the state's license listing (lib/facility-flag.ts). */
   closure: FacilityClosure | null
+  /** A test hospital with made-up data, private to the viewer's organization (V7.6.5c). */
+  sandbox?: boolean
 }
 
 /** What cmdk matches a hospital on: its name, city, county, former names and id. */
@@ -94,6 +97,7 @@ export function FacilityPicker({
           {selected ? selected.name : placeholder}
         </span>
         {selectedFlag && <FacilityFlagBadge flag={selectedFlag} />}
+        {selected?.sandbox && <TestBadge />}
         <ChevronsUpDown className={cn("shrink-0 text-tertiary-foreground", variant === "pill" ? "size-3.5" : "size-4")} />
       </PopoverTrigger>
       <PopoverContent align="start" className="w-(--anchor-width) min-w-80 p-0">
@@ -127,6 +131,7 @@ export function FacilityPicker({
                     <p className="flex items-center gap-1.5 text-sm">
                       <span className="truncate">{f.name}</span>
                       {flag && <FacilityFlagBadge flag={flag} />}
+                      {f.sandbox && <TestBadge />}
                     </p>
                     <p className="truncate text-xs text-muted-foreground">
                       {[f.city, f.county && `${f.county} County`].filter(Boolean).join(" · ")}
