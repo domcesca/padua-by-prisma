@@ -95,10 +95,26 @@ export type ProposalModule<State = unknown, Data = unknown> = {
   /** Advanced options this module keeps in its own benefit section, named for the Advanced panel. */
   advancedExtras?: string[]
   volume?: VolumeHook<State, Data>
+  /**
+   * V7.6: the public data and the proposer's inputs behind the estimate, for the assumptions panel, the printed
+   * assumption sheet and the CSV. Reads the same values `benefit` does; changes nothing.
+   */
+  assumptions?: (state: State, data: Data | null, context: BenefitContext) => ModuleAssumptions
+  /** V7.6: volumes or improvements that look out of scale against the hospital's own published figures. Warns only. */
+  warnings?: (state: State, data: Data | null, context: BenefitContext) => string[]
   /** Inputs besides volume and the shared costs that the sensitivity analysis varies. */
   drivers?: (state: State, data: Data | null, context: BenefitContext) => Driver<State>[]
   Editor: ComponentType<ModuleEditorProps<State, Data>>
 }
+
+/**
+ * One line of the assumption sheet (V7.6): a figure that went into the estimate. `source` names where public data came
+ * from ("CMS FY 2026 IPPS Final Rule"); an input the proposer typed has none.
+ */
+export type AssumptionItem = { label: string; value: string; source?: string }
+
+/** What a module's estimate rests on, split the way the assumptions panel shows it. Presentation only. */
+export type ModuleAssumptions = { publicData: AssumptionItem[]; inputs: AssumptionItem[] }
 
 /** Erases a module's own types for the registry; each module stays fully typed where it's defined. */
 export const defineModule = <S, D>(m: ProposalModule<S, D>) => m as unknown as ProposalModule

@@ -407,5 +407,29 @@ export const savingsModule = defineModule<State, SavingsData>({
             : "Enter at least one saving.",
     }
   },
+  assumptions: (s, data, { advanced }) => {
+    const day = dayCostOf(s, data)
+    const publicData = day.fromData && s.days ? [{ label: "Cost of a patient day", value: formatUsd(day.value), source: `HCAI ${data!.costPerDay!.year} financial report (operating expense ÷ adjusted patient days)` }] : []
+    const inputs: { label: string; value: string }[] = []
+    if (usesRoles(s, advanced)) {
+      s.roles.forEach((r, i) => {
+        if (r.hours || r.wage) inputs.push({ label: `Staff time, ${roleLabel(r, i)}`, value: `${formatInt(r.hours)} hours a week × ${formatUsd(r.wage)} an hour` })
+      })
+    } else if (s.hours || s.wage) inputs.push({ label: "Staff time saved", value: `${formatInt(s.hours)} hours a week × ${formatUsd(s.wage)} an hour` })
+    if (s.days) inputs.push({ label: "Patient days avoided", value: `${formatInt(s.days)} a year` })
+    if (s.days && !day.fromData) inputs.push({ label: "Cost of a patient day", value: formatUsd(day.value) })
+    if (s.other) inputs.push({ label: s.otherLabel.trim() || "Supplies and other", value: `${formatUsd(s.other)} a year` })
+    return { publicData, inputs }
+  },
+  warnings: (s, data, { advanced }) => {
+    const out: string[] = []
+    const hours = usesRoles(s, advanced) ? s.roles.reduce((t, r) => t + r.hours, 0) : s.hours
+    // 400 hours a week is ten full-time staff: possible, but worth a second look for one initiative.
+    if (hours >= 400) out.push(`${formatInt(hours)} staff hours saved a week is about ${formatInt(hours / 40)} full-time staff.`)
+    const patientDays = data?.costPerDay?.patientDays
+    if (s.days && patientDays && s.days > patientDays * 0.1)
+      out.push(`${formatInt(s.days)} patient days avoided is ${Math.round((s.days / patientDays) * 100)}% of the hospital's ${formatInt(patientDays)} patient days in ${data!.costPerDay!.year}.`)
+    return out
+  },
   Editor,
 })

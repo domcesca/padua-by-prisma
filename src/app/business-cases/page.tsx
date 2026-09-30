@@ -20,7 +20,8 @@ export default async function ProposePage({ searchParams }: PageProps<"/business
         description="Build the financial case for a new technology, service, or piece of equipment: what it costs, what it brings in, and when it pays back."
         className="print:hidden"
       />
-      <ProposeView facilities={facilities} latestYear={latestYear} search={search} />
+      {/* Keyed on the link, so resuming a saved draft (a new link) starts the case afresh. */}
+      <ProposeView key={search} facilities={facilities} latestYear={latestYear} search={search} />
     </div>
   )
 }

@@ -148,5 +148,14 @@ export const customModule = defineModule<State, null>({
       incomplete: lines.length ? undefined : "Add at least one benefit line with a value.",
     }
   },
+  assumptions: (s) => ({
+    publicData: [],
+    inputs: s.items
+      .filter((i) => i.label.trim() || itemValue(i))
+      .map((i, n) => ({
+        label: i.label.trim() || `Line ${n + 1}`,
+        value: i.kind === "rate" ? `${i.quantity.toLocaleString("en-US")} × ${formatUsd(i.rate)} a year` : `${formatUsd(i.amount)} a year`,
+      })),
+  }),
   Editor,
 })

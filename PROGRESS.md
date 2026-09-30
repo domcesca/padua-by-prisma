@@ -292,6 +292,30 @@ downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and
   Outdated = newest report more than 2 years behind the newest data (13 hospitals, some of them campuses now reported
   under a parent).
 
+### V7.6 (Business cases as a four-step guided flow)
+- Define the initiative → Estimate benefits (recommended method, confirmed before it's applied) → Enter costs and
+  assumptions → Review scenarios, with an always-visible assumptions panel (public data / your inputs / calculated),
+  warn-only checks, browser-local drafts, and the assumption sheet on every printout and in the new CSV. Details in
+  the README. No calculation, data or API change.
+- New: `lib/propose/{assumptions,warnings,drafts,export}.ts`, `components/propose/{assumptions-panel,method-choice}.tsx`;
+  optional `assumptions` and `warnings` hooks on each module (all five implement `assumptions`; all but custom
+  `warnings`). Removed: `module-intake.tsx` (its description box moved to Step 1, its picker to Step 2).
+- Checked: the results of 69 business cases are identical to main (6 hospitals × 5 modules, basic and with every
+  Advanced option on, plus 9 live Opportunity Finder links opened and taken to Review): scenario cards, year-by-year
+  table, What went in, sensitivity, cautions and notes. API regression against main: 13,079 responses identical,
+  including the four `/api/propose/<module>` data routes (1,804) and `/api/report/[id]` (451). axe-core on 42 states
+  (each step empty and filled, recommendation, method list, each module, warnings, Advanced, printout options,
+  unconfirmed review, drafts, phone panel open; light and dark, desktop and phone): 0 violations after moving the
+  new solid buttons to `primary-fill` (white on the dark-mode text blue was 2.4:1). The walkthrough reaches all 9
+  targets. Drafts save, autosave, list and resume; the CSV and print carry the sheet. Lint, typecheck, build pass.
+- Choices to confirm: (1) Next on Step 2 waits for a confirmed method, but the stepper still jumps anywhere; Review
+  then asks for the method. (2) Old links without `step` count their method as confirmed (the old page applied it)
+  and open on Review when they have costs. (3) The zero-cost check waits until there's a benefit, so a blank case
+  shows no flags. (4) Volume thresholds are judgment calls: 2× the hospital's own Medicare count, 400 staff hours a
+  week, 10% of patient days, 15 years for equipment. (5) The Board summary printout is now two pages: the one-pager
+  plus the assumption sheet. (6) The CSV is new (the only export before was print/PDF); Copy link is unchanged.
+  (7) The Advanced panel moved to Step 3 (it holds assumptions); its read-outs (break-even, sensitivity) stay on Review.
+
 ### V7.5.5 (Overview as the hospital's annual report)
 - Phase 1 (content audit) was approved with all five decisions; Phase 2 builds it. The Overview is now the
   hospital's annual report from its own HCAI filings: 13 sections, prose first, 14 figures where the audit lists

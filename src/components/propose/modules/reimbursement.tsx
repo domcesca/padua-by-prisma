@@ -408,5 +408,39 @@ export const reimbursementModule = defineModule<State, ReimbursementData>({
       incomplete: !rows.length ? "Pick at least one DRG." : !revenue ? "Enter the added cases for at least one DRG." : undefined,
     }
   },
+  assumptions: (s, data, { wageIndex }) => {
+    if (!data) return { publicData: [], inputs: [] }
+    const rows = compute(s, data, wageIndex)
+    const { adjusted } = pricing(data, wageIndex)
+    const ipps = `CMS FY ${data.fiscalYear} IPPS Final Rule`
+    const publicData = rows.map((r) => ({
+      label: `DRG ${r.code} payment per case`,
+      value: formatUsd(r.payment),
+      source: adjusted ? `${ipps}, wage-index-adjusted` : `${ipps}, national rate`,
+    }))
+    if (adjusted) publicData.push({ label: `Wage index, ${adjusted.hospital}`, value: adjusted.value.toFixed(4), source: `CMS ${adjusted.table}` })
+    for (const r of rows.filter((x) => s.drgs.find((d) => d.code === x.code)?.mode === "pct" && x.baseline != null))
+      publicData.push({ label: `DRG ${r.code} Medicare cases, ${data.baseline!.year}`, value: formatInt(r.baseline!), source: "CMS Medicare fee-for-service" })
+    const inputs = s.drgs.map((d) => {
+      const r = rows.find((x) => x.code === d.code)
+      return {
+        label: `Added cases, DRG ${d.code}`,
+        value: d.mode === "pct" ? `+${d.value}% of Medicare cases${r ? ` (${casesText(r.added)})` : ""}` : `${casesText(d.value)} a year`,
+      }
+    })
+    if (s.careCost) inputs.push({ label: "Cost of caring for the added patients", value: `${s.careCost}% of payment` })
+    return { publicData, inputs }
+  },
+  warnings: (s, data) => {
+    if (!data?.baseline) return []
+    const out: string[] = []
+    for (const d of s.drgs) {
+      const base = data.baseline.cases[d.code]
+      if (d.mode === "pct" && d.value > 100) out.push(`DRG ${d.code}: a ${d.value}% increase more than doubles the hospital's Medicare cases.`)
+      if (d.mode === "cases" && base && d.value > base * 2)
+        out.push(`DRG ${d.code}: ${formatInt(d.value)} added cases is more than twice the ${formatInt(base)} Medicare cases the hospital had in ${data.baseline.year}.`)
+    }
+    return out
+  },
   Editor,
 })

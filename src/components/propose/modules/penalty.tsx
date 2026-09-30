@@ -715,6 +715,56 @@ export const penaltyModule = defineModule<State, PenaltyData>({
       incomplete: hasCuts(s) ? undefined : "Enter a readmission or infection reduction.",
     }
   },
+  assumptions: (s, data, { advanced }) => {
+    const inputs: { label: string; value: string }[] = []
+    for (const c of HRRP_CONDITIONS) if (s.readm[c.key]) inputs.push({ label: `${c.label} readmission cut`, value: `${s.readm[c.key]} percentage points` })
+    for (const m of HAC_MEASURES) if (s.hai[m.key]) inputs.push({ label: `${m.label} cut`, value: `${s.hai[m.key]}%` })
+    const o = overrides(s, advanced)
+    if (o.readm) inputs.push({ label: "Readmission phase-in (advanced)", value: `Years ${o.readm.start}–${o.readm.full}` })
+    if (o.hai) inputs.push({ label: "Infection phase-in (advanced)", value: `Years ${o.hai.start}–${o.hai.full}` })
+    if (advanced && s.lostRevenue.on) inputs.push({ label: "Revenue lost per readmission avoided (advanced)", value: formatUsd(s.lostRevenue.perReadmission) })
+    if (dampOf(s, advanced) !== 1) inputs.push({ label: "Readmission dampening (advanced)", value: `× ${dampOf(s, advanced).toFixed(2)}` })
+    if (!data) return { publicData: [], inputs }
+    const publicData: { label: string; value: string; source: string }[] = []
+    const hrrp = `CMS FY ${data.hrrp.fiscalYear} HRRP`
+    if (data.hrrp.hospital) {
+      publicData.push({ label: "Current readmission penalty", value: `${formatPercent(data.hrrp.hospital.reduction, 2)} of base payments`, source: hrrp })
+      for (const c of HRRP_CONDITIONS) {
+        const rate = data.hrrp.hospital.conditions[c.key]?.predicted
+        if (s.readm[c.key] && rate != null) publicData.push({ label: `${c.label} readmission rate`, value: `${rate.toFixed(1)}%`, source: `${hrrp} (${periodText(data.hrrp.period)})` })
+      }
+    }
+    if (data.hac.hospital?.totalScore != null)
+      publicData.push({
+        label: "Total HAC score",
+        value: `${data.hac.hospital.totalScore.toFixed(4)} (cutoff ${data.hac.cutoff.toFixed(4)}; ${data.hac.hospital.penalized ? "penalized" : "not penalized"})`,
+        source: `CMS FY ${data.hac.fiscalYear} HAC Reduction Program`,
+      })
+    const pay = data.payments.hospital
+    if (pay) {
+      publicData.push({ label: "Medicare base operating payments (HRRP base)", value: formatUsd(pay.baseOperating), source: `CMS FY ${data.payments.fiscalYear} IPPS Impact File (estimate)` })
+      publicData.push({ label: "Medicare operating payments (HAC base)", value: formatUsd(pay.operating), source: `CMS FY ${data.payments.fiscalYear} IPPS Impact File (estimate)` })
+    }
+    return { publicData, inputs }
+  },
+  warnings: (s, data, { life, advanced }) => {
+    const out: string[] = []
+    for (const c of HRRP_CONDITIONS) {
+      const rate = data?.hrrp.hospital?.conditions[c.key]?.predicted
+      if (s.readm[c.key] && rate != null && (s.readm[c.key] ?? 0) >= rate)
+        out.push(`${c.label}: a ${s.readm[c.key]}-point cut takes the ${rate.toFixed(1)}% readmission rate to zero.`)
+    }
+    for (const m of HAC_MEASURES) if ((s.hai[m.key] ?? 0) >= 100) out.push(`${m.label}: a 100% cut means no infections at all.`)
+    if (data && hasCuts(s)) {
+      const o = overrides(s, advanced)
+      const r = Object.values(s.readm).some(Boolean) ? timing(data.hrrp.period, data.hrrp.fiscalYear, o.readm).full : 0
+      const h = Object.values(s.hai).some(Boolean) ? timing(data.hac.periods.hai, data.hac.fiscalYear, o.hai).full : 0
+      const full = Math.max(r, h)
+      if (full > life)
+        out.push(`Useful life: the penalties reach full effect in year ${full}, after the ${life}-year useful life ends, so the estimate never sees the full saving.`)
+    }
+    return out
+  },
   Editor: (props) => {
     const { data, state } = props
     return (
