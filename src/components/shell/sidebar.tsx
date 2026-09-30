@@ -68,7 +68,7 @@ export function Sidebar() {
         </ul>
       </nav>
 
-      <div className="px-5 pb-2">
+      <div className="flex items-center gap-4 px-5 pb-2">
         {/* Tools still being built live on one page, not in the nav above. */}
         <Link
           href="/whats-next"
@@ -76,6 +76,14 @@ export function Sidebar() {
           className="rounded-sm text-xs text-tertiary-foreground hover:text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
         >
           What&apos;s next
+        </Link>
+        {/* Signed out, /account goes on to sign-in. A plain link, so no page has to read the session to draw the shell. */}
+        <Link
+          href="/account"
+          aria-current={pathname === "/account" ? "page" : undefined}
+          className="rounded-sm text-xs text-tertiary-foreground hover:text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        >
+          Account
         </Link>
       </div>
       <div className="flex items-center justify-between gap-2 border-t border-sidebar-border px-5 py-4">

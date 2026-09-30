@@ -1,5 +1,6 @@
 "use client"
 
+import { CircleUserRound } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
@@ -20,7 +21,16 @@ export function MobileHeader() {
           {APP_NAME} <span className="text-[12px] font-medium tracking-normal text-primary">{APP_BYLINE}</span>
         </span>
       </Link>
-      <ThemeToggle />
+      <div className="flex items-center gap-1">
+        <Link
+          href="/account"
+          aria-label="Account"
+          className="flex size-9 items-center justify-center rounded-full text-muted-foreground hover:bg-black/5 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none dark:hover:bg-white/10"
+        >
+          <CircleUserRound className="size-5" aria-hidden />
+        </Link>
+        <ThemeToggle />
+      </div>
     </header>
   )
 }

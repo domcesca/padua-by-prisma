@@ -292,6 +292,29 @@ downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and
   Outdated = newest report more than 2 years behind the newest data (13 hospitals, some of them campuses now reported
   under a parent).
 
+### V7.6.5a (Accounts and data foundation)
+- Real accounts, organization first: Organization → Facilities → Admins, with role (Owner / Admin / Member) and
+  facility scope (whole organization or listed facilities) as independent axes, and a nullable, same-organization
+  `manager_id` for the management chain later. Sign-up (creates the organization, its first facility from the HCAI list,
+  and you as Owner), sign-in, sign-out, 14-day sessions, and a read-only `/account` page. Postgres via `pg`
+  (`DATABASE_URL`); without it the app runs as before. Details in the README; the security note is
+  `docs/accounts-security.md`.
+- Isolation is in the database: row-level security on every organization-owned table, all app queries run as
+  `padua_app` with the organization set per transaction from the verified session only, composite foreign keys, two
+  narrow SECURITY DEFINER lookups for sign-in and sessions, and no read access to password hashes.
+- Checked: `check:isolation` against real PostgreSQL 16, 45 checks per setup, all passing as a non-superuser owner,
+  as an owner with BYPASSRLS, and as a separate non-owner login (plus RESET ROLE). It caught one real bug first
+  (`padua_in_scope` accepted any facility id for organization-wide scope), fixed. End-to-end in Chromium: 33 checks
+  (validation, two organizations, duplicate email, sign-out and cookie replay, forged cookie, same message for
+  unknown email and wrong password, open-redirect guard, throttling). Regression against main: 13,079 API responses
+  identical; 66 page renders (11 pages × 3 hospital states × desktop and phone) identical in status, title, main text
+  and shell text apart from the new Account link; every existing route keeps its static/dynamic rendering. axe on
+  the new pages (light and dark, desktop and phone): no violations of their own; the hospital picker's open popover
+  lacks a dialog name (best-practice rule), which main has too. Lint, typecheck, build pass.
+- Deferred, with a clean start for the next pass: invites (every sign-up is a new organization), managing people's
+  roles and scopes, adding facilities, management-hierarchy access, the org-chart console, sharing, BYOD uploads and
+  moving browser-local work to the server, password reset, email verification, MFA.
+
 ### V7.6 (Business cases as a four-step guided flow)
 - Define the initiative → Estimate benefits (recommended method, confirmed before it's applied) → Enter costs and
   assumptions → Review scenarios, with an always-visible assumptions panel (public data / your inputs / calculated),
@@ -621,7 +644,11 @@ The utilities are all in `src/app/globals.css`. **Reuse them; don't invent new o
 - **Ask** (natural-language queries): placeholder only, deferred past V5. The intended design is NL → `ReportSpec` → the existing Build runner.
 - **Watch** (anomaly detection on uploaded data): placeholder only.
 - **Case mix** topic (conditions/procedures treated): shown as "coming later" on the home page (`FUTURE_CATEGORIES` in `datasets.ts`). The CMI itself is built (Utilization).
-- **Other**: no accounts, saved reports, server-side uploads or database (the V7.0 briefing is browser-local).
+- **Other**: no saved reports or server-side uploads; the V7.0 briefing and business-case drafts are browser-local.
+  Accounts exist (V7.6.5a); their deferred items (invites, people management, facilities, hierarchy access, org chart,
+  sharing, BYOD, password reset, email verification, MFA) are listed in `docs/accounts-security.md`.
+- **Hospital picker popover name** (from V7.6.5a's axe pass): the open popover has no dialog name (axe best-practice,
+  on main too). One `aria-label` on its `PopoverContent`; left alone because this pass changes no existing page.
 - **Opportunity Finder follow-ups**: workforce metrics (HCAI staffing fields, pending definitions and directions), a strengths companion, tool-level findings (V7.2), more Propose handoffs (V7.3).
 - **More HCAI datasets:** Quarterly Financial & Utilization and the complete Annual Disclosure set are planned but not started.
 - **Percent / Actual in unit and service-line views** (backlog, from V7.4.5): a unit's or line's occupancy comes from
@@ -637,7 +664,9 @@ The utilities are all in `src/app/globals.css`. **Reuse them; don't invent new o
   - **It is not publicly viewable.** Every `*.vercel.app` URL for the project redirects to Vercel SSO (Deployment Protection is on).
   - The repo's listed homepage, https://usc-hcai-insights.vercel.app, returns **404**, so that domain isn't assigned to the project.
   - **To go public:** turn off Deployment Protection, or assign a production domain, in the Vercel project settings.
-- **Local:** `npm run dev` serves http://localhost:3000. No environment variables are needed.
+- **Local:** `npm run dev` serves http://localhost:3000. No environment variables are needed (accounts need `DATABASE_URL`).
+- **Accounts on Vercel (V7.6.5a):** not set up yet. Needs a Postgres database, `DATABASE_URL` in the project's
+  environment settings, and one `npm run db:migrate`; until then sign-in says accounts aren't set up.
 
 ## 6. Original V3 scope (done; kept for context)
 - **Quality tab:** CMS Care Compare (hospital quality measures) plus CDPH healthcare-associated infection (HAI) data. It would fill the reserved "Quality" topic on the home page.
