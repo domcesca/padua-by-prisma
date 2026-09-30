@@ -182,6 +182,57 @@ used (they cover traditional Medicare only, by calendar year, and need a CCN cro
   fiscal-year and include long-term care units. Cards say so.
 - Medicare Advantage share (MA discharges ÷ all Medicare discharges) is available under the Medicare view and in Build.
 
+## Overview as the annual report (V7.5.5)
+
+The Overview (`/`) is now the remembered hospital's annual report, written from its own HCAI filings. Prose leads;
+figures appear only where the Phase 1 audit lists them. Nothing in the report compares the hospital with another.
+
+- **Thirteen sections** (`src/lib/annual-report/build.ts`, pure, rendered by `components/overview/annual-report.tsx`):
+  the year in brief, who the hospital is, did it make money (operating vs total margin; charges-to-net-income bridge),
+  where the money comes from (charged vs collected by payer; share of net revenue), where the money goes (expenses by
+  type over five years; by department group), financial position (cash, property, debt and equity), workforce
+  (employee and contract hours; hours by job class), inpatient care (discharges and days by payer; occupancy by bed
+  type), emergency department (visits by severity), surgery, births and cardiac care (inpatient and outpatient
+  surgeries), capital investment (prose), quality from CMS and CDPH (a dashed, labeled addendum, not part of HCAI's
+  report; infection ratios), and about this report (sources, periods, gaps, what was left out and why, how Padua's
+  own figures are worked out, and the SIERA link). Each opens with one plain sentence that says what changed from the
+  year before.
+- **Report periods**: financial sections read the hospital's fiscal year ("the fiscal year ended June 30, 2024";
+  axis "FY Jun 2024"), utilization sections the calendar year, and every section and figure names its report and
+  period. No figure mixes the two. Where a section borrows from the other report (payer volumes in Inpatient care,
+  births in Surgery), the figure or sentence says so.
+- **Reduced filers**: a section is left out when the hospital's filing reports none of its figures (zeros or blanks,
+  which is how reduced filers skip pages), never shown as zeros; About this report lists what was left out and why.
+  The rule is data-driven, so it holds per hospital: across all 467 hospitals, 32 of 34 Kaiser hospitals keep every
+  section but Financial position (HCAI takes Kaiser's balance sheet by region); county PHFs drop expenses, balance sheet and
+  workforce where they don't file them, and ED, surgery, capital and quality; state hospitals keep income, inpatient
+  care and (1 of 7) capital. County facilities that book revenue to match cost read "broke even" and get no flat
+  margin chart.
+- **Twelve new measures** (`src/lib/annual-report/calcs.ts`): total margin, collection rate by payer, payer mix by
+  net revenue, labor share of expenses, labor cost per FTE, FTEs per adjusted occupied bed, contract share of hours,
+  debt to equity, current ratio, C-section share, and expense and revenue per adjusted patient day. Each is a ratio of
+  ingested fields, null when its inputs aren't reported. `npm run check:annual-report` works each one out a second,
+  independent way for every hospital-year (all 2,641 match), fails unless the per-adjusted-day pair reproduces
+  Compare's published per-adjusted-discharge figures (2,494 of 2,494), and reports how far HCAI's own filings
+  reconcile (net income 100%, payer net revenue 97%, balance sheet 100%, expense types 95.5%).
+- **`GET /api/report/[id]`** (`src/lib/annual-report/load.ts`): one hospital's financial and utilization years (every
+  field, the documented measures and the twelve new ones), bed types, case mix index, the CMS/CDPH addendum and
+  source notes. Read-only, one hospital, no peer figure of any kind. `/api/report` (Reports) is unchanged.
+- **Top strip**: the next HCAI filing as one line (the Filing calendar's status and marks), and Needs attention
+  compacted to one line per priority with Review and Pin. It is the page's only peer comparison and is labeled
+  "Against peers" with the group named; the context bar's peer group applies only to it.
+- **Sidebar**: Saved work, Common actions and (desktop) a sticky "In this report" contents list. On phones it
+  follows the report as the page footer. What changed was dropped (the brief and each section's opening sentence say
+  what changed); `src/lib/overview/changes.ts` went with it.
+- **Charts** (`components/overview/report-figure.tsx`): one component for all five kinds (lines, bars, stacked bars,
+  horizontal bars, bridge). Each has the V7.5.1 keyboard access (one tab stop, arrows step and announce), a Chart /
+  Table switch with the table always present for screen readers, marker shapes and dashes on lines, fill patterns on
+  bars, and a period line under its title.
+- **Gaps stated, not built**: the cash-flow statement and services inventory (Complete Data Set only), restricted
+  funds, equity changes, debt and property detail, other operating revenue detail, salaries by job class, capital
+  descriptions, service flags, and births on the utilization report (HCAI has masked them since 2022, so C-section
+  share and births come from the financial report).
+
 ## Reports, Correlate and Data definitions (V7.5)
 
 A content and usability pass on three tools. No data or existing calculation changed; the API regression against main
@@ -321,6 +372,9 @@ change (7,216/7,216 API responses match V7.3).
   with no sideways scroll.
 
 ## Overview (V7.3)
+
+_Superseded in V7.5.5 by the annual report above: What changed was dropped, Needs attention and Upcoming filings
+became the top strip, and Saved work and Common actions moved to the sidebar. The first visit is unchanged._
 
 The front door (`/`, `src/components/overview/`). It assembles what the other tools already serve; nothing is
 calculated anew, and no API changed.

@@ -138,6 +138,12 @@ export function getFacilities(): Promise<Facility[]> {
   })
 }
 
+/** The utilization report's profile of a hospital (parent organization, principal service), or null. */
+export async function getUtilizationProfile(id: string) {
+  const util = await load<UtilizationFacility[]>("hau", "facilities.json")
+  return util.find((f) => f.id === id) ?? null
+}
+
 export async function getFacility(id: string) {
   const facilities = await getFacilities()
   return facilities.find((f) => f.id === id) ?? null

@@ -45,7 +45,7 @@ export function SavedWork({
     >
       {pins.length === 0 ? (
         <SectionEmpty title={`Nothing saved for ${facilityName} yet`}>
-          Use <span className="font-medium text-foreground">Pin to briefing</span> on any priority in Needs attention above, or in
+          Use <span className="font-medium text-foreground">Pin to briefing</span> on any priority in Needs attention at the top, or in
           Compare&apos;s{" "}
           <Link href={compareHref} className="font-medium text-primary hover:underline">
             Hospital priorities

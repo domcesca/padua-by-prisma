@@ -8,7 +8,8 @@ export const ABOUT: Record<AboutId, { title: string; body: string[]; walkthrough
   home: {
     title: "Overview",
     body: [
-      "Your hospital at a glance: what needs attention against similar California hospitals, what changed since the previous period, the next HCAI filings, and the priorities you've pinned.",
+      "Your hospital's annual report, written from its own HCAI financial and utilization filings: how it did, where its money came from and went, its staff, patients and services, with CMS and CDPH quality as a labeled addendum. It compares the hospital with no one.",
+      "Above the report, a strip shows the next HCAI filing and what needs attention against similar California hospitals, the page's only peer comparison. Saved work and shortcuts sit beside the report (below it on a phone).",
       "Padua remembers the hospital in this browser and opens here on it; change the hospital or the peer group in the bar at the top, and they follow you to every other tab.",
     ],
   },

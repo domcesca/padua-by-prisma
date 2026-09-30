@@ -1,6 +1,7 @@
 "use client"
 
-import { CalendarClock } from "lucide-react"
+import { ArrowRight, CalendarClock } from "lucide-react"
+import Link from "next/link"
 import { useMemo } from "react"
 
 import { DEADLINE_STATUS, KIND_LABEL } from "@/components/deadlines/deadlines-view"
@@ -8,15 +9,12 @@ import { deadlineRows, fyeOf, scheduleFor, useProgress } from "@/lib/deadlines/p
 import { daysBetween, effectiveDue, formatDate, isoDate, today } from "@/lib/deadlines/rules"
 import { useMounted } from "@/lib/use-mounted"
 import { cn } from "@/lib/utils"
-import { OverviewSection, SectionEmpty, SectionLoading } from "./section"
 
-// Upcoming filings: the next few rows of the hospital's Filing calendar, with the status it shows there (and the
-// filed/extended progress the viewer marked there, from the same browser storage). Anything past due and not marked
-// filed comes first, as it does in the calendar's own summary.
+// Upcoming filings (V7.5.5: one line in Overview's top strip): the hospital's next HCAI filing from the Filing
+// calendar, with the status it shows there (and the filed/extended progress the viewer marked there, from the same
+// browser storage). Anything past due and not marked filed comes first, as in the calendar's own summary.
 
-const SHOWN = 3
-
-export function UpcomingFilings({
+export function FilingBanner({
   facilityId,
   fiscalYearEnd,
   onCalendar,
@@ -32,78 +30,58 @@ export function UpcomingFilings({
   const now = mounted ? today() : null
   const fye = fyeOf(fiscalYearEnd)
   const nowKey = now && isoDate(now)
-  const schedule = useMemo(() => (fye && now ? scheduleFor(fye, now) : []),
+  const schedule = useMemo(
+    () => (fye && now ? scheduleFor(fye, now) : []),
     // `now` only changes day to day.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [fye?.month, fye?.day, nowKey])
+    [fye?.month, fye?.day, nowKey]
+  )
   const rows = now ? deadlineRows(schedule, now, progress, facilityId) : []
   const open = rows.filter((r) => r.status !== "filed")
-  const pastDue = open.filter((r) => r.status === "past")
-  const dueSoon = open.filter((r) => r.status === "soon")
-  const shown = [...pastDue, ...open.filter((r) => r.status !== "past")].slice(0, SHOWN)
-  const href = `/filing-calendar?facility=${facilityId}`
+  const next = open.find((r) => r.status === "past") ?? open[0] ?? null
+  const more = open.length - (next ? 1 : 0)
+
+  let body: React.ReactNode
+  if (!onCalendar || !fye) body = <span className="text-muted-foreground">No filing calendar: it hasn&apos;t filed a recent HCAI report.</span>
+  else if (!now) body = <span className="text-muted-foreground">Working out due dates…</span>
+  else if (!next) body = <span className="text-muted-foreground">Nothing to file in the next year: every report is marked filed.</span>
+  else {
+    const due = effectiveDue(next.d, next.p)
+    const left = daysBetween(now, due)
+    const s = DEADLINE_STATUS[next.status]
+    const Icon = s.icon
+    body = (
+      <>
+        <span className="font-medium">
+          {next.status === "past" ? "Past due" : "Next due"}: {KIND_LABEL[next.d.kind](next.d)}, {formatDate(due, { month: "short", day: "numeric" })}
+        </span>
+        <span className={cn("inline-flex items-center gap-1 text-xs font-medium", s.className)}>
+          <Icon className="size-3.5 shrink-0" aria-hidden />
+          {s.label}
+          <span className="font-normal text-muted-foreground">
+            · {left === 0 ? "today" : left > 0 ? `in ${left} day${left === 1 ? "" : "s"}` : `${-left} day${left === -1 ? "" : "s"} ago`}
+            {next.p?.extended && " (extended)"}
+            {more > 0 && ` · ${more} more in the next year`}
+          </span>
+        </span>
+      </>
+    )
+  }
 
   return (
-    <OverviewSection
-      id="upcoming-filings"
-      icon={CalendarClock}
-      title="Upcoming filings"
-      description="HCAI financial and utilization reports, from the Filing calendar."
-      link={onCalendar && fye ? { href, label: "Filing calendar" } : null}
-    >
-      {!onCalendar || !fye ? (
-        <SectionEmpty title="No filing calendar for this hospital">
-          It hasn&apos;t filed a recent HCAI report, so there&apos;s no fiscal year to build its due dates from. The Filing
-          calendar can still show dates for any fiscal year end.
-        </SectionEmpty>
-      ) : !now ? (
-        <SectionLoading label="Working out due dates…" rows={SHOWN} />
-      ) : (
-        <>
-          {!pastDue.length && !dueSoon.length && (
-            <p className="text-[13px] text-muted-foreground" role="status">
-              Nothing due in the next 30 days. Next up:
-            </p>
-          )}
-          {shown.length === 0 ? (
-            <SectionEmpty title="Nothing to file in the next year">Every report in the calendar is marked filed.</SectionEmpty>
-          ) : (
-            <ul className="divide-y divide-border">
-              {shown.map(({ d, p, status }) => {
-                const due = effectiveDue(d, p)
-                const left = daysBetween(now, due)
-                const s = DEADLINE_STATUS[status]
-                const Icon = s.icon
-                return (
-                  <li key={d.id} className="flex items-start gap-3 py-2.5 first:pt-0.5 last:pb-0.5">
-                    <div className="w-11 shrink-0 text-center" aria-hidden>
-                      <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">{formatDate(due, { month: "short" })}</p>
-                      <p className="num text-lg leading-none font-semibold">{formatDate(due, { day: "numeric" })}</p>
-                    </div>
-                    <div className="min-w-0 space-y-0.5">
-                      <p className="text-[14px] leading-snug font-medium">
-                        {KIND_LABEL[d.kind](d)}
-                        <span className="sr-only">, due {formatDate(due)}</span>
-                      </p>
-                      <p className={cn("inline-flex flex-wrap items-center gap-1 text-xs font-medium", s.className)}>
-                        <Icon className="size-3.5 shrink-0" aria-hidden />
-                        {s.label}
-                        <span className="font-normal text-muted-foreground">
-                          · {left === 0 ? "today" : left > 0 ? `in ${left} day${left === 1 ? "" : "s"}` : `${-left} day${left === -1 ? "" : "s"} ago`}
-                          {p?.extended && " (extended)"}
-                        </span>
-                      </p>
-                    </div>
-                  </li>
-                )
-              })}
-            </ul>
-          )}
-          <p className="text-xs text-tertiary-foreground">
-            Marked filed or extended in this browser only. SIERA has the official dates.
-          </p>
-        </>
+    <div className="flex flex-wrap items-start gap-x-3 gap-y-1.5 text-[14px] sm:items-center" role="group" aria-label="Upcoming HCAI filings">
+      <CalendarClock className="mt-0.5 size-4 shrink-0 text-primary sm:mt-0" aria-hidden />
+      {/* Wide enough that, on a phone, the calendar link wraps under the text rather than squeezing it. */}
+      <p className="flex min-w-0 flex-1 basis-[16rem] flex-wrap items-center gap-x-2 gap-y-0.5">{body}</p>
+      {onCalendar && fye && (
+        <Link
+          href={`/filing-calendar?facility=${facilityId}`}
+          className="ml-7 inline-flex items-center gap-1 rounded text-[13px] font-medium text-primary outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring sm:ml-0"
+        >
+          Filing calendar
+          <ArrowRight className="size-3.5" aria-hidden />
+        </Link>
       )}
-    </OverviewSection>
+    </div>
   )
 }

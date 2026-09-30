@@ -292,6 +292,53 @@ downloads redirect to s3.amazonaws.com, which was reachable. calhospital.org and
   Outdated = newest report more than 2 years behind the newest data (13 hospitals, some of them campuses now reported
   under a parent).
 
+### V7.5.5 (Overview as the hospital's annual report)
+- Phase 1 (content audit) was approved with all five decisions; Phase 2 builds it. The Overview is now the
+  hospital's annual report from its own HCAI filings: 13 sections, prose first, 14 figures where the audit lists
+  them, a labeled CMS/CDPH quality addendum, and About this report. Top strip: next filing and Needs attention (the
+  one peer comparison, labeled). Sidebar: Saved work, Common actions, contents; the footer on phones. Details in the
+  README. First-run pick and the guided tour are unchanged.
+- New: `src/lib/annual-report/` (calcs, build, figures, load, types), `GET /api/report/[id]`,
+  `scripts/check-annual-report.mts` (`npm run check:annual-report`), `components/overview/{annual-report,report-figure}.tsx`.
+  Removed: `what-changed.tsx`, `lib/overview/changes.ts`. The Overview now makes one `/api/benchmark` call (the
+  context bar's peer badge) instead of three.
+- Checked: API regression against main (V7.5.1): 10,824 responses identical (benchmark 4,510, correlate 1,804,
+  fields 902, findings 902, report 2,706). `/api/report/[id]` answered for all 451 test hospitals with no peer-like
+  key, and main 404s. The report builds for all 467 hospitals with no wording problems left in a scan for NaN,
+  "$0", "0 days" and "0.0%" phrasing. axe-core on 32 states (six hospital types, first run, keyboard on a chart,
+  Table view, About open, light and dark, desktop and phone): 0 violations, one h1, no skipped levels. Error,
+  retry and loading states checked. `check:annual-report`, `check:components`, `check:directions`, lint, typecheck and
+  `next build` pass.
+- Sections shown, by HCAI hospital type (of 467):
+
+  | Type | n | Income | Revenue | Expenses | Position | Workforce | ED | Surgery etc. | Capital | Quality |
+  |---|---|---|---|---|---|---|---|---|---|---|
+  | Comparable | 387 | 386 | 386 | 386 | 386 | 386 | 277 | 306 | 139 | 335 |
+  | Kaiser | 34 | 34 | 32 | 32 | 2 | 32 | 32 | 32 | 22 | 32 |
+  | PHF | 33 | 33 | 30 | 26 | 25 | 26 | 0 | 0 | 0 | 0 |
+  | State | 7 | 6 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
+  | LTC emphasis | 4 | 4 | 4 | 4 | 4 | 4 | 0 | 0 | 2 | 1 |
+  | Other non-comparable | 2 | 2 | 2 | 1 | 2 | 1 | 0 | 1 | 0 | 1 |
+
+  The brief, profile, inpatient care and About appear for every hospital (the one hospital without a financial
+  report gets the utilization parts only).
+- Choices to confirm: (1) C-section share and births come from the financial report (fiscal year), because HCAI
+  masks births on the utilization report from 2022; the audit had them under utilization. (2) FTE-based measures are
+  left blank for a year that combines more than one filing, where the ETL adds FTEs across filings. (3) Payer mix by
+  net revenue counts a negative payer as zero, as Compare's payer mix does; collection rates can pass 100% where
+  capitation has no charges behind it. (4) The Phase 1 audit said Kaiser files no charges or payer revenue; the data
+  says Kaiser files both per hospital and only the balance sheet is regional, so Kaiser keeps the revenue section.
+  (5) The addendum keeps CMS's and CDPH's own verdicts (readmissions against the national rate, infections against
+  the number predicted), which are the sources' comparisons, not Padua's; VRE is left out because CDPH compares it
+  with similar hospitals. (6) The route also carries bed types, case mix and the addendum, which the report needs;
+  still one hospital, no peers. (7) Workforce charts hours (employee and contract, same unit) with paid FTEs in the
+  table and prose, not FTEs and hours on one chart; Inpatient care charts payer shares with counts in the table.
+  (8) The compact Needs attention row keeps Review and Pin but drops Methodology and the score line (both still in
+  Compare). (9) The first-run text still mentions "what changed"; it was left untouched as asked. (10) Capital is left
+  out when both totals are zero, since the yes/no flags that would tell "none" from "not filed" aren't ingested.
+- Density: expenses by type stacks six patterned segments; clear on desktop, busy at phone width, where the table
+  reads better.
+
 ### V7.5.1 (chart tooltips and grouped-bar patterns)
 - Two accessibility follow-ups from V7.4, fixed in shared components (`shell/chart-keyboard.tsx`,
   `shell/fill-pattern.tsx`) ahead of V7.5.5's new charts. Details are in the README.
