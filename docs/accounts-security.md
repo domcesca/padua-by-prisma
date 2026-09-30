@@ -1,4 +1,4 @@
-# Accounts and organization isolation: security review note (V7.6.5a, V7.6.5b)
+# Accounts and organization isolation: security review note (V7.6.5a, V7.6.5b, V7.6.5d)
 
 This note covers how accounts, sessions, the organization boundary, people management and the management hierarchy
 work, what was checked, and what a real audit should check before Padua holds client data. Today, nothing
@@ -160,6 +160,40 @@ The pieces, for future tables of owned data:
   Future owned tables should reference the owner without `ON DELETE CASCADE`. Then removal is refused until the
   person's items are handed on. The check shows this, rather than silently deleting their work.
 
+## Private uploads (V7.6.5d)
+
+The first table private to one person rather than an organization. Schema: `db/migrations/0005_uploads.sql`.
+
+- **One policy, on the person.** `uploads` has row-level security with one policy, for every command:
+  `organization_id = padua_current_org() and admin_id = padua_current_admin()`.
+  - Both columns default to those settings, so the app never supplies an owner. The policy's check refuses any other
+    value.
+  - Nothing else widens it:
+    - no hierarchy policy, so a manager doesn't see their reports' files;
+    - no role exception, so owners don't see anyone else's;
+    - no SECURITY DEFINER function reads the table.
+- **The content is in the row.** File bytes are a `bytea` column, so the same policy covers the content, the name and
+  whether the file exists. There's no object store with its own access rules to keep in step. Downloads are
+  `select … where id = $1` run as the admin: someone else's id returns no row, the same 404 as an id that doesn't
+  exist.
+- **Only select, insert and delete are granted.** Uploads can't be edited, or moved to another person, even by their
+  owner.
+- **When a person is removed,** their uploads are removed with them (foreign-key cascade). No one else could ever open
+  them.
+- **The database backs up the app's checks:**
+  - a type outside the four;
+  - a size that doesn't match the content;
+  - over 4 MB;
+  - a file name with a path or control characters.
+- **Downloads** are always attachments, with:
+  - `Cache-Control: private, no-store`;
+  - `X-Content-Type-Options: nosniff`;
+  - a sandboxing Content-Security-Policy.
+
+  So nothing uploaded is ever rendered as a page on Padua's origin.
+- **Size.** Server actions allow request bodies up to 4.5 MB (Next's default is 1 MB), which is Vercel's own
+  per-request limit. The page stops larger files before sending them.
+
 ## Authentication and sessions
 
 - **Passwords:**
@@ -182,6 +216,34 @@ The pieces, for future tables of owned data:
 ## What was checked
 
 All against real PostgreSQL 16, on a scratch database.
+
+- **`npm run check:uploads`** (V7.6.5d): 82 checks, all passing.
+  - **Setup:** two organizations. A has an owner, an admin reporting to the owner, and a member reporting to the admin.
+    B has an owner. Each uploads a file.
+  - **Reading:** from every one of the four sessions, with no owner filter in the query:
+    - an unfiltered list and a count show only their own file;
+    - each other person's file can't be read by id (content included) or listed by owner;
+    - joins to the organization's people, or to one's own reporting chain, add nothing.
+  - **Deleting:** six committed attempts, covering the owner, a manager, a report and across organizations, each by id
+    and "everyone else's". All remove nothing.
+  - **Writes:**
+    - making an upload that belongs to someone else, in the same organization or another, is refused;
+    - no updates at all, so no editing and no handing over;
+    - the database's own type, size and name rules.
+  - **No person set:** an organization with no admin set, or an admin id from another organization, sees nothing and
+    can't upload.
+  - **The app role:** can't turn RLS off or add a policy.
+  - **Schema:** RLS is on with exactly one policy, and no SECURITY DEFINER function touches the table.
+  - **Removal:** removing a person works with uploads in place, and removes theirs.
+  - **Content check:** 27 files. Real CSV (UTF-8, Windows-1252, with BOM), .xlsx, JSON and text are accepted. These are
+    refused:
+    - PDFs, executables, images and Word files, including renamed ones;
+    - macro workbooks;
+    - CSV text named .xlsx;
+    - broken or non-UTF-8 JSON;
+    - an unclosed CSV quote;
+    - empty, blank and over-4 MB files;
+    - .xls, .html and names without an extension.
 
 - **`npm run check:isolation`:** 131 checks, all passing in three connection setups (details below).
   - It sets up two organizations and tries every table, read and write, from each against the other:
@@ -334,13 +396,15 @@ All against real PostgreSQL 16, on a scratch database.
    - This code against a database without 0002 fails on the missing functions.
    - `0003_test_hospitals.sql` (V7.6.5c) added test hospitals; `0004_drop_test_hospitals.sql` removes them again.
      Both stay in the folder and in `schema_migrations`, because migrations only run forward.
+   - `0005_uploads.sql` (V7.6.5d) only adds a table, so code and database can go in either order. Until it runs,
+     `/uploads` errors for signed-in admins. Nothing else uses it.
 3. Recommended: create the app's own login role, then give Vercel that role's connection string as `DATABASE_URL`:
 
    ```sql
    create role padua_web login password '…' noinherit;
    grant padua_app to padua_web;
    ```
-4. Optional: run `npm run check:isolation`, `check:permissions` and `check:hierarchy`, with
+4. Optional: run `npm run check:isolation`, `check:permissions`, `check:hierarchy` and `check:uploads`, with
    `CHECK_DATABASE_URL=<owner url of a scratch or staging DB>`. They add test organizations and remove them after.
    `check:hierarchy` briefly disables the loop trigger to prove the reads are loop-safe, so never point it at
    production.
@@ -361,8 +425,16 @@ Still to come:
 - **Organization data under the hierarchy:** no real table uses `padua_owned_row_guard` or the chain policy yet.
   They arrive with BYOD, saved briefings, sharing and Initiatives.
 - **Sharing:** of briefings, business cases or reports within or across organizations.
-- **BYOD uploads, and moving browser-local work to the server:** business-case drafts and pinned briefings still live in
-  the browser.
+- **Uploads, beyond private:**
+  - sharing with colleagues or the organization;
+  - managers seeing their reports' files;
+  - using uploaded data in the analysis tools;
+  - larger files (object storage);
+  - per-person storage quotas;
+  - editing or replacing.
+
+  V7.6.5d is private upload, list, download and delete only.
+- **Moving browser-local work to the server:** business-case drafts and pinned briefings still live in the browser.
 - **Smaller gaps:**
   - renaming the organization;
   - facilities outside the HCAI list;

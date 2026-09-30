@@ -1,4 +1,4 @@
-import { Building2, ChevronRight, LogOut, Network, ShieldCheck, UserRound } from "lucide-react"
+import { Building2, ChevronRight, FolderLock, LogOut, Network, ShieldCheck, UserRound } from "lucide-react"
 import type { Metadata } from "next"
 import Link from "next/link"
 import { redirect } from "next/navigation"
@@ -83,6 +83,17 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
           <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
         </Link>
       )}
+      <Link
+        href="/uploads"
+        className="widget flex items-center gap-3 p-4 text-[15px] font-medium hover:bg-white/80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none dark:hover:bg-white/10"
+      >
+        <FolderLock className="size-4 text-primary" aria-hidden />
+        <span className="flex-1">
+          My uploads
+          <span className="block text-[13px] font-normal text-muted-foreground">Your own data files. Private to you: no one else in Padua can see them.</span>
+        </span>
+        <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
+      </Link>
       <div className="grid gap-4 lg:grid-cols-2">
         <section aria-labelledby="you-title" className="widget p-5">
           <h2 id="you-title" className="flex items-center gap-2 text-[17px] font-semibold tracking-tight">
